@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 
 import '../errors/vault_exceptions.dart';
 import 'connection/vault_connection.dart';
@@ -13,10 +14,21 @@ part 'local_note_vault.g.dart';
 /// reduced-security posture. Any doubt throws [VaultInitializationException]
 /// and the caller must treat the vault as still locked.
 @DriftDatabase(
-  tables: [Notebooks, Tags, NoteTags, Notes, NoteRevisions, AccessLog, BackupHistory],
+  tables: [Notebooks, Tags, NoteTags, Notes, NoteRevisions, AccessLog, BackupHistory, SyncMeta],
 )
 class LocalNoteVault extends _$LocalNoteVault {
   LocalNoteVault._(super.executor);
+
+  @visibleForTesting
+  LocalNoteVault.forTesting(super.executor);
+
+  /// The vault file since Notes moved onto the shared Zero-Trust account.
+  /// Its key comes from the account's app key, not a separate passphrase.
+  static const currentFileBaseName = 'notes_v2';
+
+  /// The pre-core vault, keyed by the old vault passphrase. Only ever
+  /// opened to import its notes (see `LegacyNotesImporter`).
+  static const legacyFileBaseName = 'note_vault';
 
   static Future<LocalNoteVault> open({
     required String passphrase,
@@ -30,7 +42,18 @@ class LocalNoteVault extends _$LocalNoteVault {
   }
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.addColumn(notes, notes.isDirty);
+            await m.addColumn(notes, notes.updatedAtMicros);
+            await m.createTable(syncMeta);
+          }
+        },
+      );
 
   /// Forces the connection to actually open (native: spawns the background
   /// isolate and runs the `PRAGMA key` setup callback) and surfaces any

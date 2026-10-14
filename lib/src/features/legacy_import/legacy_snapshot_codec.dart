@@ -4,9 +4,9 @@ import 'dart:typed_data';
 import 'package:archive/archive.dart';
 import 'package:drift/drift.dart';
 
-import '../../../core/crypto/payload_cipher_service.dart';
-import '../../../core/crypto/signing_service.dart';
-import '../../../core/db/local_note_vault.dart';
+import '../../core/crypto/payload_cipher_service.dart';
+import '../../core/crypto/signing_service.dart';
+import '../../core/db/local_note_vault.dart';
 
 /// Signature verification failed: the blob was tampered with, corrupted, or
 /// signed by a different key than the one we trust for this user.
@@ -19,8 +19,9 @@ class SnapshotIntegrityException implements Exception {
   String toString() => 'SnapshotIntegrityException: $message';
 }
 
-/// Turns the local `notes` table into a single signed, encrypted, compressed
-/// blob for the manual Sync/Pull flow, and back again.
+/// The pre-core sync format: the whole `notes` table as one signed,
+/// encrypted, compressed blob. Now only decoded, to import old notes;
+/// [encodeAndSign] remains for tests.
 ///
 /// Note content itself is never decrypted here — `encryptedTitle`/
 /// `encryptedBody`/`encryptedAttachments` are already Tier-2 ciphertext
@@ -40,10 +41,6 @@ class VaultSnapshotCodec {
 
   final PayloadCipherService _cipher;
   final SigningService _signing;
-
-  Future<List<NoteRow>> readAllNoteRows(LocalNoteVault vault) {
-    return vault.select(vault.notes).get();
-  }
 
   /// Builds the signed, encrypted, base64 blob to push.
   Future<String> encodeAndSign({
@@ -97,18 +94,6 @@ class VaultSnapshotCodec {
     return decoded.map((entry) => _noteRowFromJson(entry as Map<String, dynamic>)).toList();
   }
 
-  /// Replaces the local `notes` table's contents with [noteRows] — this is
-  /// the "whole-blob last-write-wins" merge: the pulled snapshot becomes the
-  /// new local state wholesale, it isn't merged row by row.
-  Future<void> applySnapshot(LocalNoteVault vault, List<NoteRow> noteRows) async {
-    await vault.transaction(() async {
-      await vault.delete(vault.notes).go();
-      for (final row in noteRows) {
-        await vault.into(vault.notes).insert(row.toCompanion(true));
-      }
-    });
-  }
-
   Map<String, dynamic> _noteRowToJson(NoteRow row) => {
         'id': row.id,
         'notebookId': row.notebookId,
@@ -132,5 +117,6 @@ class VaultSnapshotCodec {
         createdAt: DateTime.parse(json['createdAt'] as String),
         updatedAt: DateTime.parse(json['updatedAt'] as String),
         isDeleted: json['isDeleted'] as bool,
+        isDirty: false,
       );
 }

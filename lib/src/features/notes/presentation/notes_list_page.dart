@@ -3,13 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../shared/widgets/accessible_touch_target.dart';
-import '../../auth/application/auth_controller.dart';
-import '../../export/presentation/export_sheet.dart';
+import '../../legacy_import/presentation/legacy_import.dart';
+import '../../settings/notes_settings_page.dart';
 import '../../sync/application/sync_controller.dart';
-import '../../sync/presentation/conflict_resolution_dialog.dart';
 import '../../sync/presentation/sync_status_badge.dart';
-import '../../vault/application/vault_controller.dart';
-import '../application/notes_controller.dart';
+import '../application/notes_session.dart';
 import '../domain/note.dart';
 import 'note_editor_page.dart';
 
@@ -21,9 +19,7 @@ class NotesListPage extends ConsumerWidget {
     final notesAsync = ref.watch(notesListProvider);
 
     ref.listen(syncControllerProvider, (previous, next) {
-      if (next is SyncConflictPending) {
-        showConflictResolutionDialog(context, next.conflict);
-      } else if (next is SyncError) {
+      if (next is SyncError) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(next.message)));
       }
     });
@@ -31,9 +27,9 @@ class NotesListPage extends ConsumerWidget {
     return CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.keyS, control: true): () =>
-            ref.read(syncControllerProvider.notifier).push(),
+            ref.read(syncControllerProvider.notifier).syncNow(),
         const SingleActivator(LogicalKeyboardKey.keyS, meta: true): () =>
-            ref.read(syncControllerProvider.notifier).push(),
+            ref.read(syncControllerProvider.notifier).syncNow(),
       },
       child: Focus(
         autofocus: true,
@@ -49,39 +45,25 @@ class NotesListPage extends ConsumerWidget {
                 child: SyncStatusBadge(),
               ),
               AccessibleIconButton(
-                label: 'Sync now',
-                icon: Icons.sync,
-                onPressed: () => ref.read(syncControllerProvider.notifier).push(),
-              ),
-              AccessibleIconButton(
-                label: 'Pull from cloud',
-                icon: Icons.cloud_download_outlined,
-                onPressed: () => ref.read(syncControllerProvider.notifier).pull(),
-              ),
-              AccessibleIconButton(
-                label: 'Export all notes',
-                icon: Icons.ios_share,
-                onPressed: () => showExportSheet(context),
-              ),
-              AccessibleIconButton(
-                label: 'Lock vault',
-                icon: Icons.lock_outline,
-                onPressed: () => ref.read(vaultControllerProvider.notifier).lock(),
-              ),
-              AccessibleIconButton(
-                label: 'Sign out',
-                icon: Icons.logout,
-                onPressed: () async {
-                  await ref.read(vaultControllerProvider.notifier).lock();
-                  await ref.read(authControllerProvider.notifier).signOut();
-                },
+                label: 'Settings',
+                icon: Icons.settings_outlined,
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const NotesSettingsPage()),
+                ),
               ),
             ],
           ),
-          body: notesAsync.when(
-            data: (notes) => _NotesList(notes: notes),
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, _) => Center(child: Text('Failed to load notes: $error')),
+          body: Column(
+            children: [
+              const LegacyImportBanner(),
+              Expanded(
+                child: notesAsync.when(
+                  data: (notes) => _NotesList(notes: notes),
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (error, _) => Center(child: Text('Failed to load notes: $error')),
+                ),
+              ),
+            ],
           ),
           floatingActionButton: Semantics(
             label: 'Create new note',

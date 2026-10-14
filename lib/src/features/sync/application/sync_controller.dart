@@ -1,13 +1,11 @@
+import 'dart:async';
+
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
+import 'package:zero_trust_core/zero_trust_core.dart';
 
-import '../../../core/storage/secure_credentials_store.dart';
-import '../../auth/application/auth_controller.dart';
-import '../../vault/application/vault_controller.dart';
-import '../../vault/application/vault_state.dart';
-import '../data/encrypted_notes_api.dart';
-import '../data/vault_snapshot_codec.dart';
-import '../domain/sync_conflict.dart';
+import '../../notes/application/notes_session.dart';
 
 sealed class SyncUiState {
   const SyncUiState();
@@ -15,10 +13,6 @@ sealed class SyncUiState {
 
 class SyncIdle extends SyncUiState {
   const SyncIdle();
-}
-
-class SyncEncrypting extends SyncUiState {
-  const SyncEncrypting();
 }
 
 class SyncSyncing extends SyncUiState {
@@ -29,182 +23,80 @@ class SyncOffline extends SyncUiState {
   const SyncOffline();
 }
 
-class SyncConflictPending extends SyncUiState {
-  const SyncConflictPending(this.conflict);
-
-  final SyncConflict conflict;
-}
-
 class SyncError extends SyncUiState {
   const SyncError(this.message);
 
   final String message;
 }
 
-final syncControllerProvider = NotifierProvider<SyncController, SyncUiState>(
-  SyncController.new,
-);
+/// Overridable so tests don't need the connectivity plugin.
+final isOnlineProvider = Provider<Future<bool> Function()>((ref) {
+  final connectivity = Connectivity();
+  return () async {
+    final results = await connectivity.checkConnectivity();
+    return !results.contains(ConnectivityResult.none);
+  };
+});
 
+final syncControllerProvider = NotifierProvider<SyncController, SyncUiState>(SyncController.new);
+
+/// Keeps notes in sync without a Sync button: once on unlock, shortly after
+/// every local change, and live as other devices write.
+///
+/// When another device's newer edit wins over an unsynced local one, the
+/// local version is kept as a separate "conflicted copy" note, so nothing a
+/// user typed is ever silently lost.
 class SyncController extends Notifier<SyncUiState> {
-  final _api = EncryptedNotesApi();
-  final _codec = VaultSnapshotCodec();
-  final _credentials = SecureCredentialsStore();
-  final _connectivity = Connectivity();
-
-  // Held between a detected push conflict and the user's resolution, so
-  // "Overwrite Cloud Version" doesn't have to re-encrypt from scratch.
-  String? _pendingPushBlobBase64;
+  static const debounce = Duration(seconds: 2);
+  static const _uuid = Uuid();
+  Timer? _timer;
 
   @override
-  SyncUiState build() => const SyncIdle();
+  SyncUiState build() {
+    ref.onDispose(() => _timer?.cancel());
+    ref.listen(notesSessionProvider, fireImmediately: true, (_, next) {
+      final session = next.value;
+      if (session == null) return;
+      session.engine.startLive(onApplied: (result) => _keepConflictCopies(session, result));
+      Future.microtask(syncNow);
+    });
+    ref.listen(notesChangedProvider, (_, _) {
+      _timer?.cancel();
+      _timer = Timer(debounce, syncNow);
+    });
+    return const SyncIdle();
+  }
 
-  /// Manual "Sync" button: encrypt + sign the whole local vault and push it
-  /// as this user's snapshot — unless the cloud already has something newer
-  /// than what this device last synced, in which case this pauses and asks.
-  Future<void> push() async {
-    final userId = ref.read(currentUserProvider)?.id;
-    final unlocked = unlockedFieldsOf(ref.read(vaultControllerProvider));
-    if (userId == null || unlocked == null) {
-      state = const SyncError('Vault must be unlocked and signed in to sync.');
-      return;
-    }
-    if (!await _isOnline()) {
+  Future<void> syncNow() async {
+    final session = ref.read(notesSessionProvider).value;
+    if (session == null) return;
+    if (!await ref.read(isOnlineProvider)()) {
       state = const SyncOffline();
       return;
     }
-
-    final vaultController = ref.read(vaultControllerProvider.notifier);
+    state = const SyncSyncing();
     try {
-      vaultController.markSyncing();
-      state = const SyncEncrypting();
-      final rows = await _codec.readAllNoteRows(unlocked.vault);
-      final blob = await _codec.encodeAndSign(
-        noteRows: rows,
-        payloadKeyBytes: unlocked.payloadKeyBytes,
-        signingKeyMaterial: unlocked.signingKeyMaterial,
-      );
-
-      state = const SyncSyncing();
-      final localLastSync = await _credentials.readLastSyncTimestamp(userId);
-      final remote = await _api.pull(userId);
-      final remoteIsNewer = remote != null &&
-          (localLastSync == null || remote.updatedAt.isAfter(localLastSync));
-
-      if (remoteIsNewer) {
-        _pendingPushBlobBase64 = blob;
-        vaultController.markConflict();
-        state = SyncConflictPending(
-          SyncConflict(
-            remoteUpdatedAt: remote.updatedAt,
-            remoteDeviceId: remote.deviceId,
-            localLastSyncTimestamp: localLastSync,
-          ),
-        );
-        return;
-      }
-
-      await _pushBlob(userId: userId, deviceId: unlocked.deviceId, blob: blob);
-      vaultController.markUnlocked();
+      final result = await session.engine.sync();
+      await _keepConflictCopies(session, result);
+      if (!ref.mounted) return;
       state = const SyncIdle();
     } catch (error) {
-      vaultController.markUnlocked();
-      state = SyncError('Sync failed: $error');
+      if (!ref.mounted) return;
+      state = SyncError('Couldn\'t sync. Your notes are saved on this device and will sync later.');
     }
   }
 
-  /// Manual "Pull" button: fetch the cloud snapshot, verify its signature,
-  /// and replace local note data with it wholesale (whole-blob last-write-
-  /// wins — this is an explicit user action, so it doesn't itself trigger
-  /// the conflict prompt the way an overwriting Push does).
-  Future<void> pull() async {
-    final userId = ref.read(currentUserProvider)?.id;
-    final unlocked = unlockedFieldsOf(ref.read(vaultControllerProvider));
-    if (userId == null || unlocked == null) {
-      state = const SyncError('Vault must be unlocked and signed in to sync.');
-      return;
+  Future<void> _keepConflictCopies(NotesSession session, SyncResult result) async {
+    if (result.conflicts.isEmpty) return;
+    for (final conflict in result.conflicts) {
+      final lost = conflict.lostLocal.json;
+      if (lost == null) continue; // a local delete lost; nothing to restore
+      final title = (lost['title'] as String?) ?? '';
+      await session.engine.save(_uuid.v4(), {
+        ...lost,
+        'title': title.isEmpty ? 'Conflicted copy' : '$title (conflicted copy)',
+      });
     }
-    if (!await _isOnline()) {
-      state = const SyncOffline();
-      return;
-    }
-
-    final vaultController = ref.read(vaultControllerProvider.notifier);
-    try {
-      vaultController.markSyncing();
-      state = const SyncSyncing();
-
-      final remote = await _api.pull(userId);
-      if (remote == null) {
-        vaultController.markUnlocked();
-        state = const SyncIdle();
-        return;
-      }
-
-      final noteRows = await _codec.verifyAndDecode(
-        dataBlobBase64: remote.dataBlobBase64,
-        payloadKeyBytes: unlocked.payloadKeyBytes,
-        trustedPublicKeyBytes: unlocked.signingKeyMaterial.publicKeyBytes,
-      );
-      await _codec.applySnapshot(unlocked.vault, noteRows);
-      await _credentials.writeLastSyncTimestamp(userId, remote.updatedAt);
-
-      vaultController.markUnlocked();
-      state = const SyncIdle();
-    } catch (error) {
-      vaultController.markUnlocked();
-      state = SyncError('Pull failed: $error');
-    }
-  }
-
-  /// Resolves a conflict surfaced by [push]: keep the cloud version (pull
-  /// it down, discarding the prepared local push) or overwrite the cloud
-  /// with what this device had already prepared to send.
-  Future<void> resolveConflict({required bool keepCloudVersion}) async {
-    final pendingBlob = _pendingPushBlobBase64;
-    _pendingPushBlobBase64 = null;
-
-    if (keepCloudVersion) {
-      await pull();
-      return;
-    }
-
-    final userId = ref.read(currentUserProvider)?.id;
-    final unlocked = unlockedFieldsOf(ref.read(vaultControllerProvider));
-    if (userId == null || unlocked == null || pendingBlob == null) {
-      state = const SyncError('Sync failed: nothing pending to push.');
-      return;
-    }
-
-    final vaultController = ref.read(vaultControllerProvider.notifier);
-    try {
-      await _pushBlob(userId: userId, deviceId: unlocked.deviceId, blob: pendingBlob);
-      vaultController.markUnlocked();
-      state = const SyncIdle();
-    } catch (error) {
-      vaultController.markUnlocked();
-      state = SyncError('Sync failed: $error');
-    }
-  }
-
-  /// Backs out of a pending conflict without pushing or pulling — the local
-  /// vault keeps its unsynced changes exactly as they were.
-  void cancelConflict() {
-    _pendingPushBlobBase64 = null;
-    ref.read(vaultControllerProvider.notifier).markUnlocked();
-    state = const SyncIdle();
-  }
-
-  Future<void> _pushBlob({
-    required String userId,
-    required String deviceId,
-    required String blob,
-  }) async {
-    final syncedAt = await _api.push(userId: userId, deviceId: deviceId, dataBlobBase64: blob);
-    await _credentials.writeLastSyncTimestamp(userId, syncedAt);
-  }
-
-  Future<bool> _isOnline() async {
-    final results = await _connectivity.checkConnectivity();
-    return !results.contains(ConnectivityResult.none);
+    ref.read(notesChangedProvider.notifier).bump();
   }
 }

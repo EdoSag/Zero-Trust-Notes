@@ -45,8 +45,25 @@ class Notes extends Table {
   DateTimeColumn get updatedAt => dateTime()();
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
 
+  /// Changed locally and not yet accepted by the server (see
+  /// `NotesItemStore`).
+  BoolColumn get isDirty => boolean().withDefault(const Constant(false))();
+
+  /// [updatedAt] to the microsecond. Drift stores [DateTimeColumn] in whole
+  /// seconds, which is too coarse to order two quick edits for sync.
+  IntColumn get updatedAtMicros => integer().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
+}
+
+/// Small key/value table for sync bookkeeping (pull cursor, import marker).
+class SyncMeta extends Table {
+  TextColumn get key => text()();
+  TextColumn get value => text()();
+
+  @override
+  Set<Column> get primaryKey => {key};
 }
 
 class NoteRevisions extends Table {

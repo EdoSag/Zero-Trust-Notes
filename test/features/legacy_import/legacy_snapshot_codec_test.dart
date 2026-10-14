@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zerotrust_notes/src/core/crypto/signing_service.dart';
 import 'package:zerotrust_notes/src/core/db/local_note_vault.dart';
-import 'package:zerotrust_notes/src/features/sync/data/vault_snapshot_codec.dart';
+import 'package:zerotrust_notes/src/features/legacy_import/legacy_snapshot_codec.dart';
 
 void main() {
   final codec = VaultSnapshotCodec();
@@ -21,6 +21,7 @@ void main() {
         createdAt: DateTime.utc(2026, 1, 1),
         updatedAt: DateTime.utc(2026, 1, 2),
         isDeleted: isDeleted,
+        isDirty: false,
       );
 
   test('encode then decode round-trips the same note rows', () async {

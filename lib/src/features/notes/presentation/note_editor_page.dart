@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../shared/widgets/accessible_touch_target.dart';
 import '../../export/presentation/export_sheet.dart';
-import '../application/notes_controller.dart';
+import '../application/notes_session.dart';
 import '../domain/note.dart';
 
 class NoteEditorPage extends ConsumerStatefulWidget {
