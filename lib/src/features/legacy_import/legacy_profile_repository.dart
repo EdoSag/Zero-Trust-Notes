@@ -1,7 +1,7 @@
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:zero_trust_core/zero_trust_core.dart';
 
 class VaultProfile {
   const VaultProfile({required this.salt, this.publicKey, this.encryptedPrivateKey});
@@ -11,6 +11,9 @@ class VaultProfile {
   final Uint8List? encryptedPrivateKey;
 }
 
+/// Read-only view of the pre-core `profiles` columns, used once to import
+/// notes written before Notes moved onto the shared account.
+///
 /// Talks to the `profiles` table — shared across every app in this Supabase
 /// project — for the columns this app cares about: the per-user KDF salt,
 /// and the escrowed Ed25519 keypair (public key in the clear, private key
@@ -36,34 +39,11 @@ class ProfileRepository {
     if (saltText == null) return null;
 
     return VaultProfile(
-      salt: base64Decode(saltText),
+      // Sibling apps wrote this salt in several base64 dialects.
+      salt: ZtBase64.decode(saltText),
       publicKey: _decodeBytea(row['public_key'] as String?),
       encryptedPrivateKey: _decodeBytea(row['encrypted_private_key'] as String?),
     );
-  }
-
-  Future<void> upsertSalt(String userId, Uint8List salt) {
-    return _client.from('profiles').upsert({'id': userId, 'salt': base64Encode(salt)});
-  }
-
-  /// [salt] must be included even though it's presumably already on the
-  /// row: Postgres validates NOT NULL constraints against the full
-  /// candidate row for `INSERT ... ON CONFLICT DO UPDATE` *before*
-  /// arbitrating the conflict, so an upsert payload that omits a NOT NULL
-  /// column (like `profiles.salt`) fails even when it would only ever take
-  /// the UPDATE branch.
-  Future<void> upsertKeyMaterial(
-    String userId, {
-    required Uint8List salt,
-    required Uint8List publicKey,
-    required Uint8List encryptedPrivateKey,
-  }) {
-    return _client.from('profiles').upsert({
-      'id': userId,
-      'salt': base64Encode(salt),
-      'public_key': _encodeBytea(publicKey),
-      'encrypted_private_key': _encodeBytea(encryptedPrivateKey),
-    });
   }
 
   static Uint8List? _decodeBytea(String? pgHexLiteral) {
@@ -74,13 +54,5 @@ class ProfileRepository {
       bytes[i] = int.parse(hexDigits.substring(i * 2, i * 2 + 2), radix: 16);
     }
     return bytes;
-  }
-
-  static String _encodeBytea(Uint8List bytes) {
-    final buffer = StringBuffer('\\x');
-    for (final byte in bytes) {
-      buffer.write(byte.toRadixString(16).padLeft(2, '0'));
-    }
-    return buffer.toString();
   }
 }
