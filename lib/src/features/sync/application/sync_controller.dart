@@ -38,6 +38,13 @@ final isOnlineProvider = Provider<Future<bool> Function()>((ref) {
   };
 });
 
+/// Emits whenever the device regains a network connection.
+final connectivityRestoredProvider = StreamProvider<void>(
+  (ref) => Connectivity().onConnectivityChanged
+      .where((results) => !results.contains(ConnectivityResult.none))
+      .map((_) {}),
+);
+
 final syncControllerProvider = NotifierProvider<SyncController, SyncUiState>(SyncController.new);
 
 /// Keeps notes in sync without a Sync button: once on unlock, shortly after
@@ -59,6 +66,10 @@ class SyncController extends Notifier<SyncUiState> {
       if (session == null) return;
       session.engine.startLive(onApplied: (result) => _keepConflictCopies(session, result));
       Future.microtask(syncNow);
+    });
+    // Edits made offline (or a failed sync) go up as soon as the network is back.
+    ref.listen(connectivityRestoredProvider, (_, _) {
+      if (state is SyncOffline || state is SyncError) syncNow();
     });
     ref.listen(notesChangedProvider, (_, _) {
       _timer?.cancel();

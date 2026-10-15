@@ -55,6 +55,7 @@ void main() {
         syncBackendProvider.overrideWithValue(FakeSyncBackend()),
         deviceIdProvider.overrideWith((ref) async => 'test-device'),
         isOnlineProvider.overrideWithValue(() async => true),
+        connectivityRestoredProvider.overrideWith((ref) => const Stream<void>.empty()),
         openNotesVaultProvider.overrideWithValue(
           (key) async => LocalNoteVault.forTesting(NativeDatabase.memory()),
         ),
@@ -120,6 +121,36 @@ void main() {
     // Locking cancels the auto-lock timer and pops back to the unlock screen.
     container.read(vaultControllerProvider.notifier).lock();
     await settle(tester);
+    expect(find.text('Zero-Trust Notes is locked'), findsOneWidget);
+  });
+
+  testWidgets('backgrounding on the recovery-key screen asks for the password again', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      UncontrolledProviderScope(container: container, child: const ZeroTrustNotesApp()),
+    );
+    await tester.tap(find.text('Create a Zero-Trust account'));
+    await tester.pump();
+    await tester.enterText(find.widgetWithText(TextFormField, 'Email'), email);
+    await tester.enterText(find.widgetWithText(TextFormField, 'Password'), password);
+    await tester.enterText(find.widgetWithText(TextFormField, 'Confirm password'), password);
+    await tester.tap(find.widgetWithText(FilledButton, 'Create account'));
+    await settle(tester);
+    expect(find.text('Save your recovery key'), findsOneWidget);
+
+    for (final state in [
+      AppLifecycleState.inactive,
+      AppLifecycleState.hidden,
+      AppLifecycleState.paused,
+      AppLifecycleState.hidden,
+      AppLifecycleState.inactive,
+      AppLifecycleState.resumed,
+    ]) {
+      tester.binding.handleAppLifecycleStateChanged(state);
+    }
+    await settle(tester);
+    expect(find.text('Save your recovery key'), findsNothing);
     expect(find.text('Zero-Trust Notes is locked'), findsOneWidget);
   });
 }

@@ -37,10 +37,17 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
   }
 
   /// Leaving the foreground locks the vault (closing the database and
-  /// zeroing its keys) and deletes any in-flight export temp file.
+  /// zeroing its keys) and deletes any in-flight export temp file. A key
+  /// still waiting behind the recovery-key screen is zeroed too, so coming
+  /// back asks for the password; a new recovery key can be made in Settings.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+      final pending = _awaitingRecoveryKey;
+      if (pending != null) {
+        pending.dek.fillRange(0, pending.dek.length, 0);
+        setState(() => _awaitingRecoveryKey = null);
+      }
       ref.read(vaultControllerProvider.notifier).lock();
       ref.read(exportTempFileRegistryProvider).deleteAll();
     }

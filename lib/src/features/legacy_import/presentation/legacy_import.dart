@@ -98,6 +98,7 @@ class _LegacyImportDialogState extends ConsumerState<_LegacyImportDialog> {
     try {
       final count = await importer.run(_passphrase.text);
       ref.invalidate(legacyImportPendingProvider);
+      if (count > 0) ref.read(notesChangedProvider.notifier).bump();
       if (mounted) Navigator.pop(context, count);
     } on WrongLegacyPassphrase {
       if (mounted) setState(() => _error = 'That passphrase doesn\'t open your old notes.');

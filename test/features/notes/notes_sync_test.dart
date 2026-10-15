@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:drift/native.dart';
@@ -20,7 +21,8 @@ class Device {
         ztAppConfigProvider.overrideWithValue(notesAppConfig),
         syncBackendProvider.overrideWithValue(server),
         deviceIdProvider.overrideWith((ref) async => id),
-        isOnlineProvider.overrideWithValue(() async => true),
+        isOnlineProvider.overrideWithValue(() async => online),
+        connectivityRestoredProvider.overrideWith((ref) => reconnects.stream),
         openNotesVaultProvider.overrideWithValue((key) async {
           openedWithKey = key;
           return LocalNoteVault.forTesting(NativeDatabase.memory());
@@ -31,6 +33,8 @@ class Device {
 
   final String id;
   late final ProviderContainer container;
+  bool online = true;
+  final reconnects = StreamController<void>.broadcast();
   String? openedWithKey;
 
   Future<NotesSession> unlock() async {
@@ -146,6 +150,20 @@ void main() {
     await laptop.sync();
     await phone.sync();
     expect(await phone.notes(), containsAll(laptopNotes));
+  });
+
+  test('an edit made offline syncs once the network is back', () async {
+    phone.online = false;
+    await phone.container.read(notesRepositoryProvider)!.createNote(title: 'Offline', body: 'x');
+    await phone.sync();
+    expect(phone.container.read(syncControllerProvider), isA<SyncOffline>());
+
+    phone.online = true;
+    phone.reconnects.add(null);
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+    expect(phone.container.read(syncControllerProvider), isA<SyncIdle>());
+    await laptop.sync();
+    expect(await laptop.notes(), contains(('Offline', 'x')));
   });
 
   test('locking closes the session and hides notes', () async {
