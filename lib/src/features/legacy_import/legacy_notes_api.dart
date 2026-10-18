@@ -12,6 +12,9 @@ class EncryptedNoteSnapshot {
   final DateTime updatedAt;
 }
 
+/// Read-only access to the pre-core whole-vault snapshot, used once to
+/// import notes from a device that no longer has the old local file.
+///
 /// Talks to `encrypted_notes` — one point-in-time whole-vault snapshot per
 /// user, upserted by `user_id` (enforced by a unique index; see the
 /// migration). Supabase never sees anything here it could act on: it's an
@@ -35,25 +38,5 @@ class EncryptedNotesApi {
       deviceId: row['device_id'] as String,
       updatedAt: DateTime.parse(row['updated_at'] as String),
     );
-  }
-
-  /// Returns the timestamp that was actually written, so the caller can
-  /// cache it locally as `last_sync_timestamp` without a second round trip.
-  Future<DateTime> push({
-    required String userId,
-    required String deviceId,
-    required String dataBlobBase64,
-  }) async {
-    final now = DateTime.now().toUtc();
-    await _client.from('encrypted_notes').upsert(
-      {
-        'user_id': userId,
-        'device_id': deviceId,
-        'data_blob': dataBlobBase64,
-        'updated_at': now.toIso8601String(),
-      },
-      onConflict: 'user_id',
-    );
-    return now;
   }
 }

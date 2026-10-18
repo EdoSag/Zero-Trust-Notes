@@ -1,106 +1,81 @@
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
+import 'package:zero_trust_core/zero_trust_core.dart';
 
 import '../../../core/crypto/payload_cipher_service.dart';
 import '../../../core/db/local_note_vault.dart';
+import '../../sync/data/notes_item_store.dart';
 import '../domain/note.dart';
 
-/// Reads/writes notes through the Tier-2 cipher: nothing plaintext ever
-/// touches [LocalNoteVault].
+/// Reads notes from [LocalNoteVault] and writes them through the shared
+/// sync engine, so every change is encrypted, stored locally, and queued
+/// for sync in one step. Nothing plaintext ever touches the database.
 class NotesRepository {
   NotesRepository({
-    required LocalNoteVault vault,
-    required Uint8List payloadKeyBytes,
+    required this._vault,
+    required this._columnKey,
+    required this._engine,
+    this._onChanged,
     PayloadCipherService? cipher,
-  })  : _vault = vault,
-        _payloadKeyBytes = payloadKeyBytes,
-        _cipher = cipher ?? PayloadCipherService();
+  }) : _cipher = cipher ?? PayloadCipherService();
 
   final LocalNoteVault _vault;
-  final Uint8List _payloadKeyBytes;
+  final Uint8List _columnKey;
+  final ItemSyncEngine _engine;
+  final void Function()? _onChanged;
   final PayloadCipherService _cipher;
   static const _uuid = Uuid();
 
-  Stream<List<Note>> watchAll() {
-    final query = _vault.select(_vault.notes)
-      ..where((row) => row.isDeleted.equals(false))
-      ..orderBy([(row) => OrderingTerm.desc(row.updatedAt)]);
-    return query.watch().asyncMap(_decryptAll);
-  }
+  Stream<List<Note>> watchAll() => _liveQuery().watch().asyncMap(_decryptAll);
 
   /// One-shot read for callers (export) that just need the current list
   /// once rather than a live stream.
-  Future<List<Note>> fetchAll() async {
-    final query = _vault.select(_vault.notes)
-      ..where((row) => row.isDeleted.equals(false))
-      ..orderBy([(row) => OrderingTerm.desc(row.updatedAt)]);
-    return _decryptAll(await query.get());
-  }
+  Future<List<Note>> fetchAll() async => _decryptAll(await _liveQuery().get());
+
+  SimpleSelectStatement<$NotesTable, NoteRow> _liveQuery() => _vault.select(_vault.notes)
+    ..where((row) => row.isDeleted.equals(false))
+    ..orderBy([(row) => OrderingTerm.desc(row.updatedAt)]);
 
   Future<List<Note>> _decryptAll(List<NoteRow> rows) async {
     final notes = <Note>[];
     for (final row in rows) {
-      notes.add(await _decryptRow(row));
+      notes.add(
+        Note(
+          id: row.id,
+          notebookId: row.notebookId,
+          title: await _cipher.decrypt(row.encryptedTitle, _columnKey),
+          body: await _cipher.decrypt(row.encryptedBody, _columnKey),
+          createdAt: row.createdAt,
+          updatedAt: row.updatedAt,
+        ),
+      );
     }
     return notes;
-  }
-
-  Future<Note> _decryptRow(NoteRow row) async {
-    final title = await _cipher.decrypt(row.encryptedTitle, _payloadKeyBytes);
-    final body = await _cipher.decrypt(row.encryptedBody, _payloadKeyBytes);
-    return Note(
-      id: row.id,
-      notebookId: row.notebookId,
-      title: title,
-      body: body,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
-    );
   }
 
   Future<Note> createNote({required String title, required String body}) async {
     final now = DateTime.now().toUtc();
     final id = _uuid.v4();
-    final encryptedTitle = await _cipher.encrypt(title, _payloadKeyBytes);
-    final encryptedBody = await _cipher.encrypt(body, _payloadKeyBytes);
-
-    await _vault.into(_vault.notes).insert(
-          NotesCompanion.insert(
-            id: id,
-            encryptedTitle: encryptedTitle,
-            encryptedBody: encryptedBody,
-            createdAt: now,
-            updatedAt: now,
-          ),
-        );
-
-    return Note(
-      id: id,
-      notebookId: null,
-      title: title,
-      body: body,
-      createdAt: now,
-      updatedAt: now,
-    );
+    await _engine.save(id, NotesItemStore.noteJson(title: title, body: body, createdAt: now));
+    _onChanged?.call();
+    return Note(id: id, notebookId: null, title: title, body: body, createdAt: now, updatedAt: now);
   }
 
   Future<void> updateNote(Note note) async {
-    final now = DateTime.now().toUtc();
-    final encryptedTitle = await _cipher.encrypt(note.title, _payloadKeyBytes);
-    final encryptedBody = await _cipher.encrypt(note.body, _payloadKeyBytes);
-
-    await (_vault.update(_vault.notes)..where((row) => row.id.equals(note.id))).write(
-      NotesCompanion(
-        encryptedTitle: Value(encryptedTitle),
-        encryptedBody: Value(encryptedBody),
-        updatedAt: Value(now),
+    await _engine.save(
+      note.id,
+      NotesItemStore.noteJson(
+        title: note.title,
+        body: note.body,
+        notebookId: note.notebookId,
+        createdAt: note.createdAt,
       ),
     );
+    _onChanged?.call();
   }
 
   Future<void> deleteNote(String id) async {
-    await (_vault.update(_vault.notes)..where((row) => row.id.equals(id))).write(
-      const NotesCompanion(isDeleted: Value(true)),
-    );
+    await _engine.delete(id);
+    _onChanged?.call();
   }
 }
