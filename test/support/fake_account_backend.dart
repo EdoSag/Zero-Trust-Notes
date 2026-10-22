@@ -46,8 +46,26 @@ class FakeAccountBackend implements AccountBackend {
   Future<ProfileRecord?> fetchProfile() async => profiles[_user];
 
   @override
-  Future<void> writeKeys(StoredKeys keys) async =>
-      profiles[_user!] = ProfileRecord(legacySalt: profiles[_user]?.legacySalt, keys: keys);
+  Future<void> writeKeys(StoredKeys keys) async => profiles[_user!] = ProfileRecord(
+    legacySalt: profiles[_user]?.legacySalt,
+    keys: keys,
+    authUpgraded: profiles[_user]?.authUpgraded ?? false,
+  );
+
+  @override
+  Future<bool> needsLegacySignIn(String email) async {
+    final p = profiles[email];
+    return p != null &&
+        p.legacySalt != null &&
+        !p.authUpgraded &&
+        (p.keys == null || p.keys!.legacyDek);
+  }
+
+  @override
+  Future<void> markAuthUpgraded() async {
+    final p = profiles[_user!]!;
+    profiles[_user!] = ProfileRecord(legacySalt: p.legacySalt, keys: p.keys, authUpgraded: true);
+  }
 
   @override
   Future<void> deleteAccount() async {

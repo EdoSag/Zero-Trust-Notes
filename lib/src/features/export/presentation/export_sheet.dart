@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../../notes/application/notes_session.dart';
+import '../../notes/application/notes_providers.dart';
 import '../../notes/domain/note.dart';
 import '../application/export_service.dart';
 import '../application/export_temp_file_registry.dart';

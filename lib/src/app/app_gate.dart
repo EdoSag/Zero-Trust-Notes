@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zero_trust_core/zero_trust_core.dart';
 
 import '../features/export/application/export_temp_file_registry.dart';
+import '../features/notes/application/notes_providers.dart';
 import '../features/notes/presentation/notes_list_page.dart';
 import 'auth_providers.dart';
 
@@ -121,7 +122,39 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
     // Any touch counts as activity for auto-lock.
     return Listener(
       onPointerDown: (_) => ref.read(vaultControllerProvider.notifier).touch(),
-      child: const NotesListPage(),
+      child: const _NotesHome(),
     );
+  }
+}
+
+/// The notes list once the local store is open (and earlier notes moved into
+/// it), which is also when sync starts.
+class _NotesHome extends ConsumerWidget {
+  const _NotesHome();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return switch (ref.watch(notesStoreProvider)) {
+      AsyncData() => const NotesListPage(),
+      AsyncError(:final error) when error is! VaultIsLocked => Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Couldn\'t open your notes on this device.'),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: () => ref.invalidate(notesStoreProvider),
+                  child: const Text('Try again'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      _ => const Scaffold(body: Center(child: CircularProgressIndicator())),
+    };
   }
 }

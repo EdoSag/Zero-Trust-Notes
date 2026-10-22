@@ -1,81 +1,61 @@
-import 'package:drift/drift.dart';
+import 'dart:async';
+
 import 'package:uuid/uuid.dart';
 import 'package:zero_trust_core/zero_trust_core.dart';
 
-import '../../../core/crypto/payload_cipher_service.dart';
-import '../../../core/db/local_note_vault.dart';
-import '../../sync/data/notes_item_store.dart';
 import '../domain/note.dart';
 
-/// Reads notes from [LocalNoteVault] and writes them through the shared
-/// sync engine, so every change is encrypted, stored locally, and queued
-/// for sync in one step. Nothing plaintext ever touches the database.
+/// Reads notes from the account's encrypted local store and writes them
+/// through the shared sync controller, which stores each change locally and
+/// pushes it shortly after.
 class NotesRepository {
-  NotesRepository({
-    required this._vault,
-    required this._columnKey,
-    required this._engine,
-    this._onChanged,
-    PayloadCipherService? cipher,
-  }) : _cipher = cipher ?? PayloadCipherService();
+  NotesRepository({required this._store, required this._sync});
 
-  final LocalNoteVault _vault;
-  final Uint8List _columnKey;
-  final ItemSyncEngine _engine;
-  final void Function()? _onChanged;
-  final PayloadCipherService _cipher;
+  final ZtLocalStore _store;
+
+  /// The sync controller, once its engine is open. Saving waits for it, so
+  /// an edit made right after unlock isn't refused.
+  final Future<SyncController> Function() _sync;
   static const _uuid = Uuid();
 
-  Stream<List<Note>> watchAll() => _liveQuery().watch().asyncMap(_decryptAll);
-
-  /// One-shot read for callers (export) that just need the current list
-  /// once rather than a live stream.
-  Future<List<Note>> fetchAll() async => _decryptAll(await _liveQuery().get());
-
-  SimpleSelectStatement<$NotesTable, NoteRow> _liveQuery() => _vault.select(_vault.notes)
-    ..where((row) => row.isDeleted.equals(false))
-    ..orderBy([(row) => OrderingTerm.desc(row.updatedAt)]);
-
-  Future<List<Note>> _decryptAll(List<NoteRow> rows) async {
-    final notes = <Note>[];
-    for (final row in rows) {
-      notes.add(
-        Note(
-          id: row.id,
-          notebookId: row.notebookId,
-          title: await _cipher.decrypt(row.encryptedTitle, _columnKey),
-          body: await _cipher.decrypt(row.encryptedBody, _columnKey),
-          createdAt: row.createdAt,
-          updatedAt: row.updatedAt,
-        ),
-      );
+  /// The current notes, newest first, and again after every change.
+  Stream<List<Note>> watchAll() {
+    late final StreamController<List<Note>> controller;
+    StreamSubscription<Set<String>>? changes;
+    Future<void> emit() async {
+      try {
+        final notes = await fetchAll();
+        if (!controller.isClosed) controller.add(notes);
+      } catch (e, s) {
+        if (!controller.isClosed) controller.addError(e, s);
+      }
     }
-    return notes;
+
+    controller = StreamController<List<Note>>(
+      onListen: () {
+        // Listen before the first read, so no change falls in between.
+        changes = _store.changes.listen((_) => emit());
+        emit();
+      },
+      onCancel: () => changes?.cancel(),
+    );
+    return controller.stream;
+  }
+
+  /// One-shot read for callers (export) that just need the current list.
+  Future<List<Note>> fetchAll() async {
+    final notes = [for (final item in await _store.liveItems()) Note.fromItem(item)];
+    return notes..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
   }
 
   Future<Note> createNote({required String title, required String body}) async {
     final now = DateTime.now().toUtc();
     final id = _uuid.v4();
-    await _engine.save(id, NotesItemStore.noteJson(title: title, body: body, createdAt: now));
-    _onChanged?.call();
+    await (await _sync()).save(id, Note.itemJson(title: title, body: body, createdAt: now));
     return Note(id: id, notebookId: null, title: title, body: body, createdAt: now, updatedAt: now);
   }
 
-  Future<void> updateNote(Note note) async {
-    await _engine.save(
-      note.id,
-      NotesItemStore.noteJson(
-        title: note.title,
-        body: note.body,
-        notebookId: note.notebookId,
-        createdAt: note.createdAt,
-      ),
-    );
-    _onChanged?.call();
-  }
+  Future<void> updateNote(Note note) async => (await _sync()).save(note.id, note.toItemJson());
 
-  Future<void> deleteNote(String id) async {
-    await _engine.delete(id);
-    _onChanged?.call();
-  }
+  Future<void> deleteNote(String id) async => (await _sync()).delete(id);
 }

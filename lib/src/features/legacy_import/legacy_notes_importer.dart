@@ -10,7 +10,7 @@ import '../../core/crypto/payload_cipher_service.dart';
 import '../../core/db/local_note_vault.dart';
 import '../../core/errors/vault_exceptions.dart';
 import '../../core/storage/secure_credentials_store.dart';
-import '../sync/data/notes_item_store.dart';
+import '../notes/domain/note.dart';
 import 'legacy_notes_api.dart';
 import 'legacy_profile_repository.dart';
 import 'legacy_snapshot_codec.dart';
@@ -146,30 +146,48 @@ class CloudSnapshotLegacySource implements LegacyNotesSource {
 }
 
 /// One-time move of notes written before Notes used the shared Zero-Trust
-/// account. They were encrypted with a separate vault passphrase; this
-/// re-encrypts them under the account and queues them for sync. The old
-/// file is left in place, untouched apart from a schema upgrade.
+/// account. They were encrypted with a separate vault passphrase, which the
+/// user types once; the shared [LegacyImporter] then saves them under the
+/// account, dated before any real edit so a newer version from another
+/// device always wins, and records that the import is done. The old file is
+/// left in place, untouched apart from a schema upgrade.
 class LegacyNotesImporter {
-  LegacyNotesImporter({required this.sources, required this._vault, required this._engine});
+  LegacyNotesImporter({
+    required this.sources,
+    required this._engine,
+    required this._ledger,
+    required this._deriveKey,
+  });
+
+  /// Reads the old notes of [userId] (salt from this device or the profile).
+  LegacyNotesImporter.forUser(
+    String userId, {
+    required List<LegacyNotesSource> sources,
+    required ItemSyncEngine engine,
+    required LegacyImportLedger ledger,
+  }) : this(
+         sources: sources,
+         engine: engine,
+         ledger: ledger,
+         deriveKey: (passphrase) => _legacyKey(userId, passphrase),
+       );
+
+  /// The shared import ledger's name for this data.
+  static const source = 'notes-vault-v1';
 
   final List<LegacyNotesSource> sources;
-  final LocalNoteVault _vault;
   final ItemSyncEngine _engine;
+  final LegacyImportLedger _ledger;
+  final Future<Uint8List?> Function(String passphrase) _deriveKey;
 
-  static const _doneKey = 'legacy_import_done_at';
-
-  Future<bool> isDone() async =>
-      await (_vault.select(
-        _vault.syncMeta,
-      )..where((m) => m.key.equals(_doneKey))).getSingleOrNull() !=
-      null;
+  Future<bool> isDone() => _ledger.legacyImportDone(source);
 
   /// The first source that has data, or null when there's nothing to import.
   Future<LegacyNotesSource?> pendingSource() async {
     if (await isDone()) return null;
-    for (final source in sources) {
+    for (final s in sources) {
       try {
-        if (await source.exists()) return source;
+        if (await s.exists()) return s;
       } on Object {
         // Offline or no access: try the next source, ask again next unlock.
       }
@@ -177,34 +195,32 @@ class LegacyNotesImporter {
     return null;
   }
 
-  /// Returns how many notes were imported.
+  /// Returns how many notes were imported. Throws [WrongLegacyPassphrase]
+  /// (and imports nothing) when [passphrase] doesn't open the old notes.
   Future<int> run(String passphrase) async {
-    final source = await pendingSource();
-    if (source == null) return 0;
-    final notes = await source.read(passphrase);
-    var imported = 0;
-    for (final note in notes) {
-      // A note already synced from another device that imported first keeps
-      // its newer version; re-saving would only duplicate work.
-      if (await _engine.store.get(note.id) != null) continue;
-      await _engine.save(
-        note.id,
-        NotesItemStore.noteJson(
-          title: note.title,
-          body: note.body,
-          notebookId: note.notebookId,
-          createdAt: note.createdAt,
-        ),
-      );
-      imported++;
+    final pending = await pendingSource();
+    if (pending == null) return 0;
+    // Null when the account never had a salt, so there can't be old notes.
+    final oldKey = await _deriveKey(passphrase);
+    try {
+      final result = await LegacyImporter(
+        source: source,
+        read: (_) async => [
+          for (final note in await pending.read(passphrase))
+            LegacyRecord(
+              itemId: note.id,
+              json: Note.itemJson(
+                title: note.title,
+                body: note.body,
+                notebookId: note.notebookId,
+                createdAt: note.createdAt,
+              ),
+            ),
+        ],
+      ).run(engine: _engine, ledger: _ledger, legacyKey: oldKey);
+      return result.imported;
+    } finally {
+      oldKey?.fillRange(0, oldKey.length, 0);
     }
-    await markDone();
-    return imported;
   }
-
-  Future<void> markDone() => _vault
-      .into(_vault.syncMeta)
-      .insertOnConflictUpdate(
-        SyncMetaCompanion.insert(key: _doneKey, value: DateTime.now().toUtc().toIso8601String()),
-      );
 }

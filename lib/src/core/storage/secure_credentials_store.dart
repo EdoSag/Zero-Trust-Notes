@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:uuid/uuid.dart';
 
 /// Thin wrapper around flutter_secure_storage for the small set of
 /// long-lived secrets the vault needs.
@@ -10,15 +9,12 @@ import 'package:uuid/uuid.dart';
 /// The salt, Ed25519 keypair, and last-sync timestamp are all keyed by
 /// `userId` — if this device is ever signed into more than one Supabase
 /// account, each account gets its own cached copies rather than silently
-/// reusing whichever user unlocked first. The device id is the one thing
-/// that's genuinely device-scoped, not user-scoped.
+/// reusing whichever user unlocked first.
 class SecureCredentialsStore {
   SecureCredentialsStore({FlutterSecureStorage? storage})
       : _storage = storage ?? const FlutterSecureStorage();
 
   final FlutterSecureStorage _storage;
-
-  static const _deviceIdKey = 'vault_device_id';
 
   Future<Uint8List?> readSalt(String userId) => _readBytes(_saltKey(userId));
   Future<void> writeSalt(String userId, Uint8List salt) =>
@@ -45,17 +41,6 @@ class SecureCredentialsStore {
       key: _lastSyncTimestampKey(userId),
       value: timestamp.toUtc().toIso8601String(),
     );
-  }
-
-  /// Returns the stable id for this install, generating and persisting one
-  /// on first call. Intentionally not user-scoped.
-  Future<String> ensureDeviceId() async {
-    final existing = await _storage.read(key: _deviceIdKey);
-    if (existing != null) return existing;
-
-    final generated = const Uuid().v4();
-    await _storage.write(key: _deviceIdKey, value: generated);
-    return generated;
   }
 
   static String _saltKey(String userId) => 'vault_kdf_salt:$userId';

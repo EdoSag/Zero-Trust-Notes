@@ -22,8 +22,9 @@ class LocalNoteVault extends _$LocalNoteVault {
   @visibleForTesting
   LocalNoteVault.forTesting(super.executor);
 
-  /// The vault file since Notes moved onto the shared Zero-Trust account.
-  /// Its key comes from the account's app key, not a separate passphrase.
+  /// The vault file Notes used on the shared account before it moved onto
+  /// the core's local store. Only ever opened to move its notes over (see
+  /// `movePreviousNotesStore`).
   static const currentFileBaseName = 'notes_v2';
 
   /// The pre-core vault, keyed by the old vault passphrase. Only ever

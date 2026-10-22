@@ -14,6 +14,7 @@ class NotesSettingsPage extends ConsumerWidget {
     final importPending = ref.watch(legacyImportPendingProvider).value ?? false;
     return ZtSettingsPage(
       onSignedOut: () => Navigator.of(context).popUntil((route) => route.isFirst),
+      showSyncStatus: true,
       backupSection: [
         ListTile(
           leading: const Icon(Icons.ios_share),

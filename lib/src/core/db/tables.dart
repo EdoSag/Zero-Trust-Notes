@@ -46,7 +46,7 @@ class Notes extends Table {
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
 
   /// Changed locally and not yet accepted by the server (see
-  /// `NotesItemStore`).
+  /// `movePreviousNotesStore`).
   BoolColumn get isDirty => boolean().withDefault(const Constant(false))();
 
   /// [updatedAt] to the microsecond. Drift stores [DateTimeColumn] in whole

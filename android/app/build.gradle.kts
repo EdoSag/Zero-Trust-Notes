@@ -19,7 +19,8 @@ android {
         applicationId = "dev.sagron.zerotrustnotes"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // 28: the shared core keeps the biometric unlock key in the Keystore.
+        minSdk = 28
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

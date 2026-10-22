@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:zero_trust_core/zero_trust_core.dart';
 
 import '../../../app/auth_providers.dart';
-import '../../notes/application/notes_session.dart';
+import '../../notes/application/notes_providers.dart';
 import '../legacy_notes_importer.dart';
 import '../legacy_snapshot_codec.dart';
 
@@ -13,13 +14,25 @@ final legacySourcesProvider = Provider<List<LegacyNotesSource> Function(String u
 );
 
 final legacyImporterProvider = Provider<LegacyNotesImporter?>((ref) {
-  final session = ref.watch(notesSessionProvider).value;
+  // The store first: the engine must not open before earlier notes moved in.
+  // Not `.value`, which keeps the last store and engine while locked.
+  final store = switch (ref.watch(notesStoreProvider)) {
+    AsyncData(:final value) => value,
+    _ => null,
+  };
+  final engine = store == null
+      ? null
+      : switch (ref.watch(ztSyncEngineProvider)) {
+          AsyncData(:final value) => value,
+          _ => null,
+        };
   final userId = ref.watch(currentUserProvider)?.id;
-  if (session == null || userId == null) return null;
-  return LegacyNotesImporter(
+  if (store == null || engine == null || userId == null) return null;
+  return LegacyNotesImporter.forUser(
+    userId,
     sources: ref.watch(legacySourcesProvider)(userId),
-    vault: session.vault,
-    engine: session.engine,
+    engine: engine,
+    ledger: store,
   );
 });
 
@@ -98,7 +111,9 @@ class _LegacyImportDialogState extends ConsumerState<_LegacyImportDialog> {
     try {
       final count = await importer.run(_passphrase.text);
       ref.invalidate(legacyImportPendingProvider);
-      if (count > 0) ref.read(notesChangedProvider.notifier).bump();
+      // Notes never reads data under the account's legacy key, so drop it.
+      ref.read(vaultControllerProvider.notifier).forgetLegacyKey();
+      if (count > 0) ref.read(ztSyncControllerProvider.notifier).syncNow();
       if (mounted) Navigator.pop(context, count);
     } on WrongLegacyPassphrase {
       if (mounted) setState(() => _error = 'That passphrase doesn\'t open your old notes.');

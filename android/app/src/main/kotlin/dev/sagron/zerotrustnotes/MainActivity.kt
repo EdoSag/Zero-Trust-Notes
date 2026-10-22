@@ -1,5 +1,7 @@
 package dev.sagron.zerotrustnotes
 
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 
-class MainActivity : FlutterActivity()
+// FlutterFragmentActivity, not FlutterActivity: the biometric prompt
+// (local_auth) needs a FragmentActivity.
+class MainActivity : FlutterFragmentActivity()

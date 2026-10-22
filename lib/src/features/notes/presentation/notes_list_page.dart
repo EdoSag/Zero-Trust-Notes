@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:zero_trust_core/zero_trust_core.dart';
 
 import '../../../shared/widgets/accessible_touch_target.dart';
 import '../../legacy_import/presentation/legacy_import.dart';
 import '../../settings/notes_settings_page.dart';
-import '../../sync/application/sync_controller.dart';
+import '../../sync/application/conflict_copies.dart';
 import '../../sync/presentation/sync_status_badge.dart';
-import '../application/notes_session.dart';
+import '../application/notes_providers.dart';
 import '../domain/note.dart';
 import 'note_editor_page.dart';
 
@@ -17,19 +18,25 @@ class NotesListPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notesAsync = ref.watch(notesListProvider);
+    ref.watch(conflictCopiesProvider);
 
-    ref.listen(syncControllerProvider, (previous, next) {
-      if (next is SyncError) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(next.message)));
+    ref.listen(ztSyncControllerProvider, (previous, next) {
+      // Once per failure streak; the controller keeps retrying on its own.
+      if (next.error != null && previous?.error == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Couldn\'t sync. Your notes are saved on this device and will sync later.'),
+          ),
+        );
       }
     });
 
     return CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.keyS, control: true): () =>
-            ref.read(syncControllerProvider.notifier).syncNow(),
+            ref.read(ztSyncControllerProvider.notifier).syncNow(),
         const SingleActivator(LogicalKeyboardKey.keyS, meta: true): () =>
-            ref.read(syncControllerProvider.notifier).syncNow(),
+            ref.read(ztSyncControllerProvider.notifier).syncNow(),
       },
       child: Focus(
         autofocus: true,
