@@ -1,21 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../application/sync_controller.dart';
+import 'package:zero_trust_core/zero_trust_core.dart';
 
 /// Live sync status, announced to screen readers as it changes. Tapping it
-/// syncs now.
+/// syncs now. Settings shows the longer `ZtSyncStatusTile`.
 class SyncStatusBadge extends ConsumerWidget {
   const SyncStatusBadge({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final syncState = ref.watch(syncControllerProvider);
-    final (label, icon, color) = switch (syncState) {
-      SyncIdle() => ('Synced', Icons.cloud_done_outlined, null),
-      SyncSyncing() => ('Syncing', Icons.sync, null),
-      SyncOffline() => ('Offline', Icons.cloud_off_outlined, Colors.grey),
-      SyncError() => ('Not synced', Icons.error_outline, Theme.of(context).colorScheme.error),
+    final status = ref.watch(ztSyncControllerProvider);
+    final (label, icon, color) = switch (status) {
+      SyncStatus(isSyncing: true) => ('Syncing', Icons.sync, null),
+      SyncStatus(error: _?) => (
+        'Not synced',
+        Icons.cloud_off_outlined,
+        Theme.of(context).colorScheme.error,
+      ),
+      SyncStatus(lastSyncedAt: null) => ('Not synced yet', Icons.cloud_queue, null),
+      _ => ('Synced', Icons.cloud_done_outlined, null),
     };
 
     return Semantics(
@@ -26,7 +29,7 @@ class SyncStatusBadge extends ConsumerWidget {
       child: ActionChip(
         avatar: Icon(icon, size: 18, color: color),
         label: Text(label),
-        onPressed: () => ref.read(syncControllerProvider.notifier).syncNow(),
+        onPressed: () => ref.read(ztSyncControllerProvider.notifier).syncNow(),
       ),
     );
   }

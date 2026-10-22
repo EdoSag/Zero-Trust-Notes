@@ -1,12 +1,11 @@
 import 'dart:typed_data';
 
-import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zero_trust_core/zero_trust_core.dart';
 import 'package:zerotrust_notes/src/core/crypto/payload_cipher_service.dart';
 import 'package:zerotrust_notes/src/core/db/local_note_vault.dart';
 import 'package:zerotrust_notes/src/features/legacy_import/legacy_notes_importer.dart';
-import 'package:zerotrust_notes/src/features/sync/data/notes_item_store.dart';
+import 'package:zerotrust_notes/src/features/notes/domain/note.dart';
 
 import '../../support/fake_sync_backend.dart';
 
@@ -29,25 +28,34 @@ class FakeSource implements LegacyNotesSource {
 void main() {
   final cipher = PayloadCipherService();
   final oldKey = Uint8List.fromList(List.filled(32, 7));
-  late LocalNoteVault vault;
+  late ZtLocalStore store;
   late ItemSyncEngine engine;
   late FakeSyncBackend server;
 
   setUp(() async {
-    vault = LocalNoteVault.forTesting(NativeDatabase.memory());
-    server = FakeSyncBackend();
     final appKey = Uint8List.fromList(List.filled(32, 1));
-    engine = ItemSyncEngine(
+    store = await ZtLocalStore.open(appKey: appKey);
+    server = FakeSyncBackend();
+    engine = await ItemSyncEngine.fromVault(
       appId: 'notes',
       appKey: appKey,
       deviceId: 'phone',
-      store: NotesItemStore(vault: vault, columnKey: Uint8List.fromList(List.filled(32, 2))),
+      store: store,
       backend: server,
-      signingKeys: await KeyHierarchy.signingKeys(appKey),
     );
   });
 
-  tearDown(() => vault.close());
+  tearDown(() async {
+    await engine.close();
+    await store.close();
+  });
+
+  LegacyNotesImporter makeImporter(List<LegacyNotesSource> sources) => LegacyNotesImporter(
+    sources: sources,
+    engine: engine,
+    ledger: store,
+    deriveKey: (_) async => Uint8List.fromList(oldKey),
+  );
 
   LegacyNote legacy(String id, String title) => LegacyNote(
     id: id,
@@ -86,13 +94,9 @@ void main() {
   });
 
   test('import re-encrypts old notes, queues them for sync, and runs once', () async {
-    final importer = LegacyNotesImporter(
-      sources: [
+    final importer = makeImporter([
         FakeSource([legacy('a', 'One'), legacy('b', 'Two')]),
-      ],
-      vault: vault,
-      engine: engine,
-    );
+      ]);
     expect(await importer.pendingSource(), isNotNull);
 
     expect(await importer.run('old passphrase'), 2);
@@ -100,6 +104,8 @@ void main() {
     expect(a!.json!['title'], 'One');
     expect(a.json!['createdAt'], DateTime.utc(2026, 3, 1).toIso8601String());
     expect(a.dirty, isTrue);
+    // Dated before any real edit, so a newer version elsewhere always wins.
+    expect(a.updatedAt, LegacyImporter.importedAt);
 
     expect((await engine.sync()).pushed, 2);
     expect(server.rows.keys, containsAll(['notes/a', 'notes/b']));
@@ -109,13 +115,9 @@ void main() {
   });
 
   test('a wrong passphrase imports nothing and can be retried', () async {
-    final importer = LegacyNotesImporter(
-      sources: [
+    final importer = makeImporter([
         FakeSource([legacy('a', 'One')]),
-      ],
-      vault: vault,
-      engine: engine,
-    );
+      ]);
     await expectLater(importer.run('nope'), throwsA(isA<WrongLegacyPassphrase>()));
     expect(await engine.store.get('a'), isNull);
     expect(await importer.pendingSource(), isNotNull);
@@ -125,30 +127,22 @@ void main() {
   test('falls back to the next source and skips notes already synced here', () async {
     await engine.save(
       'a',
-      NotesItemStore.noteJson(
+      Note.itemJson(
         title: 'Newer from another device',
         body: '',
         createdAt: DateTime.utc(2026, 3, 1),
       ),
     );
-    final importer = LegacyNotesImporter(
-      sources: [
+    final importer = makeImporter([
         FakeSource(const [], present: false),
         FakeSource([legacy('a', 'One'), legacy('b', 'Two')]),
-      ],
-      vault: vault,
-      engine: engine,
-    );
+      ]);
     expect(await importer.run('old passphrase'), 1);
     expect((await engine.store.get('a'))!.json!['title'], 'Newer from another device');
   });
 
   test('nothing to import when no source has data', () async {
-    final importer = LegacyNotesImporter(
-      sources: [FakeSource(const [], present: false)],
-      vault: vault,
-      engine: engine,
-    );
+    final importer = makeImporter([FakeSource(const [], present: false)]);
     expect(await importer.pendingSource(), isNull);
   });
 }

@@ -1083,7 +1083,7 @@ class NoteRow extends DataClass implements Insertable<NoteRow> {
   final bool isDeleted;
 
   /// Changed locally and not yet accepted by the server (see
-  /// `NotesItemStore`).
+  /// `movePreviousNotesStore`).
   final bool isDirty;
 
   /// [updatedAt] to the microsecond. Drift stores [DateTimeColumn] in whole

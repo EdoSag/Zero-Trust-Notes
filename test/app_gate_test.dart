@@ -1,4 +1,3 @@
-import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,13 +5,11 @@ import 'package:supabase_flutter/supabase_flutter.dart' show User, AuthState;
 import 'package:zero_trust_core/zero_trust_core.dart';
 import 'package:zerotrust_notes/main.dart';
 import 'package:zerotrust_notes/src/app/auth_providers.dart';
-import 'package:zerotrust_notes/src/core/db/local_note_vault.dart';
 import 'package:zerotrust_notes/src/features/legacy_import/presentation/legacy_import.dart';
-import 'package:zerotrust_notes/src/features/notes/application/notes_session.dart';
-import 'package:zerotrust_notes/src/features/sync/application/sync_controller.dart';
 
 import 'support/fake_account_backend.dart';
 import 'support/fake_sync_backend.dart';
+import 'support/notes_overrides.dart';
 
 const email = 'edo@example.com';
 const password = 'correct horse battery';
@@ -42,7 +39,7 @@ void main() {
     late FakeAccountBackend backend;
     container = ProviderContainer(
       overrides: [
-        ztAppConfigProvider.overrideWithValue(notesAppConfig),
+        ...notesTestOverrides(server: FakeSyncBackend(), deviceId: 'test-device'),
         authStateChangesProvider.overrideWith((ref) => const Stream<AuthState>.empty()),
         currentUserProvider.overrideWith((ref) => ref.watch(fakeUserProvider)),
         accountServiceProvider.overrideWith(
@@ -51,13 +48,6 @@ void main() {
             params: const KdfParams(iterations: 1000),
             legacyParams: const KdfParams(iterations: 1000),
           ),
-        ),
-        syncBackendProvider.overrideWithValue(FakeSyncBackend()),
-        deviceIdProvider.overrideWith((ref) async => 'test-device'),
-        isOnlineProvider.overrideWithValue(() async => true),
-        connectivityRestoredProvider.overrideWith((ref) => const Stream<void>.empty()),
-        openNotesVaultProvider.overrideWithValue(
-          (key) async => LocalNoteVault.forTesting(NativeDatabase.memory()),
         ),
         legacySourcesProvider.overrideWithValue((userId) => const []),
       ],
@@ -69,11 +59,12 @@ void main() {
 
   tearDown(() => container.dispose());
 
-  /// Crypto and the database run on real timers; let them finish.
+  /// Crypto and the database run on real timers; let them finish, and let
+  /// page transitions finish too.
   Future<void> settle(WidgetTester tester) async {
     for (var i = 0; i < 30; i++) {
       await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
-      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 20));
     }
   }
 

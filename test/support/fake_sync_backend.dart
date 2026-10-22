@@ -17,23 +17,32 @@ class FakeSyncBackend implements SyncBackend {
         ..sort((a, b) => a.syncedAt!.compareTo(b.syncedAt!));
 
   @override
-  Future<bool> push(String app, RemoteItem item) async {
-    final existing = rows['$app/${item.itemId}'];
-    if (existing != null && item.updatedAt.isBefore(existing.updatedAt)) return false;
-    final stored = RemoteItem(
-      itemId: item.itemId,
-      updatedAt: item.updatedAt,
-      deviceId: item.deviceId,
-      dataBlob: item.dataBlob,
-      signature: item.signature,
-      deleted: item.deleted,
-      syncedAt: DateTime.utc(2026, 1, 1).add(Duration(seconds: ++_tick)),
-    );
-    rows['$app/${item.itemId}'] = stored;
-    for (final l in List.of(_listeners)) {
-      l(stored);
+  Future<List<RemoteItem>> fetch(String app, Set<String> itemIds) async => [
+    for (final id in itemIds) ?rows['$app/$id'],
+  ];
+
+  @override
+  Future<Set<String>> pushAll(String app, List<RemoteItem> items) async {
+    final accepted = <String>{};
+    for (final item in items) {
+      final existing = rows['$app/${item.itemId}'];
+      if (existing != null && item.updatedAt.isBefore(existing.updatedAt)) continue;
+      final stored = RemoteItem(
+        itemId: item.itemId,
+        updatedAt: item.updatedAt,
+        deviceId: item.deviceId,
+        dataBlob: item.dataBlob,
+        signature: item.signature,
+        deleted: item.deleted,
+        syncedAt: DateTime.now().toUtc().add(Duration(microseconds: ++_tick)),
+      );
+      rows['$app/${item.itemId}'] = stored;
+      accepted.add(item.itemId);
+      for (final l in List.of(_listeners)) {
+        l(stored);
+      }
     }
-    return true;
+    return accepted;
   }
 
   @override
