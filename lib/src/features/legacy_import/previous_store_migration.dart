@@ -50,8 +50,9 @@ class DocumentsPreviousNotesStoreFile implements PreviousNotesStoreFile {
 /// store already has in a newer version is left alone.
 ///
 /// Run it before the first sync after unlock. The old file is deleted once
-/// its notes are in [store]. A file this account's key can't open belongs to
-/// another account on the device and is left for that account.
+/// its notes are in [store]. A file this account's key can't open is left
+/// alone and tried again at the next unlock: it may belong to another
+/// account on the device, or the failure may pass.
 ///
 /// Returns how many notes were moved.
 Future<int> movePreviousNotesStore({
@@ -77,7 +78,9 @@ Future<int> movePreviousNotesStore({
     try {
       old = await file.open(_hex(dbKey));
     } on VaultInitializationException {
-      await store.markLegacyImportDone(source);
+      // Another account's file, or a failure that may pass (the error
+      // doesn't say which): try again at the next unlock rather than
+      // stranding notes that never reached the server.
       return 0;
     }
     try {

@@ -131,13 +131,15 @@ void main() {
     expect(await store.legacyImportDone(LegacyNotesImporter.source), isTrue);
   });
 
-  test("another account's file is left alone", () async {
+  test("a file this key can't open is left alone and retried later", () async {
     await addOld('a', 'Not mine', micros: t);
     final otherKey = Uint8List.fromList(List.filled(32, 9));
     expect(await movePreviousNotesStore(store: store, appKey: otherKey, file: file), 0);
     expect(await store.get('a'), isNull);
     expect(file.deleted, isFalse);
     expect(await store.legacyImportDone(LegacyNotesImporter.source), isFalse);
+    // Not recorded as done: the next unlock tries again.
+    expect(await store.legacyImportDone('notes-v2-store'), isFalse);
   });
 
   test('no file: nothing to move', () async {
