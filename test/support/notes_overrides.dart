@@ -26,6 +26,7 @@ List<Override> notesTestOverrides({
   ztAppConfigProvider.overrideWithValue(notesAppConfig),
   ztSyncBackendProvider.overrideWithValue(server),
   ztDeviceIdStoreProvider.overrideWithValue(InMemoryDeviceIdStore()..id = deviceId),
+  ztPreferencesStoreProvider.overrideWithValue(InMemoryPreferencesStore()),
   ztLocalStoreProvider.overrideWith((ref) async {
     final appKey = ref.watch(
       vaultControllerProvider.select((v) => v is VaultUnlocked ? v.appKey : null),

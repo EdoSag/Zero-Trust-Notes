@@ -144,4 +144,48 @@ void main() {
     expect(find.text('Save your recovery key'), findsNothing);
     expect(find.text('Zero-Trust Notes is locked'), findsOneWidget);
   });
+
+  testWidgets('a short trip to the background keeps notes open; auto-lock follows the setting', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      UncontrolledProviderScope(container: container, child: const ZeroTrustNotesApp()),
+    );
+    await tester.tap(find.text('Create a Zero-Trust account'));
+    await tester.pump();
+    await tester.enterText(find.widgetWithText(TextFormField, 'Email'), email);
+    await tester.enterText(find.widgetWithText(TextFormField, 'Password'), password);
+    await tester.enterText(find.widgetWithText(TextFormField, 'Confirm password'), password);
+    await tester.tap(find.widgetWithText(FilledButton, 'Create account'));
+    await settle(tester);
+    await tester.tap(find.text('I saved my recovery key somewhere safe'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, 'Continue'));
+    await settle(tester);
+    expect(find.text('No notes yet. Tap + to create one.'), findsOneWidget);
+
+    void background() {
+      for (final state in [
+        AppLifecycleState.inactive,
+        AppLifecycleState.hidden,
+        AppLifecycleState.paused,
+        AppLifecycleState.hidden,
+        AppLifecycleState.inactive,
+        AppLifecycleState.resumed,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(state);
+      }
+    }
+
+    // The default is 5 minutes, so switching apps for a moment doesn't lock.
+    background();
+    await settle(tester);
+    expect(container.read(vaultControllerProvider), isA<VaultUnlocked>());
+    expect(find.text('No notes yet. Tap + to create one.'), findsOneWidget);
+
+    await container.read(ztAutoLockProvider.notifier).set(Duration.zero);
+    background();
+    await settle(tester);
+    expect(find.text('Zero-Trust Notes is locked'), findsOneWidget);
+  });
 }

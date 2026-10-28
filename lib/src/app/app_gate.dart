@@ -37,10 +37,11 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  /// Leaving the foreground locks the vault (closing the database and
-  /// zeroing its keys) and deletes any in-flight export temp file. A key
+  /// Leaving the foreground deletes any in-flight export temp file. A key
   /// still waiting behind the recovery-key screen is zeroed too, so coming
   /// back asks for the password; a new recovery key can be made in Settings.
+  /// Locking the open vault is the core's job: it follows the Auto-lock
+  /// setting.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
@@ -49,7 +50,6 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
         pending.dek.fillRange(0, pending.dek.length, 0);
         setState(() => _awaitingRecoveryKey = null);
       }
-      ref.read(vaultControllerProvider.notifier).lock();
       ref.read(exportTempFileRegistryProvider).deleteAll();
     }
   }
@@ -65,6 +65,10 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
     setState(() => _signingIn = false);
     ref.read(vaultControllerProvider.notifier).unlock(result.dek, legacyDek: result.legacyDek);
   }
+
+  void _forgotPassword() => Navigator.of(
+    context,
+  ).push(MaterialPageRoute<void>(builder: (_) => const ZtForgotPasswordScreen()));
 
   @override
   Widget build(BuildContext context) {
@@ -103,12 +107,7 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
 
     final user = ref.watch(currentUserProvider);
     if (user == null || _signingIn) {
-      return ZtSignInScreen(
-        onUnlocked: _onUnlocked,
-        onForgotPassword: () => Navigator.of(
-          context,
-        ).push(MaterialPageRoute<void>(builder: (_) => const ZtForgotPasswordScreen())),
-      );
+      return ZtSignInScreen(onUnlocked: _onUnlocked, onForgotPassword: _forgotPassword);
     }
 
     if (ref.watch(vaultControllerProvider) is VaultLocked) {
@@ -116,6 +115,7 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
         email: user.email,
         onUnlocked: _onUnlocked,
         onSignOut: () => ref.read(accountServiceProvider).signOut(),
+        onForgotPassword: _forgotPassword,
       );
     }
 
