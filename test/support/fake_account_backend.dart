@@ -27,10 +27,17 @@ class FakeAccountBackend implements AccountBackend {
   }
 
   @override
-  Future<void> signUp(String email, String authPassword) async {
+  Future<bool> signUp(String email, String authPassword, {String? redirectTo}) async {
     authPasswords[email] = authPassword;
     _setUser(email);
+    return true;
   }
+
+  @override
+  Future<void> resendConfirmation(String email, {String? redirectTo}) async {}
+
+  @override
+  Future<void> signOutOtherDevices() async {}
 
   @override
   Future<void> updateAuthPassword(String authPassword) async =>
