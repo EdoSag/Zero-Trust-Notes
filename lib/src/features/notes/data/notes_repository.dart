@@ -58,7 +58,7 @@ class NotesRepository {
     );
   }
 
-  Future<Note> createNote({required String title, required String body}) async {
+  Future<Note> createNote({required String title, required String body, String? notebookId}) async {
     final now = DateTime.now().toUtc();
     final id = _uuid.v4();
     final encryptedTitle = await _cipher.encrypt(title, _payloadKeyBytes);
@@ -67,6 +67,7 @@ class NotesRepository {
     await _vault.into(_vault.notes).insert(
           NotesCompanion.insert(
             id: id,
+            notebookId: Value(notebookId),
             encryptedTitle: encryptedTitle,
             encryptedBody: encryptedBody,
             createdAt: now,
@@ -76,7 +77,7 @@ class NotesRepository {
 
     return Note(
       id: id,
-      notebookId: null,
+      notebookId: notebookId,
       title: title,
       body: body,
       createdAt: now,
@@ -91,10 +92,17 @@ class NotesRepository {
 
     await (_vault.update(_vault.notes)..where((row) => row.id.equals(note.id))).write(
       NotesCompanion(
+        notebookId: Value(note.notebookId),
         encryptedTitle: Value(encryptedTitle),
         encryptedBody: Value(encryptedBody),
         updatedAt: Value(now),
       ),
+    );
+  }
+
+  Future<void> restoreNote(String id) async {
+    await (_vault.update(_vault.notes)..where((row) => row.id.equals(id))).write(
+      const NotesCompanion(isDeleted: Value(false)),
     );
   }
 

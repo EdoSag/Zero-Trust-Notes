@@ -9,6 +9,7 @@ import '../../../core/db/local_note_vault.dart';
 import '../../../core/errors/vault_exceptions.dart';
 import '../../../core/storage/secure_credentials_store.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../widgets/application/home_widget_sync_service.dart';
 import '../data/profile_repository.dart';
 import 'vault_state.dart';
 
@@ -143,12 +144,18 @@ class VaultController extends Notifier<VaultState> {
   /// Locks the vault: closes the database connection and explicitly zeroes
   /// the in-memory Tier-2 key material rather than just dropping the
   /// reference and waiting on the garbage collector.
+  ///
+  /// Also clears any decrypted note preview cached for the Single Note
+  /// home-screen widget. This runs on every path to locked — manual lock,
+  /// sign-out, and the app-lifecycle auto-lock — so no future caller can
+  /// add a new way to lock the vault without also redacting the widget.
   Future<void> lock() async {
     final fields = unlockedFieldsOf(state);
     if (fields != null) {
       await fields.vault.close();
       fields.payloadKeyBytes.fillRange(0, fields.payloadKeyBytes.length, 0);
     }
+    await const HomeWidgetSyncService().clearAllPlaintext();
     state = const VaultLocked();
   }
 

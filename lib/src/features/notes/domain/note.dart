@@ -17,10 +17,16 @@ class Note {
   final DateTime createdAt;
   final DateTime updatedAt;
 
-  Note copyWith({String? title, String? body}) {
+  static const _unset = Object();
+
+  /// [notebookId] defaults to "leave unchanged" rather than "clear" — pass
+  /// an explicit `String?` (including `null`, to unfile the note) to change
+  /// it, since the field is itself nullable and needs a way to distinguish
+  /// "no change" from "set to null".
+  Note copyWith({String? title, String? body, Object? notebookId = _unset}) {
     return Note(
       id: id,
-      notebookId: notebookId,
+      notebookId: identical(notebookId, _unset) ? this.notebookId : notebookId as String?,
       title: title ?? this.title,
       body: body ?? this.body,
       createdAt: createdAt,
