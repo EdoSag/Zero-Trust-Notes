@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zero_trust_core/zero_trust_core.dart';
 
 import 'src/app/app_gate.dart';
+import 'src/features/widgets/application/home_widget_sync_service.dart';
 
 const notesAppConfig = ZtAppConfig(appId: 'notes', displayName: 'Zero-Trust Notes');
 
@@ -16,6 +17,13 @@ Future<void> main() async {
     url: dotenv.env['SUPABASE_URL']!,
     publishableKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
+
+  // The vault always cold-starts locked, but if the OS killed the previous
+  // process before AppGate could clear them (a task kill rather than a
+  // clean background pause), home-screen widget previews cached mid-session
+  // would otherwise survive until the next lock. Clearing here means
+  // "locked" is the only state a widget can show right after a cold start.
+  await const HomeWidgetSyncService().clearAllPlaintext();
 
   runApp(
     ProviderScope(

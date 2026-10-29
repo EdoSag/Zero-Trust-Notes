@@ -1,10 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zero_trust_core/zero_trust_core.dart';
 
 import '../features/export/application/export_temp_file_registry.dart';
 import '../features/notes/application/notes_providers.dart';
+import '../features/notes/presentation/note_editor_page.dart';
 import '../features/notes/presentation/notes_list_page.dart';
+import '../features/widgets/application/home_widget_sync_service.dart';
+import '../features/widgets/application/pending_widget_action_controller.dart';
+import '../features/widgets/application/widget_launch_listener.dart';
+import '../features/widgets/domain/pending_widget_action.dart';
+import '../features/widgets/presentation/note_picker_page.dart';
 import 'auth_providers.dart';
 
 /// Routes between the shared account screens and the notes list.
@@ -24,24 +32,28 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
   /// Supabase reports the session a moment earlier.
   late bool _signingIn = ref.read(currentUserProvider) == null;
   UnlockResult? _awaitingRecoveryKey;
+  late final WidgetLaunchListener _widgetLaunchListener;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _widgetLaunchListener = WidgetLaunchListener(ref);
+    unawaited(_widgetLaunchListener.start());
   }
 
   @override
   void dispose() {
+    _widgetLaunchListener.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  /// Leaving the foreground deletes any in-flight export temp file. A key
-  /// still waiting behind the recovery-key screen is zeroed too, so coming
-  /// back asks for the password; a new recovery key can be made in Settings.
-  /// Locking the open vault is the core's job: it follows the Auto-lock
-  /// setting.
+  /// Leaving the foreground deletes any in-flight export temp file and every
+  /// home-screen widget preview. A key still waiting behind the recovery-key
+  /// screen is zeroed too, so coming back asks for the password; a new
+  /// recovery key can be made in Settings. Locking the open vault is the
+  /// core's job: it follows the Auto-lock setting.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
@@ -51,6 +63,7 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
         setState(() => _awaitingRecoveryKey = null);
       }
       ref.read(exportTempFileRegistryProvider).deleteAll();
+      unawaited(const HomeWidgetSyncService().clearAllPlaintext());
     }
   }
 
@@ -73,8 +86,12 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     ref.listen(vaultControllerProvider, (_, next) {
-      // Don't leave an editor or settings page open over a locked vault.
-      if (next is VaultLocked) Navigator.of(context).popUntil((route) => route.isFirst);
+      if (next is VaultLocked) {
+        // Don't leave an editor or settings page open over a locked vault.
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        // Writing previews (and acting on widget taps) is _NotesHome's job.
+        unawaited(const HomeWidgetSyncService().clearAllPlaintext());
+      }
     });
     ref.listen(currentUserProvider, (_, user) {
       if (user == null) {
@@ -129,11 +146,81 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
 
 /// The notes list once the local store is open (and earlier notes moved into
 /// it), which is also when sync starts.
-class _NotesHome extends ConsumerWidget {
+///
+/// Mounted only while the vault is unlocked, so this is also where
+/// home-screen widget previews are written and widget taps are acted on.
+class _NotesHome extends ConsumerStatefulWidget {
   const _NotesHome();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_NotesHome> createState() => _NotesHomeState();
+}
+
+class _NotesHomeState extends ConsumerState<_NotesHome> {
+  late final AppLifecycleListener _lifecycle;
+
+  @override
+  void initState() {
+    super.initState();
+    _lifecycle = AppLifecycleListener(onResume: _syncWidgetPreviews);
+    ref.listenManual(notesListProvider, (_, _) {
+      _syncWidgetPreviews();
+      _maybeConsumePendingWidgetAction();
+    }, fireImmediately: true);
+    ref.listenManual(pendingWidgetActionProvider, (_, next) {
+      if (next != null) _maybeConsumePendingWidgetAction();
+    });
+  }
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    super.dispose();
+  }
+
+  /// Pushes a fresh widget preview. Clearing on lock and on pause is
+  /// [AppGate]'s job.
+  void _syncWidgetPreviews() {
+    final notes = ref.read(notesListProvider).value;
+    if (notes == null) return;
+    unawaited(const HomeWidgetSyncService().writeUnlockedPreviews(notes));
+  }
+
+  /// Performs the navigation a widget tap asked for, once the notes are
+  /// loaded — reachable both when unlock happens after the tap (cold start)
+  /// and when the tap happens while already unlocked.
+  void _maybeConsumePendingWidgetAction() {
+    final notes = ref.read(notesListProvider).value;
+    if (notes == null) return;
+    final action = ref.read(pendingWidgetActionProvider);
+    if (action == null) return;
+    ref.read(pendingWidgetActionProvider.notifier).clear();
+
+    // Not while a listener is notifying: navigation rebuilds widgets.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      switch (action) {
+        case OpenNewNote():
+          Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NoteEditorPage()));
+        case OpenNote(:final noteId):
+          final matches = notes.where((note) => note.id == noteId);
+          if (matches.isEmpty) {
+            ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+              const SnackBar(content: Text('That note could not be found — it may have been deleted.')),
+            );
+          } else {
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => NoteEditorPage(note: matches.first)));
+          }
+        case ConfigureNoteWidget(:final appWidgetId):
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => NotePickerPage(appWidgetId: appWidgetId)));
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return switch (ref.watch(notesStoreProvider)) {
       AsyncData() => const NotesListPage(),
       AsyncError(:final error) when error is! VaultIsLocked => Scaffold(
