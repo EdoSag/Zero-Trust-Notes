@@ -1,0 +1,139 @@
+# Codemagic CI/CD for Zero-Trust Notes
+# Docs: https://docs.codemagic.io/yaml-quick-start/building-a-flutter-app/
+#
+# Every merged pull request (= a push to `main`) is analyzed, tested,
+# built as a signed Android App Bundle and uploaded to the Google Play
+# internal testing track. A failing analyzer error or test stops the release.
+#
+# One-time setup in Codemagic:
+#   1. Add this repository as an app (the GitHub integration adds the webhook
+#      that starts builds on push).
+#   2. Team settings > Code signing identities > Android keystores: upload the
+#      Play upload keystore with the reference name `zero_trust_notes_upload`.
+#   3. App settings > Environment variables:
+#        group `google_play`: GCLOUD_SERVICE_ACCOUNT_CREDENTIALS (secure,
+#          JSON key of a Google Cloud service account invited to Play Console
+#          with release permissions for dev.sagron.zerotrustnotes)
+#        group `app_secrets`: SUPABASE_URL, SUPABASE_ANON_KEY (secure)
+#   4. Google Play only accepts API uploads after the first release of the app
+#      has been created by hand in Play Console.
+
+workflows:
+  android-release:
+    name: Android release to Google Play (internal)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      java: 17
+      android_signing:
+        - zero_trust_notes_upload
+      groups:
+        - google_play
+        - app_secrets
+      vars:
+        PACKAGE_NAME: dev.sagron.zerotrustnotes
+        GOOGLE_PLAY_TRACK: internal
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+      cancel_previous_builds: true
+    cache:
+      cache_paths:
+        - $HOME/.pub-cache
+        - $HOME/.gradle/caches
+    scripts:
+      - name: Write .env from the app_secrets group
+        script: |
+          # Values are never printed to the build log.
+          if [ -n "${SUPABASE_URL:-}" ]; then
+            : > .env
+            for key in SUPABASE_URL SUPABASE_ANON_KEY; do
+              value="$(printenv "$key" || true)"
+              if [ -n "$value" ]; then printf '%s=%s\n' "$key" "$value" >> .env; fi
+            done
+          else
+            echo "SUPABASE_URL is not set. Add the app_secrets group in Codemagic." >&2
+          exit 1
+          fi
+      - name: Get packages
+        script: flutter pub get
+      - name: Analyze
+        script: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Test
+        script: flutter test
+      - name: Place the upload keystore where Gradle expects it
+        script: cp "$CM_KEYSTORE_PATH" "$CM_BUILD_DIR/codemagic.keystore"
+      - name: Build the App Bundle with the next Play build number
+        script: |
+          set -e
+          export GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS="$GCLOUD_SERVICE_ACCOUNT_CREDENTIALS"
+          PUBSPEC_BUILD=$(sed -nE 's/^version:.*\+([0-9]+).*/\1/p' pubspec.yaml)
+          PUBSPEC_BUILD=${PUBSPEC_BUILD:-1}
+          LATEST=$(google-play get-latest-build-number --package-name "$PACKAGE_NAME" || true)
+          case "$LATEST" in
+            ''|*[!0-9]*) NEXT=$PUBSPEC_BUILD ;;
+            *) NEXT=$((LATEST + 1)) ;;
+          esac
+          if [ "$NEXT" -lt "$PUBSPEC_BUILD" ]; then NEXT=$PUBSPEC_BUILD; fi
+          echo "Building $PACKAGE_NAME with build number $NEXT"
+          flutter build appbundle --release --build-number="$NEXT"
+    artifacts:
+      - build/**/outputs/bundle/**/*.aab
+      - build/**/outputs/mapping/**/mapping.txt
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: $GOOGLE_PLAY_TRACK
+        # Set to true while the app is still a draft in Play Console.
+        submit_as_draft: false
+
+# iOS (TestFlight), disabled until an Apple Developer account and an App
+# Store Connect API key are connected in Codemagic (Team settings >
+# Integrations > Developer Portal). Uncomment, set the integration name and
+# APP_STORE_APPLE_ID (the app's numeric Apple ID), then it runs on the same
+# trigger as Android.
+#
+#  ios-release:
+#    name: iOS release to TestFlight
+#    instance_type: mac_mini_m2
+#    max_build_duration: 90
+#    integrations:
+#      app_store_connect: <integration name>
+#    environment:
+#      flutter: stable
+#      xcode: latest
+#      cocoapods: default
+#      ios_signing:
+#        distribution_type: app_store
+#        bundle_identifier: dev.sagron.zerotrustnotes
+#      groups:
+#        - app_secrets
+#      vars:
+#        APP_STORE_APPLE_ID: <numeric app id>
+#    triggering:
+#      events:
+#        - push
+#      branch_patterns:
+#        - pattern: main
+#          include: true
+#          source: true
+#    scripts:
+#      # (repeat the .env step from android-release here)
+#      - flutter pub get
+#      - find . -name Podfile -execdir pod install \;
+#      - xcode-project use-profiles
+#      - |
+#        LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" || echo 0)
+#        flutter build ipa --release --build-number=$((LATEST + 1)) \
+#          --export-options-plist=/Users/builder/export_options.plist
+#    artifacts:
+#      - build/ios/ipa/*.ipa
+#    publishing:
+#      app_store_connect:
+#        auth: integration
+#        submit_to_testflight: true
