@@ -1,0 +1,123 @@
+# Builds a signed release APK on every push to main and publishes it as a
+# GitHub Release, so the app can be downloaded and installed without Google
+# Play. Pull requests get the same build as a downloadable artifact (no
+# release), which shows a change still builds before it is merged.
+#
+# One-time setup (Settings > Secrets and variables > Actions > New secret):
+#   ANDROID_KEYSTORE_BASE64   the release keystore, base64 encoded
+#   ANDROID_KEYSTORE_PASSWORD its password (store and key use the same one)
+# Every build must be signed with the same keystore, or Android refuses to
+# install an update over the previous version.
+name: Android APK
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  APP_SLUG: zero-trust-notes
+  APP_TITLE: Zero Trust Notes
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Write .env when it is not committed
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+        run: |
+          if [ -f .env ]; then
+            echo "Using the .env committed in the repository."
+          elif [ -n "$ENV_FILE" ]; then
+            printf '%s\n' "$ENV_FILE" > .env
+            echo "Wrote .env from the ENV_FILE secret."
+          else
+            # Public client values (the Supabase URL and publishable key ship
+            # inside every APK anyway). Set an ENV_FILE secret to override.
+            cat > .env <<'ENVEOF'
+          SUPABASE_URL=https://ohgxpnchqmisvktqjmcx.supabase.co
+          SUPABASE_ANON_KEY=sb_publishable_C1geAnwr0LZSxfQKRg21YA_G-OXHYky
+          ENVEOF
+            echo "Wrote .env with the shared public Supabase values."
+          fi
+
+      - name: Restore the release keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "::error::Missing signing secrets. Add ANDROID_KEYSTORE_BASE64 and ANDROID_KEYSTORE_PASSWORD under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/codemagic.keystore"
+          # android/app/build.gradle.kts reads these (shared names across the apps).
+          {
+            echo "CM_BUILD_DIR=$RUNNER_TEMP"
+            echo "CM_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
+            echo "CM_KEY_ALIAS=zerotrust"
+            echo "CM_KEY_PASSWORD=$KEYSTORE_PASSWORD"
+          } >> "$GITHUB_ENV"
+
+      - run: flutter pub get
+
+      - name: Build the release APK
+        run: |
+          set -e
+          VERSION=$(sed -nE 's/^version:[[:space:]]*([^+[:space:]]+).*/\1/p' pubspec.yaml)
+          # versionCode must grow with every build so updates install over
+          # the previous APK; 1000 + run number stays above old pubspec codes.
+          BUILD=$((1000 + GITHUB_RUN_NUMBER))
+          flutter build apk --release --build-number="$BUILD"
+          APK="$APP_SLUG-$VERSION-build$BUILD.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "$APK"
+          {
+            echo "VERSION=$VERSION"
+            echo "BUILD=$BUILD"
+            echo "APK=$APK"
+          } >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APK }}
+          path: ${{ env.APK }}
+          retention-days: 14
+
+      - name: Publish the GitHub Release
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v$VERSION-build$BUILD"
+          SUBJECT=$(git log -1 --pretty=%s)
+          gh release create "$TAG" "$APK" \
+            --target "$GITHUB_SHA" \
+            --title "$APP_TITLE $VERSION (build $BUILD)" \
+            --notes "Latest change: $SUBJECT
+
+          Download **$APK** below and open it on your phone to install or update. Android may ask you to allow installs from this source the first time." \
+            --latest
