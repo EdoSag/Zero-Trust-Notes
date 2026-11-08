@@ -25,7 +25,7 @@ concurrency:
 
 env:
   APP_SLUG: zero-trust-notes
-  APP_TITLE: Zero Trust Notes
+  APP_TITLE: Zero-Trust Notes
 
 jobs:
   apk:
