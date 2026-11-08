@@ -77,6 +77,7 @@ jobs:
             # over a released one. Releases never use a throwaway key.
             echo "::warning::Signing secrets not set; signing this PR build with a throwaway key."
             KEYSTORE_PASSWORD=$(openssl rand -hex 16)
+            echo "::add-mask::$KEYSTORE_PASSWORD"
             keytool -genkeypair -keystore "$RUNNER_TEMP/codemagic.keystore" -storetype PKCS12 \
               -alias zerotrust -keyalg RSA -keysize 2048 -validity 1 \
               -storepass "$KEYSTORE_PASSWORD" -keypass "$KEYSTORE_PASSWORD" -dname "CN=PR build"
@@ -91,6 +92,11 @@ jobs:
             echo "CM_KEY_ALIAS=zerotrust"
             echo "CM_KEY_PASSWORD=$KEYSTORE_PASSWORD"
           } >> "$GITHUB_ENV"
+
+      - name: Drop machine-specific Gradle settings
+        # A local org.gradle.java.home (e.g. a Windows Android Studio path)
+        # breaks the Linux runner; setup-java provides the JDK here.
+        run: sed -i '/^org\.gradle\.java\.home=/d' android/gradle.properties
 
       - run: flutter pub get
 
