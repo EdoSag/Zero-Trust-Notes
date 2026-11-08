@@ -98,6 +98,26 @@ jobs:
         # breaks the Linux runner; setup-java provides the JDK here.
         run: sed -i '/^org\.gradle\.java\.home=/d' android/gradle.properties
 
+      - name: Cache the Gradle distribution
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle-dist
+          key: gradle-dist-${{ hashFiles('android/gradle/wrapper/gradle-wrapper.properties') }}
+
+      - name: Fetch Gradle with retries
+        # The wrapper's own download has no retry, and GitHub's release
+        # downloads sometimes answer 504. Fetch it once with retries, keep it
+        # cached, and point the wrapper at the local file.
+        run: |
+          PROPS=android/gradle/wrapper/gradle-wrapper.properties
+          URL=$(sed -nE 's/^distributionUrl=(.*)/\1/p' "$PROPS" | sed 's/\\:/:/g')
+          FILE="$HOME/.gradle-dist/$(basename "$URL")"
+          mkdir -p "$HOME/.gradle-dist"
+          if [ ! -s "$FILE" ]; then
+            curl -fsSL --retry 6 --retry-all-errors --retry-delay 20 -o "$FILE" "$URL"
+          fi
+          sed -i "s#^distributionUrl=.*#distributionUrl=file\\:$FILE#" "$PROPS"
+
       - run: flutter pub get
 
       - name: Build the release APK
