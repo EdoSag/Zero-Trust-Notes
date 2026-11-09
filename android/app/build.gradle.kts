@@ -18,7 +18,9 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "dev.sagron.zerotrustnotes"
-    compileSdk = flutter.compileSdkVersion
+    // flutter_local_notifications 23 and androidx.core 1.19 need API 37 to
+    // compile against (targetSdk, the runtime behaviour, stays Flutter's).
+    compileSdk = maxOf(flutter.compileSdkVersion, 37)
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
