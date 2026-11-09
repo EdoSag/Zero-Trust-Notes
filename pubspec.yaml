@@ -62,7 +62,8 @@ dependencies:
     git:
       url: https://github.com/EdoSag/Zero-Trust-Core.git
       path: packages/zero_trust_core
-      ref: d1dd9a5a73404c1a0fc99f1b3292e6c448563581 # v0.6.0 (no tag yet)
+      ref: 3ee5d08971d6ccc4712d9caddb6593691b85ccf3 # v0.7.2 (switch to the tag once it's pushed)
+  url_launcher: ^6.3.3
 dev_dependencies:
   flutter_test:
     sdk: flutter
