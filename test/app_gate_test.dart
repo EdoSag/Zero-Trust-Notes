@@ -188,4 +188,38 @@ void main() {
     await settle(tester);
     expect(find.text('Zero-Trust Notes is locked'), findsOneWidget);
   });
+
+  testWidgets('auto-lock with the editor open returns to the lock screen cleanly', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      UncontrolledProviderScope(container: container, child: const ZeroTrustNotesApp()),
+    );
+    await tester.tap(find.text('Create a Zero-Trust account'));
+    await tester.pump();
+    await tester.enterText(find.widgetWithText(TextFormField, 'Email'), email);
+    await tester.enterText(find.widgetWithText(TextFormField, 'Password'), password);
+    await tester.enterText(find.widgetWithText(TextFormField, 'Confirm password'), password);
+    await tester.tap(find.widgetWithText(FilledButton, 'Create account'));
+    await settle(tester);
+    await tester.tap(find.text('I saved my recovery key somewhere safe'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, 'Continue'));
+    await settle(tester);
+    await tester.runAsync(
+      () => container.read(ztAutoLockProvider.notifier).set(const Duration(minutes: 1)),
+    );
+
+    await tester.tap(find.byType(FloatingActionButton));
+    await settle(tester);
+    await tester.enterText(find.byKey(const Key('note_title_field')), 'Half written');
+
+    // Idle for the full minute with the editor open: it locks without errors.
+    await tester.pump(const Duration(minutes: 1, seconds: 1));
+    await settle(tester);
+    expect(container.read(vaultControllerProvider), isA<VaultLocked>());
+    expect(find.byKey(const Key('note_title_field')), findsNothing);
+    expect(find.text('Zero-Trust Notes is locked'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 10)); // Riverpod's retry timer
+  });
 }
