@@ -217,6 +217,10 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
   /// Pushes a fresh widget preview. Clearing on lock and on pause is
   /// [AppGate]'s job.
   void _syncWidgetPreviews() {
+    // Only while on screen: a sync arriving in the background must not
+    // write plaintext back after AppGate cleared it on pause.
+    if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) return;
+    if (ref.read(vaultControllerProvider) is! VaultUnlocked) return;
     final notes = ref.read(notesListProvider).value;
     if (notes == null) return;
     unawaited(const HomeWidgetSyncService().writeUnlockedPreviews(notes));
