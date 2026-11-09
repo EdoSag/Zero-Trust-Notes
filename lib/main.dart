@@ -31,7 +31,7 @@ class ZeroTrustNotesApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp(
-      title: notesAppConfig.displayName,
+      title: 'ZT Notes', // on-device task switcher label; store name stays Zero-Trust Notes
       theme: ZtTheme.light(),
       darkTheme: ZtTheme.dark(),
       themeMode: ref.watch(themeModeProvider),
