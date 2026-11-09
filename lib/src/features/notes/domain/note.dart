@@ -11,6 +11,7 @@ class Note {
     required this.body,
     required this.createdAt,
     required this.updatedAt,
+    this.tagIds = const [],
   });
 
   /// A live (not deleted) item from the local store.
@@ -26,8 +27,13 @@ class Note {
         _ => item.updatedAt,
       },
       updatedAt: item.updatedAt,
+      tagIds: [...?(json['tagIds'] as List?)?.whereType<String>()],
     );
   }
+
+  /// Notebooks and tags share the store with notes and carry a `kind`.
+  /// Notes never have one, so every Notes version keeps reading them.
+  static bool isNoteJson(Map<String, Object?>? json) => json != null && json['kind'] == null;
 
   final String id;
   final String? notebookId;
@@ -35,15 +41,28 @@ class Note {
   final String body;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final List<String> tagIds;
 
-  Note copyWith({String? title, String? body}) {
+  static const _unset = Object();
+
+  /// [notebookId] defaults to "leave unchanged" rather than "clear" — pass
+  /// an explicit `String?` (including `null`, to unfile the note) to change
+  /// it, since the field is itself nullable and needs a way to distinguish
+  /// "no change" from "set to null".
+  Note copyWith({
+    String? title,
+    String? body,
+    Object? notebookId = _unset,
+    List<String>? tagIds,
+  }) {
     return Note(
       id: id,
-      notebookId: notebookId,
+      notebookId: identical(notebookId, _unset) ? this.notebookId : notebookId as String?,
       title: title ?? this.title,
       body: body ?? this.body,
       createdAt: createdAt,
       updatedAt: updatedAt,
+      tagIds: tagIds ?? this.tagIds,
     );
   }
 
@@ -52,14 +71,21 @@ class Note {
     required String title,
     required String body,
     String? notebookId,
+    List<String> tagIds = const [],
     required DateTime createdAt,
   }) => {
     'title': title,
     'body': body,
     'notebookId': notebookId,
+    'tagIds': tagIds,
     'createdAt': createdAt.toUtc().toIso8601String(),
   };
 
-  Map<String, Object?> toItemJson() =>
-      itemJson(title: title, body: body, notebookId: notebookId, createdAt: createdAt);
+  Map<String, Object?> toItemJson() => itemJson(
+    title: title,
+    body: body,
+    notebookId: notebookId,
+    tagIds: tagIds,
+    createdAt: createdAt,
+  );
 }

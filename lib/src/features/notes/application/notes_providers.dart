@@ -38,23 +38,29 @@ final notesStoreProvider = FutureProvider<ZtLocalStore>((ref) async {
   }
 });
 
+/// [notesStoreProvider]'s store while it's open, else `null`.
+ZtLocalStore? watchOpenNotesStore(Ref ref) {
+  // Not `.value`: that keeps the last (closed) store while locked.
+  return switch (ref.watch(notesStoreProvider)) {
+    AsyncData(:final value) => value,
+    _ => null,
+  };
+}
+
+/// The sync controller once its engine is open, for repositories to save
+/// through.
+Future<SyncController> Function() syncForWrites(Ref ref) => () async {
+  await ref.read(ztSyncEngineProvider.future);
+  return ref.read(ztSyncControllerProvider.notifier);
+};
+
 /// `null` whenever the vault isn't unlocked (or the store is still
 /// opening). Callers must treat that as "no notes access", not as an empty
 /// vault.
 final notesRepositoryProvider = Provider<NotesRepository?>((ref) {
-  // Not `.value`: that keeps the last (closed) store while locked.
-  final store = switch (ref.watch(notesStoreProvider)) {
-    AsyncData(:final value) => value,
-    _ => null,
-  };
+  final store = watchOpenNotesStore(ref);
   if (store == null) return null;
-  return NotesRepository(
-    store: store,
-    sync: () async {
-      await ref.read(ztSyncEngineProvider.future);
-      return ref.read(ztSyncControllerProvider.notifier);
-    },
-  );
+  return NotesRepository(store: store, sync: syncForWrites(ref));
 });
 
 final notesListProvider = StreamProvider<List<Note>>((ref) {
