@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Release builds get no network access without this (debug builds add it
+         automatically), so sign-in and sync could never reach Supabase. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="ZT Notes"
         android:name="${applicationName}"
