@@ -6,7 +6,10 @@ import 'package:zero_trust_core/zero_trust_core.dart';
 
 import 'src/app/app_gate.dart';
 
-const notesAppConfig = ZtAppConfig(appId: 'notes', displayName: 'Zero-Trust Notes');
+const notesAppConfig = ZtAppConfig(
+  appId: 'notes',
+  displayName: 'Zero-Trust Notes',
+);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,14 +33,19 @@ class ZeroTrustNotesApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return MaterialApp(
-      title: 'ZT Notes', // on-device task switcher label; store name stays Zero-Trust Notes
-      theme: ZtTheme.light(),
-      darkTheme: ZtTheme.dark(),
-      themeMode: ref.watch(themeModeProvider),
-      home: const AppGate(),
-      builder: (context, child) =>
-          AutoLockActivity(child: child ?? const SizedBox.shrink()),
+    // The suite's theme with Notes' accent, light/dark choice and
+    // wallpaper colours, like the other Zero-Trust apps.
+    return ZtThemeBuilder(
+      builder: (context, theme, darkTheme, mode) => MaterialApp(
+        title:
+            'ZT Notes', // on-device task switcher label; store name stays Zero-Trust Notes
+        theme: theme,
+        darkTheme: darkTheme,
+        themeMode: mode,
+        home: const AppGate(),
+        builder: (context, child) =>
+            AutoLockActivity(child: child ?? const SizedBox.shrink()),
+      ),
     );
   }
 }
