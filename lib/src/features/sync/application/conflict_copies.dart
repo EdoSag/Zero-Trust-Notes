@@ -4,10 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import 'package:zero_trust_core/zero_trust_core.dart';
 
+import '../../notes/domain/note.dart';
+
 /// When another device's newer edit wins over an unsynced local one, keeps
 /// the local version as a separate "conflicted copy" note, so nothing a user
-/// typed is ever silently lost. Active while something listens to it (the
-/// notes list does).
+/// typed is ever silently lost. Notebooks and tags just take the newer
+/// version. Active while something listens to it (the notes list does).
 final conflictCopiesProvider = Provider<void>((ref) {
   const uuid = Uuid();
   ref.listen(ztSyncControllerProvider, (_, status) {
@@ -19,6 +21,7 @@ final conflictCopiesProvider = Provider<void>((ref) {
       for (final conflict in conflicts) {
         final lost = conflict.lostLocal.json;
         if (lost == null) continue; // a local delete lost; nothing to restore
+        if (!Note.isNoteJson(lost)) continue;
         final title = (lost['title'] as String?) ?? '';
         await sync.save(uuid.v4(), {
           ...lost,

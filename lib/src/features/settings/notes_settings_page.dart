@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:zero_trust_core/zero_trust_core.dart';
 
 import '../export/presentation/export_sheet.dart';
+import '../keep_import/keep_import_flow.dart';
 import '../legacy_import/presentation/legacy_import.dart';
 
 /// The shared Zero-Trust settings screen, plus Notes' own backup rows.
@@ -24,6 +25,12 @@ class NotesSettingsPage extends ConsumerWidget {
           title: const Text('Export all notes'),
           subtitle: const Text('Markdown, JSON or PDF'),
           onTap: () => showExportSheet(context),
+        ),
+        ListTile(
+          leading: const Icon(Icons.download_outlined),
+          title: const Text('Import from Google Keep'),
+          subtitle: const Text('From a Google Takeout file, on this phone'),
+          onTap: () => showKeepImportFlow(context, ref),
         ),
         if (importPending)
           ListTile(

@@ -89,7 +89,11 @@ class _ExportSheetContentState extends ConsumerState<_ExportSheetContent> {
     try {
       final notes = widget.singleNote != null
           ? [widget.singleNote!]
-          : await ref.read(notesRepositoryProvider)!.fetchAll();
+          : [
+              // Everything but Trash.
+              for (final note in await ref.read(notesRepositoryProvider)!.fetchAll())
+                if (!note.isTrashed) note,
+            ];
 
       final bytes = await _exportService.render(notes, format);
       final fileName = _exportService.suggestedFileName(
