@@ -36,6 +36,8 @@ class ZeroTrustNotesApp extends ConsumerWidget {
       darkTheme: ZtTheme.dark(),
       themeMode: ref.watch(themeModeProvider),
       home: const AppGate(),
+      builder: (context, child) =>
+          AutoLockActivity(child: child ?? const SizedBox.shrink()),
     );
   }
 }
