@@ -63,8 +63,17 @@ final notesRepositoryProvider = Provider<NotesRepository?>((ref) {
   return NotesRepository(store: store, sync: syncForWrites(ref));
 });
 
-final notesListProvider = StreamProvider<List<Note>>((ref) {
+/// Every note in the store, including archived and trashed ones.
+final allNotesProvider = StreamProvider<List<Note>>((ref) {
   final repository = ref.watch(notesRepositoryProvider);
   if (repository == null) return const Stream.empty();
   return repository.watchAll();
+});
+
+/// Notes outside Trash (archived ones included), newest first. Widgets,
+/// pickers and export read this.
+final notesListProvider = Provider<AsyncValue<List<Note>>>((ref) {
+  return ref.watch(allNotesProvider).whenData(
+    (notes) => [for (final note in notes) if (!note.isTrashed) note],
+  );
 });

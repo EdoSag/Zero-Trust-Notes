@@ -8,6 +8,7 @@ import '../features/export/application/export_temp_file_registry.dart';
 import '../features/notes/application/notes_providers.dart';
 import '../features/notes/presentation/note_editor_page.dart';
 import '../features/notes/presentation/notes_list_page.dart';
+import '../features/reminders/reminder_scheduler.dart';
 import '../features/widgets/application/home_widget_sync_service.dart';
 import '../features/widgets/application/pending_widget_action_controller.dart';
 import '../features/widgets/application/widget_launch_listener.dart';
@@ -33,6 +34,7 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
   late bool _signingIn = ref.read(currentUserProvider) == null;
   UnlockResult? _awaitingRecoveryKey;
   late final WidgetLaunchListener _widgetLaunchListener;
+  StreamSubscription<String>? _reminderTaps;
 
   @override
   void initState() {
@@ -40,10 +42,19 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _widgetLaunchListener = WidgetLaunchListener(ref);
     unawaited(_widgetLaunchListener.start());
+    // A tapped reminder opens its note, after unlock if needed.
+    _reminderTaps = ref
+        .read(reminderSchedulerProvider)
+        .taps
+        .listen(
+          (noteId) => ref.read(pendingWidgetActionProvider.notifier).set(OpenNote(noteId)),
+          onError: (Object _) {},
+        );
   }
 
   @override
   void dispose() {
+    _reminderTaps?.cancel();
     _widgetLaunchListener.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -96,6 +107,8 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
     ref.listen(currentUserProvider, (_, user) {
       if (user == null) {
         ref.read(vaultControllerProvider.notifier).lock();
+        // Signed out: this account's reminders shouldn't fire on this phone.
+        unawaited(ref.read(reminderSchedulerProvider).cancelAll().catchError((Object _) {}));
         setState(() => _signingIn = true);
       }
     });
@@ -182,6 +195,17 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
     ref.listenManual(pendingWidgetActionProvider, (_, next) {
       if (next != null) _maybeConsumePendingWidgetAction();
     });
+    // Reminders set on any device are handed to this phone's OS.
+    ref.listenManual(allNotesProvider, (_, next) {
+      final notes = next.value;
+      if (notes == null) return;
+      unawaited(
+        ref
+            .read(reminderSchedulerProvider)
+            .sync(ScheduledReminder.fromNotes(notes, DateTime.now()))
+            .catchError((Object _) {}),
+      );
+    }, fireImmediately: true);
   }
 
   @override

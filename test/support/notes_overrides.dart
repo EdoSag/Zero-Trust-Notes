@@ -5,6 +5,7 @@ import 'package:zerotrust_notes/main.dart';
 import 'package:zerotrust_notes/src/core/db/local_note_vault.dart';
 import 'package:zerotrust_notes/src/features/legacy_import/previous_store_migration.dart';
 import 'package:zerotrust_notes/src/features/notes/application/notes_providers.dart';
+import 'package:zerotrust_notes/src/features/reminders/reminder_scheduler.dart';
 
 /// No earlier Notes store on this "device".
 class NoPreviousStore implements PreviousNotesStoreFile {
@@ -37,4 +38,5 @@ List<Override> notesTestOverrides({
     return store;
   }),
   previousNotesStoreFileProvider.overrideWithValue(previousStore ?? NoPreviousStore()),
+  reminderSchedulerProvider.overrideWithValue(NoopReminderScheduler()),
 ];

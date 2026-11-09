@@ -1,0 +1,210 @@
+import 'package:flutter/material.dart';
+
+import '../../../shared/markdown_snippet.dart';
+import '../../../shared/theme/app_spacing.dart';
+import '../domain/note.dart';
+import 'note_actions.dart';
+
+/// One note in the grid or list: colour, title, a preview of the text or
+/// checklist, tags and reminder.
+class NoteCard extends StatelessWidget {
+  const NoteCard({
+    super.key,
+    required this.note,
+    required this.tagNames,
+    required this.onTap,
+    required this.onLongPress,
+    this.compact = false,
+  });
+
+  final Note note;
+  final List<String> tagNames;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
+
+  /// List mode: fewer preview lines.
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final background = note.color.background(theme.brightness);
+    final onColor = background == null ? scheme.onSurface : _textOn(background);
+    final muted = onColor.withValues(alpha: 0.72);
+    final title = note.title.trim();
+    final snippet = stripMarkdownForSnippet(note.body);
+
+    final semantics = [
+      if (note.pinned) 'Pinned.',
+      title.isEmpty ? 'Untitled note.' : '$title.',
+      if (note.isChecklist)
+        'Checklist, ${note.checklist!.where((i) => i.checked).length} of ${note.checklist!.length} done.'
+      else if (snippet.isNotEmpty)
+        snippet,
+      if (note.reminderAt != null) 'Reminder ${formatReminder(note.reminderAt!)}.',
+      if (tagNames.isNotEmpty) 'Tags: ${tagNames.join(', ')}.',
+    ].join(' ');
+
+    return Semantics(
+      label: semantics,
+      button: true,
+      hint: 'Opens note. Long press for more actions.',
+      excludeSemantics: true,
+      child: Card(
+        margin: EdgeInsets.zero,
+        elevation: 0,
+        color: background ?? scheme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: background == null ? BorderSide(color: scheme.outlineVariant) : BorderSide.none,
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          onLongPress: onLongPress,
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (title.isNotEmpty)
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium?.copyWith(color: onColor),
+                  ),
+                if (title.isNotEmpty && (snippet.isNotEmpty || note.isChecklist))
+                  const SizedBox(height: AppSpacing.xs),
+                if (note.isChecklist)
+                  _ChecklistPreview(note: note, color: onColor, muted: muted, compact: compact)
+                else if (snippet.isNotEmpty)
+                  Text(
+                    snippet,
+                    maxLines: compact ? 2 : 8,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(color: onColor),
+                  ),
+                if (title.isEmpty && snippet.isEmpty && !note.isChecklist)
+                  Text('Empty note', style: theme.textTheme.bodyMedium?.copyWith(color: muted)),
+                if (note.reminderAt != null || tagNames.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  Wrap(
+                    spacing: AppSpacing.xs,
+                    runSpacing: AppSpacing.xs,
+                    children: [
+                      if (note.reminderAt != null)
+                        _Pill(
+                          icon: Icons.alarm,
+                          label: formatReminder(note.reminderAt!),
+                          color: onColor,
+                          strike: note.reminderAt!.isBefore(DateTime.now()),
+                        ),
+                      for (final name in tagNames.take(3)) _Pill(label: name, color: onColor),
+                      if (tagNames.length > 3) _Pill(label: '+${tagNames.length - 3}', color: onColor),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Color _textOn(Color background) =>
+      ThemeData.estimateBrightnessForColor(background) == Brightness.dark
+      ? Colors.white
+      : const Color(0xFF202124);
+}
+
+class _ChecklistPreview extends StatelessWidget {
+  const _ChecklistPreview({
+    required this.note,
+    required this.color,
+    required this.muted,
+    required this.compact,
+  });
+
+  final Note note;
+  final Color color;
+  final Color muted;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = note.checklist!;
+    final open = items.where((item) => !item.checked).toList();
+    final done = items.length - open.length;
+    final shown = open.take(compact ? 3 : 8).toList();
+    final style = Theme.of(context).textTheme.bodyMedium?.copyWith(color: color);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final item in shown)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 2),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.check_box_outline_blank, size: 18, color: muted),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(item.text, maxLines: 1, overflow: TextOverflow.ellipsis, style: style),
+                ),
+              ],
+            ),
+          ),
+        if (open.length > shown.length)
+          Text('+ ${open.length - shown.length} more', style: style?.copyWith(color: muted)),
+        if (done > 0)
+          Text(
+            '+ $done ticked ${done == 1 ? 'item' : 'items'}',
+            style: style?.copyWith(color: muted),
+          ),
+      ],
+    );
+  }
+}
+
+class _Pill extends StatelessWidget {
+  const _Pill({required this.label, required this.color, this.icon, this.strike = false});
+
+  final String label;
+  final Color color;
+  final IconData? icon;
+  final bool strike;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+        color: color.withValues(alpha: 0.06),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[Icon(icon, size: 14, color: color), const SizedBox(width: 4)],
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: color,
+                decoration: strike ? TextDecoration.lineThrough : null,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

@@ -104,7 +104,9 @@ void main() {
     await settle(tester);
     expect(find.text('No notes yet. Tap + to create one.'), findsOneWidget);
 
-    await tester.tap(find.byTooltip('Settings'));
+    await tester.tap(find.byTooltip('Open navigation menu'));
+    await settle(tester);
+    await tester.tap(find.text('Settings'));
     await settle(tester);
     await tester.scrollUntilVisible(find.text('Export all notes'), 200);
     expect(find.text('Export all notes'), findsOneWidget);
@@ -210,7 +212,7 @@ void main() {
       () => container.read(ztAutoLockProvider.notifier).set(const Duration(minutes: 1)),
     );
 
-    await tester.tap(find.byType(FloatingActionButton));
+    await tester.tap(find.byTooltip('Create new note'));
     await settle(tester);
     await tester.enterText(find.byKey(const Key('note_title_field')), 'Half written');
 
