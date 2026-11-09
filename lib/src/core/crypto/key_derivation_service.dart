@@ -3,6 +3,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:cryptography/dart.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 /// Derives the symmetric key used for Tier-2 AES-256-GCM column encryption
 /// from the user's vault master passphrase, via PBKDF2-HMAC-SHA256 with
@@ -25,10 +26,11 @@ class KeyDerivationService {
   }
 
   /// Runs on a background isolate: 600k rounds in Dart take seconds on a
-  /// phone and would freeze the UI.
+  /// phone and would freeze the UI. The web has no isolates, so it runs
+  /// inline there.
   Future<Uint8List> derive({required String passphrase, required Uint8List salt}) {
     final nonce = Uint8List.fromList(salt);
-    return Isolate.run(() async {
+    Future<Uint8List> run() async {
       const pbkdf2 = DartPbkdf2(
         macAlgorithm: DartHmac(DartSha256()),
         iterations: iterations,
@@ -36,6 +38,8 @@ class KeyDerivationService {
       );
       final secretKey = await pbkdf2.deriveKeyFromPassword(password: passphrase, nonce: nonce);
       return Uint8List.fromList(await secretKey.extractBytes());
-    });
+    }
+
+    return kIsWeb ? run() : Isolate.run(run);
   }
 }
