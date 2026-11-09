@@ -18,7 +18,7 @@ import '../domain/note_color.dart';
 import 'checklist_editor.dart';
 import 'note_actions.dart';
 
-enum _SaveStatus { idle, saving, saved }
+enum _SaveStatus { idle, saving, saved, failed }
 
 class NoteEditorPage extends ConsumerStatefulWidget {
   const NoteEditorPage({
@@ -70,7 +70,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
 
   /// Saves run one after another, so a quick second edit can't create the
   /// note twice.
-  Future<void> _saving = Future.value();
+  Future<bool> _saving = Future.value(true);
 
   bool get _isEditing => _note != null;
   bool get _inTrash => _note?.isTrashed ?? false;
@@ -125,13 +125,26 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
       _body.trim().isEmpty &&
       (_checklist?.every((item) => item.text.trim().isEmpty) ?? true);
 
-  Future<void> _persist() {
+  /// Saves now. Returns false when the save failed; the edits stay marked
+  /// unsaved so the next attempt writes them.
+  Future<bool> _persist() {
     _debounce?.cancel();
     // Read now: this also runs as the page pops, after which `ref` is gone.
     final repository = ref.read(notesRepositoryProvider);
-    return _saving = _saving.then((_) => _persistNow(repository)).catchError((Object _) {
-      if (mounted) setState(() => _status = _SaveStatus.idle);
-    });
+    final result = _saving.then((_) => _persistNow(repository)).then(
+      (_) => true,
+      onError: (Object _) {
+        if (mounted) {
+          setState(() => _status = _SaveStatus.failed);
+          ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+            const SnackBar(content: Text('Couldn\'t save this note. Your changes are still here; try again.')),
+          );
+        }
+        return false;
+      },
+    );
+    _saving = result;
+    return result;
   }
 
   Future<void> _persistNow(NotesRepository? repository) async {
@@ -142,7 +155,17 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
       return;
     }
     _dirty = false;
+    try {
+      await _write(repository);
+    } on Object {
+      _dirty = true; // Keep the edits for the next save.
+      rethrow;
+    }
+    _lastSavedAt = DateTime.now();
+    if (mounted) setState(() => _status = _SaveStatus.saved);
+  }
 
+  Future<void> _write(NotesRepository repository) async {
     final checklist = _checklist == null ? null : ChecklistItem.ordered(_checklist!);
     if (_note == null) {
       _note = await repository.createNote(
@@ -171,13 +194,10 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
       await repository.updateNote(updated);
       _note = updated;
     }
-    _lastSavedAt = DateTime.now();
-    if (mounted) setState(() => _status = _SaveStatus.saved);
   }
 
   Future<void> _saveAndClose() async {
-    await _persist();
-    if (mounted) Navigator.of(context).pop();
+    if (await _persist() && mounted) Navigator.of(context).pop();
   }
 
   void _setNotebook(String? notebookId) {
@@ -252,7 +272,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   }
 
   Future<void> _moveToTrash() async {
-    await _persist();
+    if (!await _persist()) return;
     final note = _note;
     if (note == null) {
       if (mounted) Navigator.of(context).pop();
@@ -289,6 +309,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     _SaveStatus.idle => '',
     _SaveStatus.saving => 'Saving…',
     _SaveStatus.saved => 'Saved',
+    _SaveStatus.failed => 'Not saved',
   };
 
   @override

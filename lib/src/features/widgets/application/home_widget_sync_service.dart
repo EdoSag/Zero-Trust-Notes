@@ -26,6 +26,20 @@ class HomeWidgetSyncService {
 
   static const _bodyPreviewLength = 200;
 
+  /// Every preview write and clear runs in this order, one at a time, so a
+  /// slow write can't land after a clear and bring plaintext back.
+  static Future<void> _queue = Future.value();
+
+  /// Bumped by every [clearAllPlaintext]. A write started before the bump
+  /// stops before writing anything more.
+  static int _epoch = 0;
+
+  static Future<void> _serialized(Future<void> Function() op) {
+    final next = _queue.then((_) => op());
+    _queue = next.catchError((Object _) {});
+    return next;
+  }
+
   String _noteIdKey(String appWidgetId) => 'widget_${appWidgetId}_note_id';
   String _lockedKey(String appWidgetId) => 'widget_${appWidgetId}_locked';
   String _titleKey(String appWidgetId) => 'widget_${appWidgetId}_title';
@@ -44,17 +58,27 @@ class HomeWidgetSyncService {
   /// Pins [note] to [appWidgetId] and immediately shows its preview. Called
   /// only from the note picker, which is itself only reachable once the
   /// vault is unlocked.
-  Future<void> pinNote({required String appWidgetId, required Note note}) async {
-    await HomeWidget.saveWidgetData<String>(_noteIdKey(appWidgetId), note.id);
-    await _writePreview(appWidgetId, note);
-    await HomeWidget.updateWidget(qualifiedAndroidName: singleNoteProviderQualifiedName);
+  Future<void> pinNote({required String appWidgetId, required Note note}) {
+    final epoch = _epoch;
+    return _serialized(() async {
+      await HomeWidget.saveWidgetData<String>(_noteIdKey(appWidgetId), note.id);
+      if (epoch != _epoch) return;
+      await _writePreview(appWidgetId, note);
+      await HomeWidget.updateWidget(qualifiedAndroidName: singleNoteProviderQualifiedName);
+    });
   }
 
   /// Re-resolves every pinned widget's note against the live [notes] list
   /// and refreshes its cached preview. Call whenever the vault unlocks, the
   /// notes list changes, or the app resumes to the foreground while
   /// unlocked — never while locked.
-  Future<void> writeUnlockedPreviews(List<Note> notes) async {
+  Future<void> writeUnlockedPreviews(List<Note> notes) {
+    final epoch = _epoch;
+    return _serialized(() => _writeUnlockedPreviews(notes, epoch));
+  }
+
+  Future<void> _writeUnlockedPreviews(List<Note> notes, int epoch) async {
+    if (epoch != _epoch) return;
     final widgetIds = await _installedSingleNoteWidgetIds();
     if (widgetIds.isEmpty) return;
 
@@ -63,6 +87,8 @@ class HomeWidgetSyncService {
       final appWidgetId = widgetId.toString();
       final noteId = await HomeWidget.getWidgetData<String>(_noteIdKey(appWidgetId));
       if (noteId == null) continue;
+      // Cleared (lock or background) while this was running: stop.
+      if (epoch != _epoch) return;
       final note = notesById[noteId];
       if (note == null) {
         await _writeMissingNotePlaceholder(appWidgetId);
@@ -89,7 +115,12 @@ class HomeWidgetSyncService {
   /// Removes every cached title/body preview and marks all pinned widgets
   /// locked. `AppGate` calls this whenever the vault locks or the app is
   /// paused, and `main()` on every cold start.
-  Future<void> clearAllPlaintext() async {
+  Future<void> clearAllPlaintext() {
+    _epoch++;
+    return _serialized(_clearAllPlaintext);
+  }
+
+  Future<void> _clearAllPlaintext() async {
     final widgetIds = await _installedSingleNoteWidgetIds();
     for (final widgetId in widgetIds) {
       final appWidgetId = widgetId.toString();
