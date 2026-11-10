@@ -27,6 +27,7 @@ import 'note_card.dart';
 import 'note_editor_page.dart';
 
 enum _SortOption {
+  custom('Custom order (drag to move)'),
   updatedDesc('Last edited (newest)'),
   updatedAsc('Last edited (oldest)'),
   createdDesc('Date created (newest)'),
@@ -47,7 +48,10 @@ class NotesListPage extends ConsumerStatefulWidget {
 class _NotesListPageState extends ConsumerState<NotesListPage> {
   final _searchController = TextEditingController();
   bool _searchActive = false;
-  _SortOption _sort = _SortOption.updatedDesc;
+
+  /// Like Keep: new and edited notes on top, and notes stay where they're
+  /// dragged.
+  _SortOption _sort = _SortOption.custom;
   NotesFilter _filter = const NotesFilter();
 
   @override
@@ -80,6 +84,7 @@ class _NotesListPageState extends ConsumerState<NotesListPage> {
     final list = [...notes];
     list.sort(
       (a, b) => switch (_sort) {
+        _SortOption.custom => b.orderKey.compareTo(a.orderKey),
         _SortOption.updatedDesc => b.updatedAt.compareTo(a.updatedAt),
         _SortOption.updatedAsc => a.updatedAt.compareTo(b.updatedAt),
         _SortOption.createdDesc => b.createdAt.compareTo(a.createdAt),
@@ -90,14 +95,24 @@ class _NotesListPageState extends ConsumerState<NotesListPage> {
     return list;
   }
 
+  /// Puts [moved] where [target] is in [section] (the notes as shown):
+  /// before it when moving up, after it when moving down. Only [moved]
+  /// changes, so other devices merge the move like any edit.
+  Future<void> _reorder(List<Note> section, Note moved, Note target) async {
+    final position = reorderPosition(section, moved, target);
+    if (position == null) return;
+    await ref.read(notesRepositoryProvider)?.updateNote(moved.copyWith(position: position));
+  }
+
   void _open(Note note) => Navigator.of(
     context,
   ).push(MaterialPageRoute<void>(builder: (_) => NoteEditorPage(note: note)));
 
-  void _create({bool checklist = false}) => Navigator.of(context).push(
+  void _create({bool checklist = false, bool voice = false}) => Navigator.of(context).push(
     MaterialPageRoute<void>(
       builder: (_) => NoteEditorPage(
         startAsChecklist: checklist,
+        startWithVoice: voice,
         initialNotebookId: _filter.notebookId,
         initialTagId: _filter.tagId,
         archived: _filter.view == NotesView.archive,
@@ -149,7 +164,9 @@ class _NotesListPageState extends ConsumerState<NotesListPage> {
       if (next.error != null && previous?.error == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Couldn\'t sync. Your notes are saved on this device and will sync later.'),
+            content: Text(
+              'Couldn\'t sync. Your notes are saved on this device and will sync later.',
+            ),
           ),
         );
       }
@@ -223,10 +240,7 @@ class _NotesListPageState extends ConsumerState<NotesListPage> {
                 icon: layout == NotesLayout.grid ? Icons.view_agenda_outlined : Icons.grid_view,
                 onPressed: () => ref.read(notesLayoutProvider.notifier).toggle(),
               ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 4),
-                child: SyncStatusBadge(),
-              ),
+              const Padding(padding: EdgeInsets.symmetric(horizontal: 4), child: SyncStatusBadge()),
               PopupMenuButton<Object>(
                 tooltip: 'More options',
                 onSelected: (value) {
@@ -292,6 +306,13 @@ class _NotesListPageState extends ConsumerState<NotesListPage> {
                       tagNames: tagNames,
                       onOpen: _open,
                       onLongPress: (note) => NoteActions(context, ref).showSheet(note),
+                      // Dragging works in the main and Archive views in
+                      // custom order, where a moved note stays put.
+                      onReorder:
+                          _sort == _SortOption.custom &&
+                              (_filter.view == NotesView.notes || _filter.view == NotesView.archive)
+                          ? (section, moved, target) => _reorder(section, moved, target)
+                          : null,
                       onSwipe: (note) => NoteActions(context, ref).toggleArchive(note),
                     );
                   },
@@ -306,6 +327,13 @@ class _NotesListPageState extends ConsumerState<NotesListPage> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
+                    FloatingActionButton.small(
+                      heroTag: 'new_voice',
+                      tooltip: 'New voice note',
+                      onPressed: () => _create(voice: true),
+                      child: const Icon(Icons.mic_none),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
                     FloatingActionButton.small(
                       heroTag: 'new_list',
                       tooltip: 'New checklist',
@@ -438,7 +466,11 @@ class _DrawerHeading extends StatelessWidget {
 
 /// Notebook chips above the main Notes view.
 class _NotebookFilterBar extends StatelessWidget {
-  const _NotebookFilterBar({required this.filter, required this.notebooks, required this.onChanged});
+  const _NotebookFilterBar({
+    required this.filter,
+    required this.notebooks,
+    required this.onChanged,
+  });
 
   final NotesFilter filter;
   final List<Notebook> notebooks;
@@ -505,8 +537,10 @@ class _SearchFilters extends StatelessWidget {
     final brightness = Theme.of(context).brightness;
     final tagName = tags.where((t) => t.id == filter.tagId).firstOrNull?.name;
     final notebookName = notebooks.where((n) => n.id == filter.notebookId).firstOrNull?.name;
-    Widget gap(Widget child) =>
-        Padding(padding: const EdgeInsets.only(right: AppSpacing.xs), child: child);
+    Widget gap(Widget child) => Padding(
+      padding: const EdgeInsets.only(right: AppSpacing.xs),
+      child: child,
+    );
 
     return SizedBox(
       height: 48,
@@ -568,8 +602,10 @@ class _SearchFilters extends StatelessWidget {
               ),
             ),
           if (filter.isFiltering)
-            TextButton(onPressed: () => onChanged(filter.cleared().copyWith(query: filter.query)),
-                child: const Text('Clear filters')),
+            TextButton(
+              onPressed: () => onChanged(filter.cleared().copyWith(query: filter.query)),
+              child: const Text('Clear filters'),
+            ),
         ],
       ),
     );
@@ -622,6 +658,7 @@ class _NotesBody extends StatelessWidget {
     required this.onOpen,
     required this.onLongPress,
     required this.onSwipe,
+    this.onReorder,
   });
 
   final List<Note> pinned;
@@ -635,6 +672,9 @@ class _NotesBody extends StatelessWidget {
   final ValueChanged<Note> onLongPress;
   final ValueChanged<Note> onSwipe;
 
+  /// Null where notes can't be dragged (another sort, Trash, Reminders).
+  final void Function(List<Note> section, Note moved, Note target)? onReorder;
+
   @override
   Widget build(BuildContext context) {
     if (pinned.isEmpty && others.isEmpty) return _empty(context);
@@ -646,7 +686,12 @@ class _NotesBody extends StatelessWidget {
         slivers.add(
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.md, AppSpacing.md, AppSpacing.xs),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.xs,
+              ),
               child: Semantics(
                 header: true,
                 child: Text(heading, style: Theme.of(context).textTheme.labelLarge),
@@ -668,12 +713,14 @@ class _NotesBody extends StatelessWidget {
                   mainAxisSpacing: AppSpacing.sm,
                   crossAxisSpacing: AppSpacing.sm,
                   childCount: notes.length,
-                  itemBuilder: (context, index) => _card(notes[index], compact: false),
+                  itemBuilder: (context, index) =>
+                      _draggable(notes, notes[index], _card(notes[index], compact: false)),
                 )
               : SliverList.separated(
                   itemCount: notes.length,
                   separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-                  itemBuilder: (context, index) => _swipeable(context, notes[index]),
+                  itemBuilder: (context, index) =>
+                      _draggable(notes, notes[index], _swipeable(context, notes[index])),
                 ),
         ),
       );
@@ -686,13 +733,29 @@ class _NotesBody extends StatelessWidget {
     return CustomScrollView(slivers: slivers);
   }
 
+  Widget _draggable(List<Note> section, Note note, Widget child) {
+    final reorder = onReorder;
+    if (reorder == null) return child;
+    return ReorderableNote(
+      key: ValueKey('drag_${note.id}'),
+      note: note,
+      onDropped: (moved) {
+        final movedNote = section.where((n) => n.id == moved).firstOrNull;
+        if (movedNote != null) reorder(section, movedNote, note);
+      },
+      onLongPress: () => onLongPress(note),
+      child: child,
+    );
+  }
+
   Widget _card(Note note, {required bool compact}) => NoteCard(
     key: ValueKey('card_${note.id}'),
     note: note,
     tagNames: [for (final id in note.tagIds) ?tagNames[id]],
     compact: compact,
     onTap: () => onOpen(note),
-    onLongPress: () => onLongPress(note),
+    // When dragging is on, ReorderableNote turns a still long press into this.
+    onLongPress: onReorder == null ? () => onLongPress(note) : null,
   );
 
   Widget _swipeable(BuildContext context, Note note) {
@@ -757,6 +820,112 @@ class _NotesBody extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The position that puts [moved] where [target] is in [section] (sorted
+/// highest [Note.orderKey] first): just above it when moving up, just
+/// below when moving down. Null when nothing would change.
+double? reorderPosition(List<Note> section, Note moved, Note target) {
+  final from = section.indexWhere((n) => n.id == moved.id);
+  final to = section.indexWhere((n) => n.id == target.id);
+  if (from < 0 || to < 0 || from == to) return null;
+  const step = 60000.0; // a minute, past the last note
+  final rest = [
+    for (final n in section)
+      if (n.id != moved.id) n,
+  ];
+  final at = rest.indexWhere((n) => n.id == target.id);
+  // Index in [rest] that [moved] takes.
+  final slot = from < to ? at + 1 : at;
+  final above = slot > 0 ? rest[slot - 1].orderKey : null;
+  final below = slot < rest.length ? rest[slot].orderKey : null;
+  if (above == null) return below! + step;
+  if (below == null) return above - step;
+  return (above + below) / 2;
+}
+
+/// A note that can be dragged onto another to move it there (long press,
+/// then drag). A long press without moving opens the actions sheet as
+/// before.
+class ReorderableNote extends StatefulWidget {
+  const ReorderableNote({
+    super.key,
+    required this.note,
+    required this.onDropped,
+    required this.onLongPress,
+    required this.child,
+  });
+
+  final Note note;
+
+  /// Another note (its id) was dropped on this one.
+  final ValueChanged<String> onDropped;
+  final VoidCallback onLongPress;
+  final Widget child;
+
+  @override
+  State<ReorderableNote> createState() => _ReorderableNoteState();
+}
+
+class _ReorderableNoteState extends State<ReorderableNote> {
+  Offset? _start;
+  bool _dragging = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return DragTarget<String>(
+      onWillAcceptWithDetails: (details) => details.data != widget.note.id,
+      onAcceptWithDetails: (details) => widget.onDropped(details.data),
+      builder: (context, candidates, _) {
+        final hovered = candidates.isNotEmpty;
+        return LayoutBuilder(
+          builder: (context, constraints) => Semantics(
+            onLongPress: widget.onLongPress,
+            child: LongPressDraggable<String>(
+              data: widget.note.id,
+              hapticFeedbackOnStart: true,
+              onDragStarted: () {
+                final box = context.findRenderObject() as RenderBox?;
+                _start = box?.localToGlobal(Offset.zero);
+                setState(() => _dragging = true);
+              },
+              onDragEnd: (details) {
+                setState(() => _dragging = false);
+                final start = _start;
+                // Held but not moved: the long press it always was.
+                if (!details.wasAccepted &&
+                    start != null &&
+                    (details.offset - start).distance < 16) {
+                  widget.onLongPress();
+                }
+              },
+              feedback: Material(
+                color: Colors.transparent,
+                elevation: 6,
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  width: constraints.maxWidth,
+                  child: Opacity(opacity: 0.9, child: widget.child),
+                ),
+              ),
+              childWhenDragging: Opacity(opacity: 0.3, child: widget.child),
+              child: DecoratedBox(
+                position: DecorationPosition.foreground,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: hovered && !_dragging
+                      ? Border.all(color: scheme.primary, width: 2)
+                      : null,
+                ),
+                child: widget.child,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

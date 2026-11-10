@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../shared/markdown_snippet.dart';
+import '../../../shared/text_direction.dart';
 import '../../../shared/theme/app_spacing.dart';
 import '../../images/note_image_views.dart';
 import '../domain/note.dart';
@@ -14,14 +15,15 @@ class NoteCard extends StatelessWidget {
     required this.note,
     required this.tagNames,
     required this.onTap,
-    required this.onLongPress,
+    this.onLongPress,
     this.compact = false,
   });
 
   final Note note;
   final List<String> tagNames;
   final VoidCallback onTap;
-  final VoidCallback onLongPress;
+  /// Null when a parent handles long press (dragging to reorder).
+  final VoidCallback? onLongPress;
 
   /// List mode: fewer preview lines.
   final bool compact;
@@ -34,13 +36,17 @@ class NoteCard extends StatelessWidget {
     final onColor = background == null ? scheme.onSurface : _textOn(background);
     final muted = onColor.withValues(alpha: 0.72);
     final title = note.title.trim();
-    final snippet = stripMarkdownForSnippet(note.body);
+    // A locked note shows only its title until it's opened.
+    final locked = note.locked;
+    final snippet = locked ? '' : stripMarkdownForSnippet(note.body);
 
     final semantics = [
       if (note.pinned) 'Pinned.',
-      if (note.hasImages) '${note.images.length} ${note.images.length == 1 ? 'image' : 'images'}.',
+      if (locked) 'Locked.',
+      if (note.hasImages && !locked)
+        '${note.images.length} ${note.images.length == 1 ? 'image' : 'images'}.',
       title.isEmpty ? 'Untitled note.' : '$title.',
-      if (note.isChecklist)
+      if (note.isChecklist && !locked)
         'Checklist, ${note.checklist!.where((i) => i.checked).length} of ${note.checklist!.length} done.'
       else if (snippet.isNotEmpty)
         snippet,
@@ -69,7 +75,7 @@ class NoteCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (note.hasImages) _CardImage(note: note, height: compact ? 96 : 140),
+              if (note.hasImages && !locked) _CardImage(note: note, height: compact ? 96 : 140),
               Padding(
                 padding: const EdgeInsets.all(AppSpacing.md),
                 child: Column(
@@ -79,22 +85,32 @@ class NoteCard extends StatelessWidget {
                     if (title.isNotEmpty)
                       Text(
                         title,
+                        textDirection: textDirectionOf(title),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.titleMedium?.copyWith(color: onColor),
                       ),
-                    if (title.isNotEmpty && (snippet.isNotEmpty || note.isChecklist))
+                    if (title.isNotEmpty && (snippet.isNotEmpty || note.isChecklist || locked))
                       const SizedBox(height: AppSpacing.xs),
-                    if (note.isChecklist)
+                    if (locked)
+                      Row(
+                        children: [
+                          Icon(Icons.lock_outline, size: 18, color: muted),
+                          const SizedBox(width: 6),
+                          Text('Locked', style: theme.textTheme.bodyMedium?.copyWith(color: muted)),
+                        ],
+                      )
+                    else if (note.isChecklist)
                       _ChecklistPreview(note: note, color: onColor, muted: muted, compact: compact)
                     else if (snippet.isNotEmpty)
                       Text(
                         snippet,
+                        textDirection: textDirectionOf(snippet),
                         maxLines: compact ? 2 : 8,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodyMedium?.copyWith(color: onColor),
                       ),
-                    if (title.isEmpty && snippet.isEmpty && !note.isChecklist && !note.hasImages)
+                    if (title.isEmpty && snippet.isEmpty && !note.isChecklist && !note.hasImages && !locked)
                       Text('Empty note', style: theme.textTheme.bodyMedium?.copyWith(color: muted)),
                     if (note.reminderAt != null || tagNames.isNotEmpty) ...[
                       const SizedBox(height: AppSpacing.sm),
@@ -210,6 +226,7 @@ class _ChecklistPreview extends StatelessWidget {
                 Expanded(
                   child: Text(
                     item.text,
+                    textDirection: textDirectionOf(item.text),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: style,

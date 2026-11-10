@@ -16,6 +16,9 @@ import '../../images/note_image_views.dart';
 import '../../notebooks/presentation/notebook_picker.dart';
 import '../../sharing/note_sharing.dart';
 import '../../tags/presentation/tag_picker.dart';
+import '../../voice/voice_note_sheet.dart';
+import '../../../shared/text_direction.dart';
+import '../application/note_lock.dart';
 import '../../widgets/domain/pending_widget_action.dart';
 import '../application/notes_providers.dart';
 import '../data/notes_repository.dart';
@@ -36,9 +39,13 @@ class NoteEditorPage extends ConsumerStatefulWidget {
     this.initialTagId,
     this.archived = false,
     this.shared,
+    this.startWithVoice = false,
   });
 
   final Note? note;
+
+  /// For a new note: open the voice note sheet straight away.
+  final bool startWithVoice;
 
   /// For a new note made from what another app shared.
   final SharedContent? shared;
@@ -74,6 +81,11 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   List<ChecklistItem>? _checklist;
   DateTime? _reminderAt;
   List<ZtAttachmentRef> _images = const [];
+  bool _locked = false;
+
+  /// A locked note stays hidden until the phone's lock confirms it's the
+  /// owner. Always true for an unlocked note.
+  bool _lockOpen = true;
 
   /// Images being encrypted and stored right now.
   int _addingImages = 0;
@@ -103,6 +115,12 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     _checklist = note?.checklist ?? (widget.startAsChecklist && note == null ? const [] : null);
     _reminderAt = note?.reminderAt;
     _images = note?.images ?? const [];
+    _locked = note?.locked ?? false;
+    _lockOpen = !_locked;
+    if (!_lockOpen) WidgetsBinding.instance.addPostFrameCallback((_) => _openLock());
+    if (widget.startWithVoice && note == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _dictate());
+    }
     _lastSavedAt = note?.updatedAt;
     _titleController.addListener(_onTextChanged);
     _bodyController.addListener(_onTextChanged);
@@ -208,6 +226,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         checklist: checklist,
         reminderAt: _reminderAt,
         images: _images,
+        locked: _locked,
       );
     } else {
       final updated = _note!.copyWith(
@@ -221,6 +240,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         checklist: checklist,
         reminderAt: _reminderAt,
         images: _images,
+        locked: _locked,
       );
       await repository.updateNote(updated);
       _note = updated;
@@ -362,6 +382,72 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     if (await _saving) await repository?.releaseImages([image]);
   }
 
+  Future<void> _openLock() async {
+    final ok = await ref
+        .read(noteLockAuthenticatorProvider)
+        .confirm(context, ref, reason: 'Open your locked note');
+    if (ok && mounted) setState(() => _lockOpen = true);
+  }
+
+  void _toggleLock() {
+    setState(() => _locked = !_locked);
+    _changed();
+    _snack(
+      _locked
+          ? 'Note locked. Opening it will ask for your fingerprint, face or screen lock.'
+          : 'Note unlocked.',
+    );
+  }
+
+  /// Speaks into the note: the transcript goes after the text (or as a new
+  /// checklist item).
+  Future<void> _dictate() async {
+    final text = await showVoiceNoteSheet(context);
+    if (text == null || text.trim().isEmpty || !mounted) return;
+    final spoken = text.trim();
+    if (_checklist != null) {
+      setState(() => _checklist = [..._checklist!, ChecklistItem.create(spoken)]);
+    } else {
+      final current = _bodyController.text.trimRight();
+      _bodyController.text = current.isEmpty ? spoken : '$current\n$spoken';
+      _bodyController.selection = TextSelection.collapsed(offset: _bodyController.text.length);
+    }
+    _changed();
+  }
+
+  Widget _lockedScreen(ThemeData theme) => Scaffold(
+    appBar: AppBar(title: const Text('Locked note')),
+    body: Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.lock_outline, size: 56, color: theme.colorScheme.onSurfaceVariant),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              widget.note?.title.trim().isNotEmpty ?? false ? widget.note!.title : 'Locked note',
+              textDirection: textDirectionOf(widget.note?.title ?? ''),
+              style: theme.textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            const Text(
+              'Confirm it\'s you to open this note.',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            FilledButton.icon(
+              onPressed: _openLock,
+              icon: const Icon(Icons.fingerprint),
+              label: const Text('Unlock'),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
   Future<void> _send() async {
     if (!await _persist() || !mounted) return;
     final note = _note;
@@ -491,6 +577,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    if (!_lockOpen) return _lockedScreen(theme);
     final background = _color.background(theme.brightness);
     final isChecklist = _checklist != null;
 
@@ -535,6 +622,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
                     child: TextField(
                       key: const Key('note_title_field'),
                       controller: _titleController,
+                      textDirection: textDirectionOf(_titleController.text),
                       readOnly: _inTrash,
                       decoration: const InputDecoration(
                         labelText: 'Title',
@@ -639,6 +727,10 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
       tooltip: 'More options',
       onSelected: (value) {
         switch (value) {
+          case 'voice':
+            _dictate();
+          case 'lock':
+            _toggleLock();
           case 'camera':
             _pickImages(NoteImageSource.camera);
           case 'gallery':
@@ -660,6 +752,10 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         }
       },
       itemBuilder: (context) => [
+        const PopupMenuItem(
+          value: 'voice',
+          child: ListTile(leading: Icon(Icons.mic_none), title: Text('Voice note')),
+        ),
         if (_hasCamera)
           const PopupMenuItem(
             value: 'camera',
@@ -695,6 +791,13 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
               title: Text(_previewMode ? 'Edit text' : 'Preview Markdown'),
             ),
           ),
+        PopupMenuItem(
+          value: 'lock',
+          child: ListTile(
+            leading: Icon(_locked ? Icons.lock_open_outlined : Icons.lock_outline),
+            title: Text(_locked ? 'Unlock note' : 'Lock note'),
+          ),
+        ),
         if (_isEditing)
           const PopupMenuItem(
             value: 'export',
@@ -745,6 +848,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
       child: TextField(
         key: const Key('note_body_field'),
         controller: _bodyController,
+        textDirection: textDirectionOf(_bodyController.text),
         decoration: const InputDecoration(
           labelText: 'Body (Markdown supported)',
           border: OutlineInputBorder(),

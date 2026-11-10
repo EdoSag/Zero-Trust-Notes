@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../shared/text_direction.dart';
 import '../domain/checklist_item.dart';
 
 /// Edits a checklist: tick boxes, ticked items drop below the rest, Enter
@@ -143,6 +144,7 @@ class _ChecklistEditorState extends State<ChecklistEditor> {
             readOnly: widget.readOnly,
             textInputAction: TextInputAction.next,
             onSubmitted: (_) => _addAfter(item),
+            textDirection: textDirectionOf(item.text),
             style: item.checked
                 ? theme.textTheme.bodyLarge?.copyWith(
                     decoration: TextDecoration.lineThrough,

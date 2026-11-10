@@ -8,7 +8,7 @@ import 'note_color.dart';
 /// row.
 ///
 /// Every field added after the first core version (pin, colour, archive,
-/// trash, checklist, reminder, images) is optional in the item JSON, so notes written
+/// trash, checklist, reminder, images, position, lock) is optional in the item JSON, so notes written
 /// by older Notes builds read as plain, unpinned text notes. Keys this build
 /// doesn't know are kept in [extra] and written back unchanged, so a newer
 /// build's fields survive an edit made here.
@@ -28,6 +28,8 @@ class Note {
     this.checklist,
     this.reminderAt,
     this.images = const [],
+    this.position,
+    this.locked = false,
     this.extra = const {},
   });
 
@@ -55,6 +57,8 @@ class Note {
           : null,
       reminderAt: _date(json['reminderAt']),
       images: imagesFromJson(json['images']),
+      position: (json['position'] as num?)?.toDouble(),
+      locked: json['locked'] == true,
       extra: {
         for (final entry in json.entries)
           if (!_knownKeys.contains(entry.key)) entry.key: entry.value,
@@ -96,6 +100,8 @@ class Note {
     'checklist',
     'reminderAt',
     'images',
+    'position',
+    'locked',
   };
 
   /// Notebooks and tags share the store with notes and carry a `kind`.
@@ -131,18 +137,32 @@ class Note {
   /// Each ref holds the image's own key, so it lives only inside this
   /// sealed item.
   final List<ZtAttachmentRef> images;
+
+  /// Where the person dragged the note, as a sort key in the same scale as
+  /// [orderKey] (milliseconds). Null for a note never moved by hand.
+  final double? position;
+
+  /// Opening it asks for the device's fingerprint, face or screen lock
+  /// again, and the list shows only its title.
+  final bool locked;
   final Map<String, Object?> extra;
 
   bool get isTrashed => trashedAt != null;
   bool get isChecklist => checklist != null;
   bool get hasImages => images.isNotEmpty;
 
+  /// Custom order, highest first: a note's dragged [position], or its
+  /// last edit for one never moved. New and edited notes come to the top;
+  /// a moved note stays where it was put.
+  double get orderKey => position ?? updatedAt.millisecondsSinceEpoch.toDouble();
+
   /// When a trashed note is deleted for good.
   DateTime? get purgeAt => trashedAt?.add(trashRetention);
 
   static const _unset = Object();
 
-  /// Nullable fields ([notebookId], [trashedAt], [checklist], [reminderAt])
+  /// Nullable fields ([notebookId], [trashedAt], [checklist], [reminderAt],
+  /// [position])
   /// default to "leave unchanged"; pass `null` explicitly to clear them.
   Note copyWith({
     String? title,
@@ -156,6 +176,8 @@ class Note {
     Object? checklist = _unset,
     Object? reminderAt = _unset,
     List<ZtAttachmentRef>? images,
+    Object? position = _unset,
+    bool? locked,
     DateTime? updatedAt,
   }) {
     return Note(
@@ -173,6 +195,8 @@ class Note {
       checklist: identical(checklist, _unset) ? this.checklist : checklist as List<ChecklistItem>?,
       reminderAt: identical(reminderAt, _unset) ? this.reminderAt : reminderAt as DateTime?,
       images: images ?? this.images,
+      position: identical(position, _unset) ? this.position : position as double?,
+      locked: locked ?? this.locked,
       extra: extra,
     );
   }
@@ -207,6 +231,8 @@ class Note {
     List<ChecklistItem>? checklist,
     DateTime? reminderAt,
     List<ZtAttachmentRef> images = const [],
+    double? position,
+    bool locked = false,
     Map<String, Object?> extra = const {},
   }) => {
     ...extra,
@@ -224,6 +250,8 @@ class Note {
     if (checklist != null) 'checklist': [for (final item in checklist) item.toJson()],
     if (reminderAt != null) 'reminderAt': reminderAt.toUtc().toIso8601String(),
     if (images.isNotEmpty) 'images': [for (final image in images) image.toJson()],
+    'position': ?position,
+    if (locked) 'locked': true,
   };
 
   Map<String, Object?> toItemJson() => itemJson(
@@ -239,6 +267,8 @@ class Note {
     checklist: checklist,
     reminderAt: reminderAt,
     images: images,
+    position: position,
+    locked: locked,
     extra: extra,
   );
 }

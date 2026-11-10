@@ -87,7 +87,8 @@ class NotesFilter {
       if (words.isEmpty) return true;
       final haystack = [
         note.title.toLowerCase(),
-        note.body.toLowerCase(),
+        // A locked note's text stays hidden until it's opened.
+        if (!note.locked) note.body.toLowerCase(),
         for (final id in note.tagIds) ?tagNames[id],
         if (note.notebookId != null) ?notebookNames[note.notebookId],
       ].join('\n');

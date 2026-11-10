@@ -100,7 +100,9 @@ class HomeWidgetSyncService {
   }
 
   Future<void> _writePreview(String appWidgetId, Note note) async {
-    final body = note.body.length > _bodyPreviewLength ? '${note.body.substring(0, _bodyPreviewLength)}…' : note.body;
+    // A locked note shows only its title, here as in the list.
+    final text = note.locked ? 'Locked note' : note.body;
+    final body = text.length > _bodyPreviewLength ? '${text.substring(0, _bodyPreviewLength)}…' : text;
     await HomeWidget.saveWidgetData<bool>(_lockedKey(appWidgetId), false);
     await HomeWidget.saveWidgetData<String>(_titleKey(appWidgetId), note.title.isEmpty ? '(untitled)' : note.title);
     await HomeWidget.saveWidgetData<String>(_bodyKey(appWidgetId), body);

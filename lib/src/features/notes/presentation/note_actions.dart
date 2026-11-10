@@ -5,6 +5,7 @@ import 'package:zero_trust_core/zero_trust_core.dart';
 
 import '../../reminders/reminder_scheduler.dart';
 import '../../sharing/note_sharing.dart';
+import '../application/note_lock.dart';
 import '../application/notes_providers.dart';
 import '../domain/note.dart';
 import '../domain/note_color.dart';
@@ -158,6 +159,14 @@ class NoteActions {
       case 'reminder':
         await pickReminder(note);
       case 'send':
+        // A locked note's text leaves only after the owner confirms.
+        if (note.locked &&
+            !await ref
+                .read(noteLockAuthenticatorProvider)
+                .confirm(context, ref, reason: 'Send your locked note')) {
+          return;
+        }
+        if (!context.mounted) return;
         await NoteSharing(context, ref).shareNote(note);
       case 'trash':
         await moveToTrash(note);

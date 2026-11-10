@@ -55,6 +55,7 @@ class NotesRepository {
     List<ChecklistItem>? checklist,
     DateTime? reminderAt,
     List<ZtAttachmentRef> images = const [],
+    bool locked = false,
     DateTime? createdAt,
   }) async {
     final now = _clock().toUtc();
@@ -72,6 +73,7 @@ class NotesRepository {
       checklist: checklist,
       reminderAt: reminderAt,
       images: images,
+      locked: locked,
     );
     await (await _sync()).save(note.id, note.toItemJson());
     return note;

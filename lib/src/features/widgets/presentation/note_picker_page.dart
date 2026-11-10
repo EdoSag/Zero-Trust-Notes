@@ -39,7 +39,7 @@ class NotePickerPage extends ConsumerWidget {
               return ListTile(
                 title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
                 subtitle: Text(
-                  stripMarkdownForSnippet(note.body),
+                  note.locked ? 'Locked note' : stripMarkdownForSnippet(note.body),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
