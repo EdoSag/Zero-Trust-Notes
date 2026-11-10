@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zero_trust_core/zero_trust_core.dart';
@@ -37,6 +39,17 @@ class _VoiceNoteSheetState extends ConsumerState<VoiceNoteSheet> {
   /// What the current session has heard so far.
   String _live = '';
   String? _error;
+  VoiceAvailability _availability = VoiceAvailability.ready;
+
+  /// Counts listening sessions, so a late callback from an old one is
+  /// ignored.
+  int _session = 0;
+
+  /// Stop was tapped; waiting for the recognizer's last words.
+  bool _stopping = false;
+
+  /// Completes when the current session ends.
+  Completer<void>? _ending;
 
   String get _text => [_kept, _live].where((t) => t.trim().isNotEmpty).join(' ').trim();
 
@@ -49,21 +62,25 @@ class _VoiceNoteSheetState extends ConsumerState<VoiceNoteSheet> {
   @override
   void dispose() {
     if (_phase == _Phase.listening) _recognizer.cancel();
+    _ending?.complete();
     super.dispose();
   }
 
   Future<void> _start() async {
     final vault = ref.read(vaultControllerProvider.notifier);
-    bool ready;
+    VoiceAvailability availability;
     try {
       // The first time, Android asks for the microphone.
-      ready = await vault.whileShowingSystemUi(_recognizer.initialize);
+      availability = await vault.whileShowingSystemUi(_recognizer.initialize);
     } on Object {
-      ready = false;
+      availability = VoiceAvailability.unavailable;
     }
     if (!mounted) return;
-    if (!ready) {
-      setState(() => _phase = _Phase.unavailable);
+    if (availability != VoiceAvailability.ready) {
+      setState(() {
+        _phase = _Phase.unavailable;
+        _availability = availability;
+      });
       return;
     }
     final languages = await _recognizer.languages();
@@ -82,41 +99,60 @@ class _VoiceNoteSheetState extends ConsumerState<VoiceNoteSheet> {
   Future<void> _listen() async {
     final language = _language;
     if (language == null) return;
+    final session = ++_session;
     setState(() {
       _phase = _Phase.listening;
+      _stopping = false;
       _error = null;
       _live = '';
     });
     await _recognizer.listen(
       languageId: language.id,
       onText: (text, isFinal) {
-        if (!mounted) return;
+        // Words after the session ended (or from an older one) are ignored,
+        // so nothing is written down twice.
+        if (!mounted || session != _session || _phase != _Phase.listening) return;
         setState(() => _live = text);
+        if (isFinal) _finish(session);
       },
       onError: (error) {
-        if (!mounted) return;
-        setState(() {
-          _error = error.message(language.name);
-          _endSession();
-        });
+        if (!mounted || session != _session || _phase != _Phase.listening) return;
+        setState(() => _error = error.message(language.name));
+        _finish(session);
       },
       onDone: () {
         if (!mounted) return;
-        setState(_endSession);
+        _finish(session);
       },
     );
   }
 
-  /// Keeps what was heard and waits for the next tap.
+  /// Ends listening session [session], once: keeps what was heard and waits
+  /// for the next tap.
+  void _finish(int session) {
+    if (session != _session || _phase != _Phase.listening) return;
+    setState(_endSession);
+    _ending?.complete();
+    _ending = null;
+  }
+
   void _endSession() {
     _kept = _text;
     _live = '';
     _phase = _Phase.ready;
+    _stopping = false;
   }
 
-  Future<void> _stop() async {
+  /// Asks the recognizer to stop and waits for its last words, which come
+  /// after the stop. Gives up waiting after a few seconds.
+  Future<void> _stopAndWait() async {
+    if (_phase != _Phase.listening) return;
+    final session = _session;
+    final ending = _ending ??= Completer<void>();
+    setState(() => _stopping = true);
     await _recognizer.stop();
-    if (mounted) setState(_endSession);
+    await ending.future.timeout(const Duration(seconds: 3), onTimeout: () {});
+    if (mounted) _finish(session);
   }
 
   Future<void> _setLanguage(VoiceLanguage? language) async {
@@ -124,14 +160,16 @@ class _VoiceNoteSheetState extends ConsumerState<VoiceNoteSheet> {
     if (_phase == _Phase.listening) await _recognizer.cancel();
     setState(() {
       _language = language;
-      _endSession();
+      if (_phase == _Phase.listening) _endSession();
     });
+    _ending?.complete();
+    _ending = null;
     await ref.read(ztPreferencesStoreProvider).write(_languagePreference, language.id);
     await _listen();
   }
 
   Future<void> _done() async {
-    if (_phase == _Phase.listening) await _recognizer.stop();
+    await _stopAndWait();
     if (mounted) Navigator.of(context).pop(_text.isEmpty ? null : _text);
   }
 
@@ -143,20 +181,12 @@ class _VoiceNoteSheetState extends ConsumerState<VoiceNoteSheet> {
     final text = _text;
     return SafeArea(
       child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          16,
-          0,
-          16,
-          16 + MediaQuery.viewInsetsOf(context).bottom,
-        ),
+        padding: EdgeInsets.fromLTRB(16, 0, 16, 16 + MediaQuery.viewInsetsOf(context).bottom),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Semantics(
-              header: true,
-              child: Text('Voice note', style: theme.textTheme.titleLarge),
-            ),
+            Semantics(header: true, child: Text('Voice note', style: theme.textTheme.titleLarge)),
             const SizedBox(height: 4),
             Text(
               'Transcribed on this phone. Your voice is never sent anywhere.',
@@ -165,8 +195,13 @@ class _VoiceNoteSheetState extends ConsumerState<VoiceNoteSheet> {
             const SizedBox(height: 12),
             if (_phase == _Phase.unavailable)
               Text(
-                'Speech recognition isn\'t available on this phone, or the microphone isn\'t '
-                'allowed for Notes.',
+                _availability == VoiceAvailability.notOnDevice
+                    ? 'This phone can only transcribe speech online, which would send your '
+                          'voice to a server, so Notes doesn\'t use it. Voice notes need Android 12 '
+                          'or later with on-device speech recognition.'
+                    : 'Speech recognition isn\'t available on this phone, or the microphone isn\'t '
+                          'allowed for Notes.',
+                key: const Key('voice_unavailable'),
                 style: theme.textTheme.bodyMedium,
               )
             else ...[
@@ -194,7 +229,9 @@ class _VoiceNoteSheetState extends ConsumerState<VoiceNoteSheet> {
                   child: Semantics(
                     liveRegion: true,
                     child: Text(
-                      text.isEmpty ? (listening ? 'Listening…' : 'Tap the microphone and speak.') : text,
+                      text.isEmpty
+                          ? (listening ? 'Listening…' : 'Tap the microphone and speak.')
+                          : text,
                       textDirection: textDirectionOf(text),
                       style: text.isEmpty
                           ? theme.textTheme.bodyLarge?.copyWith(color: scheme.onSurfaceVariant)
@@ -223,7 +260,7 @@ class _VoiceNoteSheetState extends ConsumerState<VoiceNoteSheet> {
                         ),
                         tooltip: listening ? 'Stop listening' : 'Start listening',
                         icon: Icon(listening ? Icons.stop : Icons.mic),
-                        onPressed: listening ? _stop : _listen,
+                        onPressed: listening ? (_stopping ? null : _stopAndWait) : _listen,
                       ),
               ),
             ],
@@ -237,7 +274,7 @@ class _VoiceNoteSheetState extends ConsumerState<VoiceNoteSheet> {
                 ),
                 const SizedBox(width: 8),
                 FilledButton(
-                  onPressed: text.isEmpty ? null : _done,
+                  onPressed: text.isEmpty || _stopping ? null : _done,
                   child: const Text('Add to note'),
                 ),
               ],

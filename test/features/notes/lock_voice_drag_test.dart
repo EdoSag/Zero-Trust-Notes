@@ -32,7 +32,7 @@ class FakeVoice implements VoiceRecognizer {
   String? languageUsed;
 
   @override
-  Future<bool> initialize() async => true;
+  Future<VoiceAvailability> initialize() async => VoiceAvailability.ready;
 
   @override
   Future<List<VoiceLanguage>> languages() async => const [
