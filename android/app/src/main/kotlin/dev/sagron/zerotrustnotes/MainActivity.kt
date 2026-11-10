@@ -2,6 +2,7 @@ package dev.sagron.zerotrustnotes
 
 import android.appwidget.AppWidgetManager
 import android.content.Intent
+import android.os.Bundle
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -18,7 +19,20 @@ import io.flutter.plugin.common.MethodChannel
  * onCreate) — [widgetConfigureChannel] exists solely to cover that case.
  */
 class MainActivity : FlutterFragmentActivity() {
+    companion object {
+        /** Sent by [ShareReceiverActivity] when something was shared to Notes. */
+        const val ACTION_SHARED = "dev.sagron.zerotrustnotes.SHARED"
+    }
+
     private var widgetConfigureChannel: MethodChannel? = null
+
+    /** Hands shares from [ShareReceiverActivity] to Dart (see ShareIntentListener). */
+    private var shareChannel: MethodChannel? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        if (intent?.action != ACTION_SHARED) SharedIntake.clearLeftovers(applicationContext)
+        super.onCreate(savedInstanceState)
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -26,6 +40,17 @@ class MainActivity : FlutterFragmentActivity() {
             flutterEngine.dartExecutor.binaryMessenger,
             "dev.sagron.zerotrustnotes/widget_configure",
         )
+        shareChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "dev.sagron.zerotrustnotes/share",
+        ).also { channel ->
+            channel.setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "takeShare" -> result.success(SharedIntake.take())
+                    else -> result.notImplemented()
+                }
+            }
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -34,6 +59,10 @@ class MainActivity : FlutterFragmentActivity() {
         // initiallyLaunchedFromHomeWidgetConfigure() reads getIntent().
         setIntent(intent)
         super.onNewIntent(intent)
+
+        if (intent.action == ACTION_SHARED) {
+            shareChannel?.invokeMethod("shareReceived", null)
+        }
 
         if (intent.action == AppWidgetManager.ACTION_APPWIDGET_CONFIGURE) {
             val appWidgetId = intent.getIntExtra(

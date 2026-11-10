@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../../shared/markdown_snippet.dart';
 import '../../../shared/theme/app_spacing.dart';
+import '../../images/note_image_views.dart';
 import '../domain/note.dart';
 import 'note_actions.dart';
 
-/// One note in the grid or list: colour, title, a preview of the text or
-/// checklist, tags and reminder.
+/// One note in the grid or list: its first image, colour, title, a preview
+/// of the text or checklist, tags and reminder.
 class NoteCard extends StatelessWidget {
   const NoteCard({
     super.key,
@@ -37,6 +38,7 @@ class NoteCard extends StatelessWidget {
 
     final semantics = [
       if (note.pinned) 'Pinned.',
+      if (note.hasImages) '${note.images.length} ${note.images.length == 1 ? 'image' : 'images'}.',
       title.isEmpty ? 'Untitled note.' : '$title.',
       if (note.isChecklist)
         'Checklist, ${note.checklist!.where((i) => i.checked).length} of ${note.checklist!.length} done.'
@@ -63,52 +65,60 @@ class NoteCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           onLongPress: onLongPress,
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (title.isNotEmpty)
-                  Text(
-                    title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleMedium?.copyWith(color: onColor),
-                  ),
-                if (title.isNotEmpty && (snippet.isNotEmpty || note.isChecklist))
-                  const SizedBox(height: AppSpacing.xs),
-                if (note.isChecklist)
-                  _ChecklistPreview(note: note, color: onColor, muted: muted, compact: compact)
-                else if (snippet.isNotEmpty)
-                  Text(
-                    snippet,
-                    maxLines: compact ? 2 : 8,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(color: onColor),
-                  ),
-                if (title.isEmpty && snippet.isEmpty && !note.isChecklist)
-                  Text('Empty note', style: theme.textTheme.bodyMedium?.copyWith(color: muted)),
-                if (note.reminderAt != null || tagNames.isNotEmpty) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  Wrap(
-                    spacing: AppSpacing.xs,
-                    runSpacing: AppSpacing.xs,
-                    children: [
-                      if (note.reminderAt != null)
-                        _Pill(
-                          icon: Icons.alarm,
-                          label: formatReminder(note.reminderAt!),
-                          color: onColor,
-                          strike: note.reminderAt!.isBefore(DateTime.now()),
-                        ),
-                      for (final name in tagNames.take(3)) _Pill(label: name, color: onColor),
-                      if (tagNames.length > 3) _Pill(label: '+${tagNames.length - 3}', color: onColor),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (note.hasImages) _CardImage(note: note, height: compact ? 96 : 140),
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (title.isNotEmpty)
+                      Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium?.copyWith(color: onColor),
+                      ),
+                    if (title.isNotEmpty && (snippet.isNotEmpty || note.isChecklist))
+                      const SizedBox(height: AppSpacing.xs),
+                    if (note.isChecklist)
+                      _ChecklistPreview(note: note, color: onColor, muted: muted, compact: compact)
+                    else if (snippet.isNotEmpty)
+                      Text(
+                        snippet,
+                        maxLines: compact ? 2 : 8,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(color: onColor),
+                      ),
+                    if (title.isEmpty && snippet.isEmpty && !note.isChecklist && !note.hasImages)
+                      Text('Empty note', style: theme.textTheme.bodyMedium?.copyWith(color: muted)),
+                    if (note.reminderAt != null || tagNames.isNotEmpty) ...[
+                      const SizedBox(height: AppSpacing.sm),
+                      Wrap(
+                        spacing: AppSpacing.xs,
+                        runSpacing: AppSpacing.xs,
+                        children: [
+                          if (note.reminderAt != null)
+                            _Pill(
+                              icon: Icons.alarm,
+                              label: formatReminder(note.reminderAt!),
+                              color: onColor,
+                              strike: note.reminderAt!.isBefore(DateTime.now()),
+                            ),
+                          for (final name in tagNames.take(3)) _Pill(label: name, color: onColor),
+                          if (tagNames.length > 3)
+                            _Pill(label: '+${tagNames.length - 3}', color: onColor),
+                        ],
+                      ),
                     ],
-                  ),
-                ],
-              ],
-            ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -119,6 +129,50 @@ class NoteCard extends StatelessWidget {
       ThemeData.estimateBrightnessForColor(background) == Brightness.dark
       ? Colors.white
       : const Color(0xFF202124);
+}
+
+/// The note's first image across the top of the card, with a count when
+/// there are more.
+class _CardImage extends StatelessWidget {
+  const _CardImage({required this.note, required this.height});
+
+  final Note note;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final more = note.images.length - 1;
+    return SizedBox(
+      height: height,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          NoteImage(
+            image: note.images.first,
+            cacheWidth: (360 * MediaQuery.devicePixelRatioOf(context)).round(),
+          ),
+          if (more > 0)
+            Positioned(
+              right: 6,
+              bottom: 6,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  child: Text(
+                    '+$more',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 class _ChecklistPreview extends StatelessWidget {
@@ -154,7 +208,12 @@ class _ChecklistPreview extends StatelessWidget {
                 Icon(Icons.check_box_outline_blank, size: 18, color: muted),
                 const SizedBox(width: 6),
                 Expanded(
-                  child: Text(item.text, maxLines: 1, overflow: TextOverflow.ellipsis, style: style),
+                  child: Text(
+                    item.text,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: style,
+                  ),
                 ),
               ],
             ),

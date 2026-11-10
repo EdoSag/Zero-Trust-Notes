@@ -47,10 +47,17 @@ class DeviceLink implements SyncBackend {
 /// One install of the app: its own in-memory store and device id, on a
 /// shared fake server, unlocked with the same account key.
 class Device {
-  Device(String id, FakeSyncBackend server, {List<Override> overrides = const []})
-    : link = DeviceLink(server) {
+  Device(
+    String id,
+    FakeSyncBackend server, {
+    List<Override> overrides = const [],
+    AttachmentBackend? files,
+  }) : link = DeviceLink(server) {
     container = ProviderContainer(
-      overrides: [...notesTestOverrides(server: link, deviceId: id), ...overrides],
+      overrides: [
+        ...notesTestOverrides(server: link, deviceId: id, files: files),
+        ...overrides,
+      ],
     );
   }
 

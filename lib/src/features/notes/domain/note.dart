@@ -8,7 +8,7 @@ import 'note_color.dart';
 /// row.
 ///
 /// Every field added after the first core version (pin, colour, archive,
-/// trash, checklist, reminder) is optional in the item JSON, so notes written
+/// trash, checklist, reminder, images) is optional in the item JSON, so notes written
 /// by older Notes builds read as plain, unpinned text notes. Keys this build
 /// doesn't know are kept in [extra] and written back unchanged, so a newer
 /// build's fields survive an edit made here.
@@ -27,6 +27,7 @@ class Note {
     this.trashedAt,
     this.checklist,
     this.reminderAt,
+    this.images = const [],
     this.extra = const {},
   });
 
@@ -53,11 +54,28 @@ class Note {
             ]
           : null,
       reminderAt: _date(json['reminderAt']),
+      images: imagesFromJson(json['images']),
       extra: {
         for (final entry in json.entries)
           if (!_knownKeys.contains(entry.key)) entry.key: entry.value,
       },
     );
+  }
+
+  /// The note's image refs; an entry this build can't read is skipped
+  /// rather than failing the whole note.
+  static List<ZtAttachmentRef> imagesFromJson(Object? value) {
+    if (value is! List) return const [];
+    final images = <ZtAttachmentRef>[];
+    for (final entry in value) {
+      if (entry is! Map) continue;
+      try {
+        images.add(ZtAttachmentRef.fromJson(entry.cast<String, Object?>()));
+      } on Object {
+        // Malformed or from a newer format: leave it out.
+      }
+    }
+    return images;
   }
 
   static DateTime? _date(Object? value) => switch (value) {
@@ -77,6 +95,7 @@ class Note {
     'trashedAt',
     'checklist',
     'reminderAt',
+    'images',
   };
 
   /// Notebooks and tags share the store with notes and carry a `kind`.
@@ -107,10 +126,16 @@ class Note {
   /// Non-null for a checklist note.
   final List<ChecklistItem>? checklist;
   final DateTime? reminderAt;
+
+  /// Encrypted images (see `ZtAttachments`), in the order they were added.
+  /// Each ref holds the image's own key, so it lives only inside this
+  /// sealed item.
+  final List<ZtAttachmentRef> images;
   final Map<String, Object?> extra;
 
   bool get isTrashed => trashedAt != null;
   bool get isChecklist => checklist != null;
+  bool get hasImages => images.isNotEmpty;
 
   /// When a trashed note is deleted for good.
   DateTime? get purgeAt => trashedAt?.add(trashRetention);
@@ -130,6 +155,7 @@ class Note {
     Object? trashedAt = _unset,
     Object? checklist = _unset,
     Object? reminderAt = _unset,
+    List<ZtAttachmentRef>? images,
     DateTime? updatedAt,
   }) {
     return Note(
@@ -144,10 +170,9 @@ class Note {
       color: color ?? this.color,
       archived: archived ?? this.archived,
       trashedAt: identical(trashedAt, _unset) ? this.trashedAt : trashedAt as DateTime?,
-      checklist: identical(checklist, _unset)
-          ? this.checklist
-          : checklist as List<ChecklistItem>?,
+      checklist: identical(checklist, _unset) ? this.checklist : checklist as List<ChecklistItem>?,
       reminderAt: identical(reminderAt, _unset) ? this.reminderAt : reminderAt as DateTime?,
+      images: images ?? this.images,
       extra: extra,
     );
   }
@@ -156,10 +181,7 @@ class Note {
   /// checklist back into text (one line per item, ticks dropped).
   Note toggledChecklist() {
     if (isChecklist) {
-      return copyWith(
-        checklist: null,
-        body: [for (final item in checklist!) item.text].join('\n'),
-      );
+      return copyWith(checklist: null, body: [for (final item in checklist!) item.text].join('\n'));
     }
     final items = ChecklistItem.parseLines(body);
     return copyWith(checklist: items, body: ChecklistItem.toMarkdown(items));
@@ -184,6 +206,7 @@ class Note {
     DateTime? trashedAt,
     List<ChecklistItem>? checklist,
     DateTime? reminderAt,
+    List<ZtAttachmentRef> images = const [],
     Map<String, Object?> extra = const {},
   }) => {
     ...extra,
@@ -200,6 +223,7 @@ class Note {
     if (trashedAt != null) 'trashedAt': trashedAt.toUtc().toIso8601String(),
     if (checklist != null) 'checklist': [for (final item in checklist) item.toJson()],
     if (reminderAt != null) 'reminderAt': reminderAt.toUtc().toIso8601String(),
+    if (images.isNotEmpty) 'images': [for (final image in images) image.toJson()],
   };
 
   Map<String, Object?> toItemJson() => itemJson(
@@ -214,6 +238,7 @@ class Note {
     trashedAt: trashedAt,
     checklist: checklist,
     reminderAt: reminderAt,
+    images: images,
     extra: extra,
   );
 }

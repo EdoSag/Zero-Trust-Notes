@@ -9,6 +9,8 @@ import '../features/notes/application/notes_providers.dart';
 import '../features/notes/presentation/note_editor_page.dart';
 import '../features/notes/presentation/notes_list_page.dart';
 import '../features/reminders/reminder_scheduler.dart';
+import '../features/sharing/note_sharing.dart';
+import '../features/sharing/share_intent_listener.dart';
 import '../features/widgets/application/home_widget_sync_service.dart';
 import '../features/widgets/application/pending_widget_action_controller.dart';
 import '../features/widgets/application/widget_launch_listener.dart';
@@ -34,6 +36,7 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
   late bool _signingIn = ref.read(currentUserProvider) == null;
   UnlockResult? _awaitingRecoveryKey;
   late final WidgetLaunchListener _widgetLaunchListener;
+  late final ShareIntentListener _shareIntentListener;
   StreamSubscription<String>? _reminderTaps;
 
   @override
@@ -42,6 +45,11 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _widgetLaunchListener = WidgetLaunchListener(ref);
     unawaited(_widgetLaunchListener.start());
+    // Text and images shared from other apps open as a new note.
+    _shareIntentListener = ShareIntentListener(ref);
+    unawaited(_shareIntentListener.start());
+    // Images sent from an earlier session are no longer needed.
+    unawaited(ref.read(outgoingShareFilesProvider).clear());
     // A tapped reminder opens its note, after unlock if needed.
     _reminderTaps = ref
         .read(reminderSchedulerProvider)
@@ -56,6 +64,7 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
   void dispose() {
     _reminderTaps?.cancel();
     _widgetLaunchListener.dispose();
+    _shareIntentListener.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -75,6 +84,11 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
       }
       ref.read(exportTempFileRegistryProvider).deleteAll();
       unawaited(const HomeWidgetSyncService().clearAllPlaintext());
+    }
+    // Back from the share sheet: the other app has read the images Notes
+    // decrypted for it.
+    if (state == AppLifecycleState.resumed) {
+      unawaited(ref.read(outgoingShareFilesProvider).clear());
     }
   }
 
@@ -163,10 +177,9 @@ class AutoLockActivity extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => Listener(
-        onPointerDown: (_) =>
-            ref.read(vaultControllerProvider.notifier).touch(),
-        child: child,
-      );
+    onPointerDown: (_) => ref.read(vaultControllerProvider.notifier).touch(),
+    child: child,
+  );
 }
 
 /// The notes list once the local store is open (and earlier notes moved into
@@ -246,11 +259,19 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
           final matches = notes.where((note) => note.id == noteId);
           if (matches.isEmpty) {
             ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-              const SnackBar(content: Text('That note could not be found — it may have been deleted.')),
+              const SnackBar(
+                content: Text('That note could not be found — it may have been deleted.'),
+              ),
             );
           } else {
-            Navigator.of(context).push(MaterialPageRoute(builder: (_) => NoteEditorPage(note: matches.first)));
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => NoteEditorPage(note: matches.first)));
           }
+        case CreateNoteFromShare(:final content):
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => NoteEditorPage(shared: content)));
         case ConfigureNoteWidget(:final appWidgetId):
           Navigator.of(
             context,

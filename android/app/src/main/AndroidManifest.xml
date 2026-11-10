@@ -46,6 +46,34 @@
             </intent-filter>
         </activity>
 
+        <!-- "Share" → "ZT Notes" from other apps: text and images become a new
+             note. An invisible hand-off activity, so a share doesn't start a
+             second copy of the app; see ShareReceiverActivity. -->
+        <activity
+            android:name=".ShareReceiverActivity"
+            android:exported="true"
+            android:label="ZT Notes"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="text/plain"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="image/*"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND_MULTIPLE"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="image/*"/>
+            </intent-filter>
+        </activity>
+
         <receiver android:name=".widgets.QuickAddWidgetProvider"
             android:exported="true">
             <intent-filter>

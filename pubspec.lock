@@ -61,10 +61,10 @@ packages:
     dependency: "direct main"
     description:
       name: archive
-      sha256: a96e8b390886ee8abb49b7bd3ac8df6f451c621619f52a26e815fdcf568959ff
+      sha256: de5ac590b8155e4e676088d714bd41ea620449a6adc0f7950c5073874b287ddb
       url: "https://pub.dev"
     source: hosted
-    version: "4.0.9"
+    version: "4.6.0"
   args:
     dependency: transitive
     description:
@@ -377,6 +377,38 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.2.0"
+  file_selector_linux:
+    dependency: transitive
+    description:
+      name: file_selector_linux
+      sha256: da76400e7872ce7637ffdce12749ec24169c25f6195c28372208e65a24bcd2ab
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.9.4+1"
+  file_selector_macos:
+    dependency: transitive
+    description:
+      name: file_selector_macos
+      sha256: d785431f1910aac8a50e5c492cae912320158030a88703c67b9ef7f1f96fd7ba
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.9.5+2"
+  file_selector_platform_interface:
+    dependency: transitive
+    description:
+      name: file_selector_platform_interface
+      sha256: "35e0bd61ebcdb91a3505813b055b09b79dfdc7d0aee9c09a7ba59ae4bb13dc85"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.7.0"
+  file_selector_windows:
+    dependency: transitive
+    description:
+      name: file_selector_windows
+      sha256: fbefc5fb92c6d3cbe8d284a2cd971b593bb07d2cd6da8557b81a862250b4acec
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.9.3+6"
   fixnum:
     dependency: transitive
     description:
@@ -635,10 +667,74 @@ packages:
     dependency: transitive
     description:
       name: image
-      sha256: f9881ff4998044947ec38d098bc7c8316ae1186fa786eddffdb867b9bc94dfce
+      sha256: "89ed75b2f8231fe676808c5564f9590d728024ded7ac782a7ed8474f1c95b72a"
       url: "https://pub.dev"
     source: hosted
-    version: "4.8.0"
+    version: "4.12.0"
+  image_picker:
+    dependency: "direct main"
+    description:
+      name: image_picker
+      sha256: e71b1bd9e40124041128d60fc3034c7b1598e1bba4e570bba0c70301c817013a
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.2.4"
+  image_picker_android:
+    dependency: transitive
+    description:
+      name: image_picker_android
+      sha256: "8a7823d5d3e884f7780829d85d92110d072bdcd9ed48e2be158d2abe91a912d4"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.8.13+25"
+  image_picker_for_web:
+    dependency: transitive
+    description:
+      name: image_picker_for_web
+      sha256: "66257a3191ab360d23a55c8241c91a6e329d31e94efa7be9cf7a212e65850214"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.1.1"
+  image_picker_ios:
+    dependency: transitive
+    description:
+      name: image_picker_ios
+      sha256: f4e5650a81b268af3886bc789216ff6d56bdfa79934f93f1a5a8a303b8f60f77
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.8.13+15"
+  image_picker_linux:
+    dependency: transitive
+    description:
+      name: image_picker_linux
+      sha256: "1f81c5f2046b9ab724f85523e4af65be1d47b038160a8c8deed909762c308ed4"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.2"
+  image_picker_macos:
+    dependency: transitive
+    description:
+      name: image_picker_macos
+      sha256: "86f0f15a309de7e1a552c12df9ce5b59fe927e71385329355aec4776c6a8ec91"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.2+1"
+  image_picker_platform_interface:
+    dependency: transitive
+    description:
+      name: image_picker_platform_interface
+      sha256: "2dee4b4e3be429db71472c9c559c981498070a61af1ba82e0e4986fc5dadc042"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.11.2"
+  image_picker_windows:
+    dependency: transitive
+    description:
+      name: image_picker_windows
+      sha256: d248c86554a72b5495a31c56f060cf73a41c7ff541689327b1a7dbccc33adfae
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.2"
   integration_test:
     dependency: "direct dev"
     description: flutter
@@ -928,18 +1024,18 @@ packages:
     dependency: "direct main"
     description:
       name: pdf
-      sha256: e47a275b267873d5944ad5f5ff0dcc7ac2e36c02b3046a0ffac9b72fd362c44b
+      sha256: "6e40827f370d196e97c6611724d923a3d86c431ce8e2ce1e59edd03a67a1a6e6"
       url: "https://pub.dev"
     source: hosted
-    version: "3.12.0"
+    version: "3.13.1"
   petitparser:
     dependency: transitive
     description:
       name: petitparser
-      sha256: "91bd59303e9f769f108f8df05e371341b15d59e995e6806aefab827b58336675"
+      sha256: "2f1564aadb14215e478563b5406cb80729d022158c01dc50c96013c2f7eb4790"
       url: "https://pub.dev"
     source: hosted
-    version: "7.0.2"
+    version: "7.1.0"
   platform:
     dependency: transitive
     description:
@@ -1453,10 +1549,10 @@ packages:
     dependency: transitive
     description:
       name: xml
-      sha256: "971043b3a0d3da28727e40ed3e0b5d18b742fa5a68665cca88e74b7876d5e025"
+      sha256: "0fe8cc98946def31cbcbc8734aa4067031e6f65ea3a78a508060bfed2200bfeb"
       url: "https://pub.dev"
     source: hosted
-    version: "6.6.1"
+    version: "7.1.0"
   yaml:
     dependency: transitive
     description:
@@ -1477,20 +1573,20 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/zero_trust_core"
-      ref: "4af4c3b21f61d7ba974899c4a0498406001efec8"
-      resolved-ref: "4af4c3b21f61d7ba974899c4a0498406001efec8"
+      ref: "v0.8.1"
+      resolved-ref: "908a68815e9cffb0d8728d4f349beafb1d6bc445"
       url: "https://github.com/EdoSag/Zero-Trust-Core.git"
     source: git
-    version: "0.7.2"
+    version: "0.8.1"
   zt_crypto:
     dependency: transitive
     description:
       path: "packages/zt_crypto"
-      ref: "4af4c3b21f61d7ba974899c4a0498406001efec8"
-      resolved-ref: "4af4c3b21f61d7ba974899c4a0498406001efec8"
+      ref: "908a68815e9cffb0d8728d4f349beafb1d6bc445"
+      resolved-ref: "908a68815e9cffb0d8728d4f349beafb1d6bc445"
       url: "https://github.com/EdoSag/Zero-Trust-Core.git"
     source: git
-    version: "0.3.1"
+    version: "0.3.2"
 sdks:
   dart: ">=3.13.0 <4.0.0"
   flutter: ">=3.47.0"

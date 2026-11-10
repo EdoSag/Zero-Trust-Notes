@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 0.2.5+9
+version: 0.3.0+10
 
 environment:
   sdk: ^3.12.2
@@ -64,12 +64,13 @@ dependencies:
     git:
       url: https://github.com/EdoSag/Zero-Trust-Core.git
       path: packages/zero_trust_core
-      ref: 4af4c3b21f61d7ba974899c4a0498406001efec8 # v0.7.2 (switch to the tag once it's pushed)
+      ref: v0.8.1
   url_launcher: ^6.3.3
   flutter_local_notifications: ^23.0.0
   timezone: ^0.11.2
   file_picker: ^13.3.2
   flutter_staggered_grid_view: ^0.7.0
+  image_picker: ^1.2.4
 dev_dependencies:
   flutter_test:
     sdk: flutter

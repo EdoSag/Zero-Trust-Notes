@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -60,7 +61,11 @@ Future<SyncController> Function() syncForWrites(Ref ref) => () async {
 final notesRepositoryProvider = Provider<NotesRepository?>((ref) {
   final store = watchOpenNotesStore(ref);
   if (store == null) return null;
-  return NotesRepository(store: store, sync: syncForWrites(ref));
+  return NotesRepository(
+    store: store,
+    sync: syncForWrites(ref),
+    attachments: () => ref.read(ztAttachmentsProvider.future),
+  );
 });
 
 /// Every note in the store, including archived and trashed ones.
@@ -73,7 +78,29 @@ final allNotesProvider = StreamProvider<List<Note>>((ref) {
 /// Notes outside Trash (archived ones included), newest first. Widgets,
 /// pickers and export read this.
 final notesListProvider = Provider<AsyncValue<List<Note>>>((ref) {
-  return ref.watch(allNotesProvider).whenData(
-    (notes) => [for (final note in notes) if (!note.isTrashed) note],
-  );
+  return ref
+      .watch(allNotesProvider)
+      .whenData(
+        (notes) => [
+          for (final note in notes)
+            if (!note.isTrashed) note,
+        ],
+      );
+});
+
+/// One note image, decrypted, for as long as something shows it (plus a
+/// minute, so scrolling back doesn't decrypt again). Gone on lock: the
+/// attachments it reads from close with the vault.
+final noteImageProvider = FutureProvider.autoDispose.family<Uint8List, ZtAttachmentRef>((
+  ref,
+  image,
+) async {
+  final attachments = await ref.watch(ztAttachmentsProvider.future);
+  final bytes = await attachments.read(image);
+  final link = ref.keepAlive();
+  Timer? timer;
+  ref.onCancel(() => timer = Timer(const Duration(minutes: 1), link.close));
+  ref.onResume(() => timer?.cancel());
+  ref.onDispose(() => timer?.cancel());
+  return bytes;
 });
