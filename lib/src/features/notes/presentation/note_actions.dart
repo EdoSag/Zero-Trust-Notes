@@ -4,12 +4,13 @@ import 'package:intl/intl.dart';
 import 'package:zero_trust_core/zero_trust_core.dart';
 
 import '../../reminders/reminder_scheduler.dart';
+import '../../sharing/note_sharing.dart';
 import '../application/notes_providers.dart';
 import '../domain/note.dart';
 import '../domain/note_color.dart';
 
-/// Pin, archive, colour, reminder, trash: the actions the list (long press)
-/// and the editor share.
+/// Pin, archive, colour, reminder, send, trash: the actions the list (long
+/// press) and the editor share.
 class NoteActions {
   NoteActions(this.context, this.ref);
 
@@ -104,6 +105,8 @@ class NoteActions {
     final action = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
+      // Taller than the default half screen, and scrolls in landscape.
+      isScrollControlled: true,
       builder: (sheetContext) {
         Widget item(String value, IconData icon, String label) => ListTile(
           leading: Icon(icon),
@@ -111,28 +114,31 @@ class NoteActions {
           onTap: () => Navigator.of(sheetContext).pop(value),
         );
         return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: note.isTrashed
-                ? [
-                    item('restore', Icons.restore_from_trash_outlined, 'Restore'),
-                    item('delete', Icons.delete_forever_outlined, 'Delete forever'),
-                  ]
-                : [
-                    item(
-                      'pin',
-                      note.pinned ? Icons.push_pin : Icons.push_pin_outlined,
-                      note.pinned ? 'Unpin' : 'Pin',
-                    ),
-                    item(
-                      'archive',
-                      note.archived ? Icons.unarchive_outlined : Icons.archive_outlined,
-                      note.archived ? 'Unarchive' : 'Archive',
-                    ),
-                    item('color', Icons.palette_outlined, 'Colour'),
-                    item('reminder', Icons.notifications_none, 'Remind me'),
-                    item('trash', Icons.delete_outline, 'Move to Trash'),
-                  ],
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: note.isTrashed
+                  ? [
+                      item('restore', Icons.restore_from_trash_outlined, 'Restore'),
+                      item('delete', Icons.delete_forever_outlined, 'Delete forever'),
+                    ]
+                  : [
+                      item(
+                        'pin',
+                        note.pinned ? Icons.push_pin : Icons.push_pin_outlined,
+                        note.pinned ? 'Unpin' : 'Pin',
+                      ),
+                      item(
+                        'archive',
+                        note.archived ? Icons.unarchive_outlined : Icons.archive_outlined,
+                        note.archived ? 'Unarchive' : 'Archive',
+                      ),
+                      item('color', Icons.palette_outlined, 'Colour'),
+                      item('reminder', Icons.notifications_none, 'Remind me'),
+                      item('send', Icons.share_outlined, 'Send'),
+                      item('trash', Icons.delete_outline, 'Move to Trash'),
+                    ],
+            ),
           ),
         );
       },
@@ -151,6 +157,8 @@ class NoteActions {
         await pickColor(note);
       case 'reminder':
         await pickReminder(note);
+      case 'send':
+        await NoteSharing(context, ref).shareNote(note);
       case 'trash':
         await moveToTrash(note);
     }
@@ -275,13 +283,16 @@ Future<ReminderChoice?> showReminderPicker(
       lastDate: DateTime(now.year + 10),
     );
     if (date == null || !context.mounted) return null;
-    final time = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(initial));
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initial),
+    );
     if (time == null || !context.mounted) return null;
     at = DateTime(date.year, date.month, date.day, time.hour, time.minute);
     if (!at.isAfter(DateTime.now())) {
-      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-        const SnackBar(content: Text('Pick a time in the future.')),
-      );
+      ScaffoldMessenger.maybeOf(
+        context,
+      )?.showSnackBar(const SnackBar(content: Text('Pick a time in the future.')));
       return null;
     }
   }
@@ -292,7 +303,9 @@ Future<ReminderChoice?> showReminderPicker(
   if (!granted && context.mounted) {
     ScaffoldMessenger.maybeOf(context)?.showSnackBar(
       const SnackBar(
-        content: Text('Reminder saved, but notifications are off for Notes. Turn them on in system settings.'),
+        content: Text(
+          'Reminder saved, but notifications are off for Notes. Turn them on in system settings.',
+        ),
       ),
     );
   }

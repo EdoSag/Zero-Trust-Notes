@@ -28,6 +28,10 @@
 	<true/>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Unlock your notes with Face ID.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Take a photo to add to a note. It is encrypted before it is saved.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Choose images to add to a note. They are encrypted before they are saved.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

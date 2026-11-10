@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:uuid/uuid.dart';
 import 'package:zero_trust_core/zero_trust_core.dart';
@@ -12,8 +13,12 @@ import '../domain/note_color.dart';
 /// through the shared sync controller, which stores each change locally and
 /// pushes it shortly after.
 class NotesRepository {
-  NotesRepository({required this._store, required this._sync, DateTime Function()? clock})
-    : _clock = clock ?? DateTime.now;
+  NotesRepository({
+    required this._store,
+    required this._sync,
+    this._attachments,
+    DateTime Function()? clock,
+  }) : _clock = clock ?? DateTime.now;
 
   final ZtLocalStore _store;
 
@@ -21,6 +26,9 @@ class NotesRepository {
   /// an edit made right after unlock isn't refused.
   final Future<SyncController> Function() _sync;
   final DateTime Function() _clock;
+
+  /// Encrypted image storage; null where there is none (some tests).
+  final Future<ZtAttachments> Function()? _attachments;
   static const _uuid = Uuid();
 
   /// Every note (including archived and trashed ones), newest first, and
@@ -46,6 +54,7 @@ class NotesRepository {
     bool archived = false,
     List<ChecklistItem>? checklist,
     DateTime? reminderAt,
+    List<ZtAttachmentRef> images = const [],
     DateTime? createdAt,
   }) async {
     final now = _clock().toUtc();
@@ -62,6 +71,7 @@ class NotesRepository {
       archived: archived,
       checklist: checklist,
       reminderAt: reminderAt,
+      images: images,
     );
     await (await _sync()).save(note.id, note.toItemJson());
     return note;
@@ -84,16 +94,67 @@ class NotesRepository {
     return restored;
   }
 
-  /// Deletes for good (a tombstone that syncs to every device).
-  Future<void> deleteNote(String id) async => (await _sync()).delete(id);
+  /// Encrypts [bytes] on this device and stores them for a note: kept
+  /// locally at once, uploaded when online. Put the returned ref in the
+  /// note's `images`. Throws [AttachmentTooLarge] over the size limit.
+  Future<ZtAttachmentRef> addImage(Uint8List bytes, {String? mimeType, String? name}) async {
+    final attachments = _attachments;
+    if (attachments == null) throw StateError('Image storage is not available');
+    return (await attachments()).put(bytes, mimeType: mimeType, name: name);
+  }
+
+  /// The decrypted image.
+  Future<Uint8List> readImage(ZtAttachmentRef image) async {
+    final attachments = _attachments;
+    if (attachments == null) throw StateError('Image storage is not available');
+    return (await attachments()).read(image);
+  }
+
+  /// Deletes the stored files of [images] that no note (Trash included)
+  /// refers to any more. A conflicted copy shares its images with the
+  /// original, so a file goes only when its last note does. Never throws:
+  /// a file left behind is better than a failed delete.
+  Future<void> releaseImages(Iterable<ZtAttachmentRef> images) async {
+    final attachments = _attachments;
+    if (attachments == null || images.isEmpty) return;
+    try {
+      final inUse = {
+        for (final note in await fetchAll())
+          for (final image in note.images) image.id,
+      };
+      final unused = [
+        for (final image in images)
+          if (!inUse.contains(image.id)) image,
+      ];
+      if (unused.isEmpty) return;
+      await (await attachments()).deleteAll(unused);
+    } on Object {
+      // Locked or storage unavailable: leave the files.
+    }
+  }
+
+  /// Deletes for good (a tombstone that syncs to every device), with its
+  /// images.
+  Future<void> deleteNote(String id) => _deleteAll([id]);
+
+  Future<void> _deleteAll(List<String> ids) async {
+    if (ids.isEmpty) return;
+    final wanted = ids.toSet();
+    final images = [
+      for (final note in await fetchAll())
+        if (wanted.contains(note.id)) ...note.images,
+    ];
+    final sync = await _sync();
+    for (final id in ids) {
+      await sync.delete(id);
+    }
+    await releaseImages(images);
+  }
 
   /// Deletes every note in Trash for good. Returns how many.
   Future<int> emptyTrash() async {
     final trashed = (await fetchAll()).where((note) => note.isTrashed).toList();
-    final sync = await _sync();
-    for (final note in trashed) {
-      await sync.delete(note.id);
-    }
+    await _deleteAll([for (final note in trashed) note.id]);
     return trashed.length;
   }
 
@@ -104,10 +165,7 @@ class NotesRepository {
         .where((note) => note.purgeAt != null && !note.purgeAt!.isAfter(now))
         .toList();
     if (expired.isEmpty) return 0;
-    final sync = await _sync();
-    for (final note in expired) {
-      await sync.delete(note.id);
-    }
+    await _deleteAll([for (final note in expired) note.id]);
     return expired.length;
   }
 }

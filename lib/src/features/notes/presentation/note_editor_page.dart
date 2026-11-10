@@ -1,15 +1,22 @@
 import 'dart:async';
+import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:zero_trust_core/zero_trust_core.dart';
 
 import '../../../shared/theme/app_spacing.dart';
 import '../../../shared/widgets/accessible_touch_target.dart';
 import '../../export/presentation/export_sheet.dart';
+import '../../images/note_image_picker.dart';
+import '../../images/note_image_views.dart';
 import '../../notebooks/presentation/notebook_picker.dart';
+import '../../sharing/note_sharing.dart';
 import '../../tags/presentation/tag_picker.dart';
+import '../../widgets/domain/pending_widget_action.dart';
 import '../application/notes_providers.dart';
 import '../data/notes_repository.dart';
 import '../domain/checklist_item.dart';
@@ -28,9 +35,13 @@ class NoteEditorPage extends ConsumerStatefulWidget {
     this.initialNotebookId,
     this.initialTagId,
     this.archived = false,
+    this.shared,
   });
 
   final Note? note;
+
+  /// For a new note made from what another app shared.
+  final SharedContent? shared;
 
   /// For a new note: start with checkboxes.
   final bool startAsChecklist;
@@ -48,10 +59,10 @@ class NoteEditorPage extends ConsumerStatefulWidget {
 
 class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   late final TextEditingController _titleController = TextEditingController(
-    text: widget.note?.title ?? '',
+    text: widget.note?.title ?? widget.shared?.title ?? '',
   );
   late final TextEditingController _bodyController = TextEditingController(
-    text: widget.note?.isChecklist ?? false ? '' : widget.note?.body ?? '',
+    text: widget.note?.isChecklist ?? false ? '' : widget.note?.body ?? widget.shared?.body ?? '',
   );
 
   Note? _note;
@@ -62,6 +73,10 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   NoteColor _color = NoteColor.none;
   List<ChecklistItem>? _checklist;
   DateTime? _reminderAt;
+  List<ZtAttachmentRef> _images = const [];
+
+  /// Images being encrypted and stored right now.
+  int _addingImages = 0;
   DateTime? _lastSavedAt;
   Timer? _debounce;
   _SaveStatus _status = _SaveStatus.idle;
@@ -87,9 +102,16 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     _color = note?.color ?? NoteColor.none;
     _checklist = note?.checklist ?? (widget.startAsChecklist && note == null ? const [] : null);
     _reminderAt = note?.reminderAt;
+    _images = note?.images ?? const [];
     _lastSavedAt = note?.updatedAt;
     _titleController.addListener(_onTextChanged);
     _bodyController.addListener(_onTextChanged);
+    final shared = widget.shared;
+    if (shared != null && note == null) {
+      // Shared text counts as an edit: save it even if nothing is typed.
+      if (shared.title.isNotEmpty || shared.body.isNotEmpty) _dirty = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _takeShared(shared));
+    }
   }
 
   @override
@@ -121,6 +143,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
       : _bodyController.text;
 
   bool get _isBlank =>
+      _images.isEmpty &&
       _titleController.text.trim().isEmpty &&
       _body.trim().isEmpty &&
       (_checklist?.every((item) => item.text.trim().isEmpty) ?? true);
@@ -131,18 +154,24 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     _debounce?.cancel();
     // Read now: this also runs as the page pops, after which `ref` is gone.
     final repository = ref.read(notesRepositoryProvider);
-    final result = _saving.then((_) => _persistNow(repository)).then(
-      (_) => true,
-      onError: (Object _) {
-        if (mounted) {
-          setState(() => _status = _SaveStatus.failed);
-          ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-            const SnackBar(content: Text('Couldn\'t save this note. Your changes are still here; try again.')),
-          );
-        }
-        return false;
-      },
-    );
+    final result = _saving
+        .then((_) => _persistNow(repository))
+        .then(
+          (_) => true,
+          onError: (Object _) {
+            if (mounted) {
+              setState(() => _status = _SaveStatus.failed);
+              ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Couldn\'t save this note. Your changes are still here; try again.',
+                  ),
+                ),
+              );
+            }
+            return false;
+          },
+        );
     _saving = result;
     return result;
   }
@@ -178,6 +207,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         archived: _archived,
         checklist: checklist,
         reminderAt: _reminderAt,
+        images: _images,
       );
     } else {
       final updated = _note!.copyWith(
@@ -190,10 +220,154 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         archived: _archived,
         checklist: checklist,
         reminderAt: _reminderAt,
+        images: _images,
       );
       await repository.updateNote(updated);
       _note = updated;
     }
+  }
+
+  void _snack(String message) =>
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(message)));
+
+  static bool get _hasCamera =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
+
+  Future<void> _pickImages(NoteImageSource source) async {
+    final List<PickedImage> picked;
+    try {
+      picked = await ref
+          .read(vaultControllerProvider.notifier)
+          .whileShowingSystemUi(() => ref.read(noteImagePickerProvider).pick(source));
+    } on Object {
+      if (mounted) {
+        _snack(
+          source == NoteImageSource.camera
+              ? 'Couldn\'t open the camera.'
+              : 'Couldn\'t open your photos.',
+        );
+      }
+      return;
+    }
+    await _addImages([
+      for (final image in picked)
+        () async => (bytes: image.bytes, mimeType: image.mimeType, name: image.name),
+    ]);
+  }
+
+  /// Encrypts and stores each image, then adds it to the note. Each source
+  /// is read only when its turn comes, so large shares don't all sit in
+  /// memory at once.
+  Future<int> _addImages(
+    List<Future<({Uint8List bytes, String? mimeType, String? name})> Function()> sources,
+  ) async {
+    final repository = ref.read(notesRepositoryProvider);
+    if (repository == null || sources.isEmpty) return 0;
+    setState(() => _addingImages += sources.length);
+    var tooLarge = 0;
+    var failed = 0;
+    var added = 0;
+    for (final source in sources) {
+      try {
+        final image = await source();
+        final stored = await repository.addImage(
+          image.bytes,
+          mimeType: image.mimeType,
+          name: image.name,
+        );
+        if (!mounted) {
+          // The page closed mid-way: nothing will reference this file.
+          await repository.releaseImages([stored]);
+          continue;
+        }
+        setState(() => _images = [..._images, stored]);
+        added++;
+        _changed();
+      } on AttachmentTooLarge {
+        tooLarge++;
+      } on Object {
+        failed++;
+      } finally {
+        if (mounted) setState(() => _addingImages--);
+      }
+    }
+    if (mounted && tooLarge > 0) {
+      _snack(
+        tooLarge == 1
+            ? 'That image is over 20 MB, too large to add.'
+            : '$tooLarge images are over 20 MB, too large to add.',
+      );
+    } else if (mounted && failed > 0) {
+      _snack(failed == 1 ? 'Couldn\'t add an image.' : 'Couldn\'t add $failed images.');
+    }
+    return added;
+  }
+
+  Future<void> _takeShared(SharedContent shared) async {
+    if (shared.title.isNotEmpty || shared.body.isNotEmpty) _changed();
+    final files = shared.images;
+    await _addImages([
+      for (final file in files)
+        () async {
+          final plain = File(file.path);
+          try {
+            return (bytes: await plain.readAsBytes(), mimeType: file.mimeType, name: file.name);
+          } finally {
+            // Only the encrypted copy stays on the device.
+            try {
+              await plain.delete();
+            } on Object {
+              // Already gone.
+            }
+          }
+        },
+    ]);
+    if (mounted && shared.skipped > 0) {
+      _snack(
+        shared.skipped == 1
+            ? 'One shared item couldn\'t be added (only text and images up to 20 MB can).'
+            : '${shared.skipped} shared items couldn\'t be added (only text and images up to 20 MB can).',
+      );
+    }
+  }
+
+  void _openImage(int index) {
+    final sharing = NoteSharing(context, ref);
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => NoteImageViewer(
+          images: _images,
+          initialIndex: index,
+          onRemove: _inTrash ? null : _removeImage,
+          onShare: sharing.shareImage,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _removeImage(ZtAttachmentRef image) async {
+    final repository = ref.read(notesRepositoryProvider);
+    setState(
+      () => _images = [
+        for (final i in _images)
+          if (i.id != image.id) i,
+      ],
+    );
+    _changed();
+    // Delete the file only once the note no longer points at it.
+    if (await _saving) await repository?.releaseImages([image]);
+  }
+
+  Future<void> _send() async {
+    if (!await _persist() || !mounted) return;
+    final note = _note;
+    if (note == null) {
+      _snack('This note is empty: there is nothing to send.');
+      return;
+    }
+    await NoteSharing(context, ref).shareNote(note);
   }
 
   Future<void> _saveAndClose() async {
@@ -227,9 +401,9 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     await _saving;
     if (!mounted) return;
     final wasArchived = _archived;
-    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-      SnackBar(content: Text(wasArchived ? 'Note archived' : 'Note unarchived')),
-    );
+    ScaffoldMessenger.maybeOf(
+      context,
+    )?.showSnackBar(SnackBar(content: Text(wasArchived ? 'Note archived' : 'Note unarchived')));
     if (wasArchived) Navigator.of(context).pop();
   }
 
@@ -389,6 +563,18 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
                       ],
                     ),
                   const SizedBox(height: AppSpacing.sm),
+                  if (_images.isNotEmpty) ...[
+                    NoteImageStrip(images: _images, onOpen: _openImage),
+                    const SizedBox(height: AppSpacing.sm),
+                  ],
+                  if (_addingImages > 0) ...[
+                    Semantics(
+                      liveRegion: true,
+                      label: 'Adding images',
+                      child: const LinearProgressIndicator(),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                  ],
                   Expanded(child: isChecklist ? _checklistBody() : _textBody(theme)),
                   const SizedBox(height: AppSpacing.xs),
                   Semantics(
@@ -451,6 +637,12 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
       tooltip: 'More options',
       onSelected: (value) {
         switch (value) {
+          case 'camera':
+            _pickImages(NoteImageSource.camera);
+          case 'gallery':
+            _pickImages(NoteImageSource.gallery);
+          case 'send':
+            _send();
           case 'color':
             _pickColor();
           case 'checklist':
@@ -466,6 +658,22 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         }
       },
       itemBuilder: (context) => [
+        if (_hasCamera)
+          const PopupMenuItem(
+            value: 'camera',
+            child: ListTile(leading: Icon(Icons.photo_camera_outlined), title: Text('Take photo')),
+          ),
+        const PopupMenuItem(
+          value: 'gallery',
+          child: ListTile(
+            leading: Icon(Icons.add_photo_alternate_outlined),
+            title: Text('Add image'),
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'send',
+          child: ListTile(leading: Icon(Icons.share_outlined), title: Text('Send')),
+        ),
         const PopupMenuItem(
           value: 'color',
           child: ListTile(leading: Icon(Icons.palette_outlined), title: Text('Colour')),
@@ -503,11 +711,8 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     ),
   ];
 
-  Widget _checklistBody() => ChecklistEditor(
-    items: _checklist!,
-    readOnly: _inTrash,
-    onChanged: _onChecklistChanged,
-  );
+  Widget _checklistBody() =>
+      ChecklistEditor(items: _checklist!, readOnly: _inTrash, onChanged: _onChecklistChanged);
 
   Widget _textBody(ThemeData theme) {
     if (_previewMode || _inTrash) {
