@@ -1,9 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 1x1 round +, or a "Take a note" bar when made wider (up to 5x1). -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="40dp"
     android:minHeight="40dp"
+    android:minResizeWidth="40dp"
+    android:minResizeHeight="40dp"
+    android:maxResizeHeight="110dp"
+    android:targetCellWidth="1"
+    android:targetCellHeight="1"
     android:updatePeriodMillis="0"
     android:initialLayout="@layout/widget_quick_add"
-    android:resizeMode="none"
+    android:previewLayout="@layout/widget_quick_add_preview"
+    android:description="@string/quick_add_widget_description"
+    android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen">
 </appwidget-provider>

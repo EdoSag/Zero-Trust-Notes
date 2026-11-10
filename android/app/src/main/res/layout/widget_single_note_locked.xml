@@ -1,32 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Deliberately holds no title/body TextView at all — the render code in
+  Deliberately holds no title/body TextView at all: the render code in
   SingleNoteWidgetProvider has no view here it could ever populate with
-  note content, locked or not. See HomeWidgetSyncService for the writer
-  side of this invariant.
+  note content. Shown while "Show details on the home screen" is off, and
+  after sign-out. See HomeWidgetSyncService for the writer side.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/single_note_widget_root"
+    style="@style/ZtWidget.Root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/widget_rounded_background"
-    android:orientation="vertical"
-    android:gravity="center"
-    android:padding="12dp">
+    android:orientation="horizontal"
+    android:gravity="center_vertical">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="🔒"
-        android:textSize="20sp"/>
+    <FrameLayout
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:background="@drawable/zt_widget_tile_circle">
+        <ImageView
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_zt_widget_lock"
+            android:tint="@color/zt_widget_on_surface_variant"
+            android:importantForAccessibility="no"/>
+    </FrameLayout>
 
-    <TextView
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="Locked — tap to unlock"
-        android:textColor="@color/widget_text_secondary"
-        android:textSize="12sp"
-        android:gravity="center"/>
+        android:layout_weight="1"
+        android:layout_marginStart="10dp"
+        android:orientation="vertical">
+        <TextView
+            style="@style/ZtWidget.Body"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Note"/>
+        <TextView
+            style="@style/ZtWidget.Caption"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxLines="2"
+            android:text="Tap to open in ZT Notes"/>
+    </LinearLayout>
 
 </LinearLayout>

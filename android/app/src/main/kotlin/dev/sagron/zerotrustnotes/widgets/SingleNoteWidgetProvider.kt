@@ -22,8 +22,8 @@ import es.antonborri.home_widget.HomeWidgetProvider
 class SingleNoteWidgetProvider : HomeWidgetProvider() {
 
     companion object {
-        // Below this cell height, only the title fits comfortably.
-        private const val LARGE_HEIGHT_DP_THRESHOLD = 110
+        // Below this height, only the title fits comfortably.
+        private const val LARGE_HEIGHT_DP_THRESHOLD = 90
     }
 
     override fun onUpdate(
@@ -80,10 +80,11 @@ class SingleNoteWidgetProvider : HomeWidgetProvider() {
         } else {
             val title = widgetData.getString("widget_${widgetId}_title", null) ?: "(untitled)"
             val body = widgetData.getString("widget_${widgetId}_body", null) ?: ""
-            val minHeight = appWidgetManager
+            // Portrait height (MAX_HEIGHT); 0 before the launcher says.
+            val height = appWidgetManager
                 .getAppWidgetOptions(widgetId)
-                .getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0)
-            val showBody = minHeight >= LARGE_HEIGHT_DP_THRESHOLD
+                .getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0)
+            val showBody = height == 0 || height >= LARGE_HEIGHT_DP_THRESHOLD
             val layoutRes = if (showBody) {
                 R.layout.widget_single_note_unlocked_large
             } else {

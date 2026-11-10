@@ -70,7 +70,8 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
   }
 
   /// Leaving the foreground deletes any in-flight export temp file and every
-  /// home-screen widget preview. A key still waiting behind the recovery-key
+  /// home-screen widget preview (unless "Show details on the home screen"
+  /// is on). A key still waiting behind the recovery-key
   /// screen is zeroed too, so coming back asks for the password; a new
   /// recovery key can be made in Settings. Locking the open vault is the
   /// core's job: it follows the Auto-lock setting.
@@ -83,7 +84,7 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
         setState(() => _awaitingRecoveryKey = null);
       }
       ref.read(exportTempFileRegistryProvider).deleteAll();
-      unawaited(const HomeWidgetSyncService().clearAllPlaintext());
+      unawaited(const HomeWidgetSyncService().clearUnlessAllowed());
     }
     // Back from the share sheet: the other app has read the images Notes
     // decrypted for it.
@@ -115,12 +116,14 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
         // Don't leave an editor or settings page open over a locked vault.
         Navigator.of(context).popUntil((route) => route.isFirst);
         // Writing previews (and acting on widget taps) is _NotesHome's job.
-        unawaited(const HomeWidgetSyncService().clearAllPlaintext());
+        unawaited(const HomeWidgetSyncService().clearUnlessAllowed());
       }
     });
     ref.listen(currentUserProvider, (_, user) {
       if (user == null) {
         ref.read(vaultControllerProvider.notifier).lock();
+        // Signed out: no note text stays on the home screen.
+        unawaited(const HomeWidgetSyncService().clearAllPlaintext());
         // Signed out: this account's reminders shouldn't fire on this phone.
         unawaited(ref.read(reminderSchedulerProvider).cancelAll().catchError((Object _) {}));
         setState(() => _signingIn = true);

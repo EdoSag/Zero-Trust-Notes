@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="quick_add_widget_label">New note</string>
+    <string name="quick_add_widget_description">One tap to a new note. Make it wider for a "Take a note" bar</string>
+    <string name="single_note_widget_label">Note</string>
+    <string name="single_note_widget_description">One note on your home screen. Its text shows only when "Show details on the home screen" is on</string>
+</resources>
