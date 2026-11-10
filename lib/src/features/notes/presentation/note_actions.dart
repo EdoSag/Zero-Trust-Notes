@@ -24,6 +24,8 @@ class NoteActions {
     messenger?.showSnackBar(
       SnackBar(
         content: Text(message),
+        // Flutter keeps a snackbar with an action open until it is tapped.
+        persist: false,
         action: undo == null ? null : SnackBarAction(label: 'Undo', onPressed: undo),
       ),
     );
