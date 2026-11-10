@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zero_trust_core/zero_trust_core.dart';
 
 import '../../shared/text_direction.dart';
+import '../../shared/widgets/inline_button_style.dart';
 import 'voice_recognizer.dart';
 
 const _languagePreference = 'notes_voice_language';
@@ -274,6 +275,7 @@ class _VoiceNoteSheetState extends ConsumerState<VoiceNoteSheet> {
                 ),
                 const SizedBox(width: 8),
                 FilledButton(
+                  style: inlineButtonStyle,
                   onPressed: text.isEmpty || _stopping ? null : _done,
                   child: const Text('Add to note'),
                 ),

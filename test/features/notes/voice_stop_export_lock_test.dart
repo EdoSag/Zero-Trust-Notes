@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zero_trust_core/zero_trust_core.dart' show ZtTheme;
 import 'package:zerotrust_notes/src/features/export/presentation/export_sheet.dart';
 import 'package:zerotrust_notes/src/features/notes/application/note_lock.dart';
 import 'package:zerotrust_notes/src/features/notes/application/notes_providers.dart';
@@ -55,6 +56,21 @@ class StopLateVoice implements VoiceRecognizer {
   Future<void> cancel() async {}
 }
 
+/// The button showing [label] is laid out inside the screen and a tap on its
+/// centre reaches it (a button that failed layout is not drawn at all).
+void expectTappableOnScreen(WidgetTester tester, String label) {
+  final button = find.ancestor(
+    of: find.text(label),
+    matching: find.byWidgetPredicate((w) => w is ButtonStyleButton),
+  );
+  expect(button, findsOneWidget, reason: '"$label" button is missing');
+  final rect = tester.getRect(button);
+  final screen = Offset.zero & tester.view.physicalSize / tester.view.devicePixelRatio;
+  expect(rect.isFinite, isTrue, reason: '"$label" has no finite size');
+  expect(screen.contains(rect.center), isTrue, reason: '"$label" is off screen at $rect');
+  expect(button.hitTestable(), findsOneWidget, reason: '"$label" cannot be tapped');
+}
+
 void main() {
   const timeout = Timeout(Duration(seconds: 60));
   late Device phone;
@@ -64,6 +80,9 @@ void main() {
     Widget home, {
     List<Override> overrides = const [],
   }) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.625;
+    addTearDown(tester.view.reset);
     phone = Device('phone', FakeSyncBackend(), overrides: overrides);
     unawaited(phone.unlock());
     for (var i = 0; i < 50 && phone.container.read(notesRepositoryProvider) == null; i++) {
@@ -73,7 +92,9 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: phone.container,
-        child: MaterialApp(home: home),
+        // The real app theme: its full-width buttons vanish inside a Row,
+        // which the default theme would hide from these tests.
+        child: MaterialApp(theme: ZtTheme.light(), home: home),
       ),
     );
     await settle(tester);
@@ -103,6 +124,7 @@ void main() {
     await tester.tap(find.byTooltip('Stop listening'));
     await settle(tester);
     expect(find.text('buy milk and bread'), findsOneWidget);
+    expectTappableOnScreen(tester, 'Add to note');
 
     await tester.tap(find.text('Add to note'));
     await settle(tester);
