@@ -58,6 +58,10 @@ object SharedIntake {
     @Volatile
     private var pending: Map<String, Any?>? = null
 
+    /** The folder of [pending]'s files, if it hasn't been taken yet. */
+    @Volatile
+    private var pendingDir: File? = null
+
     private fun dir(context: Context) = File(context.cacheDir, "shared_in")
 
     /** Deletes plain copies left by a share that never reached a note. */
@@ -65,15 +69,21 @@ object SharedIntake {
         if (pending == null) dir(context).deleteRecursively()
     }
 
+    /** Dart now owns the files and deletes each one once it's encrypted. */
     fun take(): Map<String, Any?>? {
         val share = pending
         pending = null
+        pendingDir = null
         return share
     }
 
     fun receive(context: Context, intent: Intent) {
-        val dir = dir(context)
-        dir.deleteRecursively()
+        // Each share gets its own folder: an earlier share may still be
+        // importing its images. Only an earlier share nobody took is dropped.
+        pendingDir?.deleteRecursively()
+        pending = null
+        pendingDir = null
+        val dir = File(dir(context), UUID.randomUUID().toString())
         dir.mkdirs()
 
         val text = intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString()
@@ -97,7 +107,11 @@ object SharedIntake {
             if (image == null) skipped++ else images.add(image)
         }
 
-        if (text.isNullOrBlank() && images.isEmpty() && skipped == 0) return
+        if (text.isNullOrBlank() && images.isEmpty() && skipped == 0) {
+            dir.deleteRecursively()
+            return
+        }
+        pendingDir = dir
         pending = mapOf(
             "text" to text,
             "subject" to subject,

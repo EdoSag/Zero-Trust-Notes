@@ -154,8 +154,9 @@ class _NoteImageViewerState extends State<NoteImageViewer> {
     final image = _images[_index];
     await widget.onRemove!(image);
     if (!mounted) return;
+    // By id, not position: the page may have been swiped meanwhile.
     setState(() {
-      _images.removeAt(_index);
+      _images.removeWhere((i) => i.id == image.id);
       if (_index >= _images.length) _index = _images.length - 1;
     });
     if (_images.isEmpty) Navigator.of(context).pop();

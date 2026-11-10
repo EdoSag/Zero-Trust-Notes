@@ -145,7 +145,7 @@ void main() {
     expect(note.body, 'https://example.com/recipe');
     expect(note.images.single.name, 'p.png');
     expect(await real(tester, file.exists), isFalse, reason: 'the plain copy is deleted');
-    await real(tester, () => dir.delete(recursive: true));
+    expect(await real(tester, dir.exists), isFalse, reason: 'and its share folder');
     await finish(tester, phone);
   });
 

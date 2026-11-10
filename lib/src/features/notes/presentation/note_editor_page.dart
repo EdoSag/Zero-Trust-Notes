@@ -318,8 +318,10 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
             // Only the encrypted copy stays on the device.
             try {
               await plain.delete();
+              // The share's own folder, once its last image is read.
+              await plain.parent.delete();
             } on Object {
-              // Already gone.
+              // Already gone, or other images still to read.
             }
           }
         },
