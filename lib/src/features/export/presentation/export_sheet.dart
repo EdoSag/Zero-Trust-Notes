@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../notes/application/note_lock.dart';
 import '../../notes/application/notes_providers.dart';
 import '../../notes/domain/note.dart';
 import '../application/export_service.dart';
@@ -95,6 +96,33 @@ class _ExportSheetContentState extends ConsumerState<_ExportSheetContent> {
                 if (!note.isTrashed) note,
             ];
 
+      // Locked notes are written out in full, so the owner confirms first,
+      // just as when opening one. (A single note is exported from its
+      // editor, which is only open once it's unlocked.)
+      final lockedCount = widget.singleNote != null ? 0 : notes.where((n) => n.locked).length;
+      if (lockedCount > 0) {
+        if (!mounted) return;
+        final confirmed = await ref
+            .read(noteLockAuthenticatorProvider)
+            .confirm(
+              context,
+              ref,
+              reason: lockedCount == 1
+                  ? 'Export includes a locked note'
+                  : 'Export includes $lockedCount locked notes',
+            );
+        if (!confirmed) {
+          if (mounted) {
+            setState(
+              () => _errorMessage =
+                  'Not exported. Locked notes are only exported after your fingerprint, '
+                  'face or screen lock.',
+            );
+          }
+          return;
+        }
+      }
+
       final bytes = await _exportService.render(notes, format);
       final fileName = _exportService.suggestedFileName(
         format,
@@ -137,18 +165,14 @@ class _FormatTile extends StatelessWidget {
       button: true,
       child: SizedBox(
         height: 48,
-        child: ListTile(
-          leading: Icon(_iconFor(format)),
-          title: Text(format.label),
-          onTap: onTap,
-        ),
+        child: ListTile(leading: Icon(_iconFor(format)), title: Text(format.label), onTap: onTap),
       ),
     );
   }
 
   IconData _iconFor(ExportFormat format) => switch (format) {
-        ExportFormat.markdown => Icons.description_outlined,
-        ExportFormat.pdf => Icons.picture_as_pdf_outlined,
-        ExportFormat.json => Icons.data_object,
-      };
+    ExportFormat.markdown => Icons.description_outlined,
+    ExportFormat.pdf => Icons.picture_as_pdf_outlined,
+    ExportFormat.json => Icons.data_object,
+  };
 }

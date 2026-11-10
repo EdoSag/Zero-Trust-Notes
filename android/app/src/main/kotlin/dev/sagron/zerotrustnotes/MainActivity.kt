@@ -2,7 +2,9 @@ package dev.sagron.zerotrustnotes
 
 import android.appwidget.AppWidgetManager
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
+import android.speech.SpeechRecognizer
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -49,6 +51,22 @@ class MainActivity : FlutterFragmentActivity() {
                     "takeShare" -> result.success(SharedIntake.take())
                     else -> result.notImplemented()
                 }
+            }
+        }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "dev.sagron.zerotrustnotes/speech",
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                // Voice notes must never send audio to a server. speech_to_text
+                // only uses Android's on-device recognizer when this is true;
+                // otherwise it falls back to the default (possibly online) one,
+                // so Notes refuses to listen instead.
+                "onDeviceAvailable" -> result.success(
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                        SpeechRecognizer.isOnDeviceRecognitionAvailable(applicationContext),
+                )
+                else -> result.notImplemented()
             }
         }
     }
