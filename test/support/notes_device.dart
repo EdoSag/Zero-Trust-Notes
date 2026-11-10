@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:zero_trust_core/zero_trust_core.dart';
 import 'package:zerotrust_notes/src/features/notes/application/notes_providers.dart';
 import 'package:zerotrust_notes/src/features/notes/data/notes_repository.dart';
@@ -46,9 +47,10 @@ class DeviceLink implements SyncBackend {
 /// One install of the app: its own in-memory store and device id, on a
 /// shared fake server, unlocked with the same account key.
 class Device {
-  Device(String id, FakeSyncBackend server) : link = DeviceLink(server) {
+  Device(String id, FakeSyncBackend server, {List<Override> overrides = const []})
+    : link = DeviceLink(server) {
     container = ProviderContainer(
-      overrides: notesTestOverrides(server: link, deviceId: id),
+      overrides: [...notesTestOverrides(server: link, deviceId: id), ...overrides],
     );
   }
 

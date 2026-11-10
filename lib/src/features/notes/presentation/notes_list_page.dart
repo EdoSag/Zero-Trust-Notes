@@ -185,6 +185,7 @@ class _NotesListPageState extends ConsumerState<NotesListPage> {
               Navigator.of(context).pop();
               setState(() => _filter = NotesFilter(tagId: id));
             },
+            onImportFromKeep: () => showKeepImportFlow(context, ref),
           ),
           appBar: AppBar(
             title: _searchActive
@@ -342,6 +343,7 @@ class _NotesDrawer extends ConsumerWidget {
     required this.onView,
     required this.onNotebook,
     required this.onTag,
+    required this.onImportFromKeep,
   });
 
   final NotesFilter filter;
@@ -350,6 +352,11 @@ class _NotesDrawer extends ConsumerWidget {
   final ValueChanged<NotesView> onView;
   final ValueChanged<String> onNotebook;
   final ValueChanged<String> onTag;
+
+  /// Runs on the notes page, which outlives the drawer: the drawer's own
+  /// context is gone as soon as it closes, so a flow started from it would
+  /// stop at its first dialog.
+  final VoidCallback onImportFromKeep;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -399,7 +406,7 @@ class _NotesDrawer extends ConsumerWidget {
           title: const Text('Import from Google Keep'),
           onTap: () {
             Navigator.of(context).pop();
-            showKeepImportFlow(context, ref);
+            onImportFromKeep();
           },
         ),
         ListTile(
