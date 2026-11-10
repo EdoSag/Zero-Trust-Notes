@@ -26,11 +26,17 @@ class EncryptedNotesApi {
   final SupabaseClient _client;
 
   Future<EncryptedNoteSnapshot?> pull(String userId) async {
-    final row = await _client
-        .from('encrypted_notes')
-        .select('data_blob, device_id, updated_at')
-        .eq('user_id', userId)
-        .maybeSingle();
+    final Map<String, dynamic>? row;
+    try {
+      row = await _client
+          .from('encrypted_notes')
+          .select('data_blob, device_id, updated_at')
+          .eq('user_id', userId)
+          .maybeSingle();
+    } on PostgrestException catch (e) {
+      if (isMissingLegacyTable(e)) return null;
+      rethrow;
+    }
     if (row == null) return null;
 
     return EncryptedNoteSnapshot(
@@ -40,3 +46,8 @@ class EncryptedNotesApi {
     );
   }
 }
+
+/// The pre-core tables were dropped from the database on 2026-11-10. A
+/// missing table means there is nothing left to import.
+bool isMissingLegacyTable(PostgrestException e) =>
+    e.code == 'PGRST205' || e.code == '42P01';
