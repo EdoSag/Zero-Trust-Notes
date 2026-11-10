@@ -24,15 +24,16 @@ class NotePickerPage extends ConsumerWidget {
       final show = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Show this note on the home screen?'),
+          title: const Text('Show note text on the home screen?'),
           content: const Text(
-            'Its title and the start of its text will be stored unencrypted on '
-            'this phone so the widget can show them. You can turn this off in '
-            'Settings, under "Show details on the home screen".',
+            'This turns on "Show details on the home screen" for every note '
+            'widget, including ones you already placed. Their titles and the '
+            'start of their text will be stored unencrypted on this phone so '
+            'the widgets can show them. You can turn this off in Settings.',
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Keep it hidden')),
-            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Show it')),
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Keep hidden')),
+            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Show on all widgets')),
           ],
         ),
       );
