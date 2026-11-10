@@ -24,9 +24,10 @@ Future<void> main() async {
   // The vault always cold-starts locked, but if the OS killed the previous
   // process before AppGate could clear them (a task kill rather than a
   // clean background pause), home-screen widget previews cached mid-session
-  // would otherwise survive until the next lock. Clearing here means
-  // "locked" is the only state a widget can show right after a cold start.
-  await const HomeWidgetSyncService().clearAllPlaintext();
+  // would otherwise survive until the next lock. Unless the user chose
+  // "Show details on the home screen", "locked" is the only state a widget
+  // can show right after a cold start.
+  await const HomeWidgetSyncService().clearUnlessAllowed();
 
   runApp(
     ProviderScope(

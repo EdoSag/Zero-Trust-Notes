@@ -1,9 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- One pinned note: the title at one cell high, more of its text as it grows. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="110dp"
     android:minHeight="40dp"
+    android:minResizeWidth="110dp"
+    android:minResizeHeight="40dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="2"
     android:updatePeriodMillis="0"
     android:initialLayout="@layout/widget_single_note_locked"
+    android:previewLayout="@layout/widget_single_note_preview"
+    android:description="@string/single_note_widget_description"
     android:configure="dev.sagron.zerotrustnotes.MainActivity"
     android:resizeMode="horizontal|vertical"
     android:widgetFeatures="reconfigurable"

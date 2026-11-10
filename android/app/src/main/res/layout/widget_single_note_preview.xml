@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  What the Widgets menu shows (Android 12+): a sample note, never a real one.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/single_note_widget_root"
+    style="@style/ZtWidget.Root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+        <ImageView
+            android:layout_width="@dimen/zt_widget_header_icon"
+            android:layout_height="@dimen/zt_widget_header_icon"
+            android:src="@mipmap/ic_launcher"
+            android:importantForAccessibility="no"/>
+        <TextView
+            android:id="@+id/single_note_title"
+            style="@style/ZtWidget.Title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="Shopping"/>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/single_note_body"
+        style="@style/ZtWidget.Body"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="8dp"
+        android:maxLines="12"
+        android:lineSpacingExtra="2dp"
+        android:textColor="@color/zt_widget_on_surface_variant"
+        android:ellipsize="end"
+        android:text="Milk, eggs, bread\nTomatoes\nCoffee beans\nSomething for dessert"/>
+</LinearLayout>
