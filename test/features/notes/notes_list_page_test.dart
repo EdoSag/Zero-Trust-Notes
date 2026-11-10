@@ -1,8 +1,12 @@
 import 'dart:async';
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
+import 'package:zerotrust_notes/src/features/keep_import/keep_import_flow.dart';
 import 'package:zerotrust_notes/src/features/notes/application/notes_providers.dart';
 import 'package:zerotrust_notes/src/features/notes/domain/checklist_item.dart';
 import 'package:zerotrust_notes/src/features/notes/presentation/notes_list_page.dart';
@@ -14,8 +18,8 @@ void main() {
   const timeout = Timeout(Duration(seconds: 60));
   late Device phone;
 
-  Future<void> pumpList(WidgetTester tester) async {
-    phone = Device('phone', FakeSyncBackend());
+  Future<void> pumpList(WidgetTester tester, {List<Override> overrides = const []}) async {
+    phone = Device('phone', FakeSyncBackend(), overrides: overrides);
     // Unlocking opens the store with real I/O, so let it run outside the
     // fake clock.
     unawaited(phone.unlock());
@@ -116,6 +120,39 @@ void main() {
     await settle(tester);
     expect(find.text('Trip'), findsNothing);
     expect(find.text('Packing'), findsOneWidget);
+    await finish(tester, phone);
+  });
+
+  testWidgets('Import from Google Keep in the side menu opens the picker and imports', timeout: timeout, (
+    tester,
+  ) async {
+    var picked = 0;
+    await pumpList(
+      tester,
+      overrides: [
+        keepFilePickerProvider.overrideWithValue(() async {
+          picked++;
+          return {
+            'Idea.json': utf8.encode(
+              jsonEncode({'title': 'From Keep', 'textContent': 'hello', 'isTrashed': false}),
+            ),
+          };
+        }),
+      ],
+    );
+
+    await tester.tap(find.byTooltip('Open navigation menu'));
+    await settle(tester);
+    await tester.tap(find.text('Import from Google Keep'));
+    await settle(tester);
+    await tester.tap(find.text('Choose file'));
+    await settle(tester);
+
+    expect(picked, 1);
+    expect(find.text('Imported 1 note'), findsOneWidget);
+    await tester.tap(find.text('Done'));
+    await settle(tester);
+    expect(find.text('From Keep'), findsOneWidget);
     await finish(tester, phone);
   });
 }
