@@ -8,6 +8,7 @@ import '../keep_import/keep_import_flow.dart';
 import '../legacy_import/presentation/legacy_import.dart';
 import '../widgets/application/home_widget_sync_service.dart';
 import '../widgets/application/widget_details_controller.dart';
+import 'package:zerotrust_notes/l10n/l10n.dart';
 
 /// The shared Zero-Trust settings screen, plus Notes' own backup rows.
 class NotesSettingsPage extends ConsumerWidget {
@@ -26,11 +27,9 @@ class NotesSettingsPage extends ConsumerWidget {
         if (HomeWidgetSyncService.isSupported)
           SwitchListTile(
             secondary: const Icon(Icons.widgets_outlined),
-            title: const Text('Show details on the home screen'),
-            subtitle: const Text(
-              'Off: the Note widget shows a lock. On: the title and start of '
-              'each pinned note are stored unencrypted on this phone for the '
-              'home screen. Locked notes never show their text',
+            title: Text(context.l10n.widgetDetails),
+            subtitle: Text(
+              context.l10n.widgetDetailsBody,
             ),
             value: widgetDetails,
             onChanged: (v) => ref.read(widgetDetailsProvider.notifier).set(v),
@@ -39,22 +38,22 @@ class NotesSettingsPage extends ConsumerWidget {
       backupSection: [
         ListTile(
           leading: const Icon(Icons.ios_share),
-          title: const Text('Export all notes'),
-          subtitle: const Text('Markdown, JSON or PDF'),
+          title: Text(context.l10n.exportAll),
+          subtitle: Text(context.l10n.exportFormats),
           onTap: () => showExportSheet(context),
         ),
         ListTile(
           leading: const Icon(Icons.download_outlined),
-          title: const Text('Import from Google Keep'),
-          subtitle: const Text('From a Google Takeout file, on this phone'),
+          title: Text(context.l10n.importFromKeep),
+          subtitle: Text(context.l10n.keepSubtitle),
           onTap: () => showKeepImportFlow(context, ref),
         ),
         if (importPending)
           ListTile(
             leading: const Icon(Icons.move_down_outlined),
-            title: const Text('Import notes from your old vault'),
-            subtitle: const Text(
-              'Needs the vault passphrase you used before this update',
+            title: Text(context.l10n.importOldVault),
+            subtitle: Text(
+              context.l10n.importOldVaultSub,
             ),
             onTap: () async {
               final count = await showLegacyImportDialog(context);
@@ -62,7 +61,7 @@ class NotesSettingsPage extends ConsumerWidget {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
-                    'Imported $count ${count == 1 ? 'note' : 'notes'}.',
+                    context.l10n.importedNotes(count),
                   ),
                 ),
               );

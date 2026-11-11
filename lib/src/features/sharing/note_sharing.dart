@@ -11,6 +11,7 @@ import 'package:zero_trust_core/zero_trust_core.dart';
 
 import '../notes/application/notes_providers.dart';
 import '../notes/domain/note.dart';
+import 'package:zerotrust_notes/l10n/l10n.dart';
 
 /// The text a note is sent as: its title, a blank line, then the text. A
 /// checklist is written with ☐ and ☑ boxes (like Keep), not Markdown.
@@ -86,7 +87,7 @@ class NoteSharing {
     final text = noteShareText(note);
     final images = await _imageFiles(note.images);
     if (text.isEmpty && images.isEmpty) {
-      _snack('This note is empty: there is nothing to send.');
+      _snack(currentL10n.nothingToSend);
       return;
     }
     await _share(
@@ -122,9 +123,7 @@ class NoteSharing {
     }
     if (missing > 0) {
       _snack(
-        missing == 1
-            ? 'One image isn\'t on this device yet, so it wasn\'t sent.'
-            : '$missing images aren\'t on this device yet, so they weren\'t sent.',
+        currentL10n.imagesNotHere(missing),
       );
     }
     return files;
@@ -136,7 +135,7 @@ class NoteSharing {
           .read(vaultControllerProvider.notifier)
           .whileShowingSystemUi(() => ref.read(shareSheetProvider)(params));
     } on Object {
-      _snack('Couldn\'t open the share sheet.');
+      _snack(currentL10n.cantShare);
     }
   }
 

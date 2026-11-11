@@ -33,16 +33,18 @@
         android:layout_marginStart="10dp"
         android:orientation="vertical">
         <TextView
+            android:id="@+id/single_note_locked_title"
             style="@style/ZtWidget.Body"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Note"/>
+            android:text="@string/widget_note"/>
         <TextView
+            android:id="@+id/single_note_locked_hint"
             style="@style/ZtWidget.Caption"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:maxLines="2"
-            android:text="Tap to open in ZT Notes"/>
+            android:text="@string/widget_tap_to_open"/>
     </LinearLayout>
 
 </LinearLayout>

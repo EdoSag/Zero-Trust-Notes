@@ -7,12 +7,13 @@ import '../notes/application/notes_providers.dart';
 import '../tags/application/tags_controller.dart';
 import 'keep_importer.dart';
 import 'keep_takeout_parser.dart';
+import 'package:zerotrust_notes/l10n/l10n.dart';
 
 /// Picks files for the Keep import. Overridable in tests.
 typedef KeepFilePicker = Future<Map<String, List<int>>> Function();
 
 final keepFilePickerProvider = Provider<KeepFilePicker>((ref) => () async {
-  final picked = await FilePicker.pickFiles(dialogTitle: 'Choose your Google Takeout file');
+  final picked = await FilePicker.pickFiles(dialogTitle: currentL10n.keepChooseFile);
   return {
     for (final file in picked)
       if (file.name.toLowerCase().endsWith('.zip') || file.name.toLowerCase().endsWith('.json'))
@@ -25,26 +26,20 @@ Future<void> showKeepImportFlow(BuildContext context, WidgetRef ref) async {
   final go = await showDialog<bool>(
     context: context,
     builder: (dialogContext) => AlertDialog(
-      title: const Text('Import from Google Keep'),
-      content: const SingleChildScrollView(
+      title: Text(context.l10n.importFromKeep),
+      content: SingleChildScrollView(
         child: Text(
-          '1. Go to takeout.google.com and choose only "Keep".\n'
-          '2. Download the export to this phone.\n'
-          '3. Pick the .zip file here (or the .json files from its Keep folder).\n\n'
-          'The file is read on this phone and your notes are encrypted before '
-          'they sync. Labels become tags; colours, pins, archive and '
-          'checklists come along. Notes already imported are skipped. '
-          'Images and recordings aren\'t imported yet.',
+          context.l10n.keepExplain,
         ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(dialogContext).pop(false),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.cancel),
         ),
         FilledButton(
           onPressed: () => Navigator.of(dialogContext).pop(true),
-          child: const Text('Choose file'),
+          child: Text(context.l10n.chooseFile),
         ),
       ],
     ),
@@ -58,11 +53,11 @@ Future<void> showKeepImportFlow(BuildContext context, WidgetRef ref) async {
         .read(vaultControllerProvider.notifier)
         .whileShowingSystemUi(ref.read(keepFilePickerProvider));
   } on Object {
-    if (context.mounted) _snack(context, 'Couldn\'t open that file.');
+    if (context.mounted) _snack(context, context.l10n.cantOpenFile);
     return;
   }
   if (files.isEmpty || !context.mounted) {
-    if (context.mounted) _snack(context, 'No .zip or .json file was chosen.');
+    if (context.mounted) _snack(context, context.l10n.noFileChosen);
     return;
   }
 
@@ -72,19 +67,19 @@ Future<void> showKeepImportFlow(BuildContext context, WidgetRef ref) async {
 
   final keepNotes = const KeepTakeoutParser().parseFiles(files);
   if (keepNotes.isEmpty) {
-    _snack(context, 'No Google Keep notes were found in that file.');
+    _snack(context, context.l10n.keepNoneFound);
     return;
   }
 
   showDialog<void>(
     context: context,
     barrierDismissible: false,
-    builder: (_) => const AlertDialog(
+    builder: (_) => AlertDialog(
       content: Row(
         children: [
           CircularProgressIndicator(),
           SizedBox(width: 16),
-          Expanded(child: Text('Importing your notes…')),
+          Expanded(child: Text(context.l10n.importingNotes)),
         ],
       ),
     ),
@@ -100,29 +95,28 @@ Future<void> showKeepImportFlow(BuildContext context, WidgetRef ref) async {
   Navigator.of(context, rootNavigator: true).pop();
 
   if (result == null) {
-    _snack(context, 'The import stopped part-way ($failure). Run it again to finish; '
-        'notes already imported are skipped.');
+    _snack(context, context.l10n.keepStopped('$failure'));
     return;
   }
   final r = result;
   await showDialog<void>(
     context: context,
     builder: (dialogContext) => AlertDialog(
-      title: Text('Imported ${r.imported} ${r.imported == 1 ? 'note' : 'notes'}'),
+      title: Text(context.l10n.keepImportedTitle(r.imported)),
       content: Text([
         if (r.skippedDuplicates > 0)
-          '${r.skippedDuplicates} already in Notes, skipped.',
+          context.l10n.keepSkippedDup(r.skippedDuplicates),
         if (r.skippedTrashed > 0)
-          '${r.skippedTrashed} from Keep\'s trash, skipped.',
+          context.l10n.keepSkippedTrash(r.skippedTrashed),
         if (r.attachmentsNotImported > 0)
-          '${r.attachmentsNotImported} images or recordings weren\'t imported.',
+          context.l10n.keepAttachmentsSkipped(r.attachmentsNotImported),
         if (r.skippedDuplicates == 0 && r.skippedTrashed == 0 && r.attachmentsNotImported == 0)
-          'Everything came across.',
+          context.l10n.keepEverything,
       ].join('\n')),
       actions: [
         FilledButton(
           onPressed: () => Navigator.of(dialogContext).pop(),
-          child: const Text('Done'),
+          child: Text(context.l10n.done),
         ),
       ],
     ),

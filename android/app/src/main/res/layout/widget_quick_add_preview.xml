@@ -12,5 +12,5 @@
         android:scaleType="fitCenter"
         android:src="@drawable/ic_zt_widget_add"
         android:tint="@color/zt_widget_on_accent"
-        android:contentDescription="New note"/>
+        android:contentDescription="@string/widget_new_note"/>
 </FrameLayout>

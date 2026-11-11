@@ -7,6 +7,7 @@ import 'package:zero_trust_core/zero_trust_core.dart';
 import '../../shared/text_direction.dart';
 import '../../shared/widgets/inline_button_style.dart';
 import 'voice_recognizer.dart';
+import 'package:zerotrust_notes/l10n/l10n.dart';
 
 const _languagePreference = 'notes_voice_language';
 
@@ -187,21 +188,18 @@ class _VoiceNoteSheetState extends ConsumerState<VoiceNoteSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Semantics(header: true, child: Text('Voice note', style: theme.textTheme.titleLarge)),
+            Semantics(header: true, child: Text(context.l10n.voiceNote, style: theme.textTheme.titleLarge)),
             const SizedBox(height: 4),
             Text(
-              'Transcribed on this phone. Your voice is never sent anywhere.',
+              context.l10n.voiceExplain,
               style: theme.textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
             ),
             const SizedBox(height: 12),
             if (_phase == _Phase.unavailable)
               Text(
                 _availability == VoiceAvailability.notOnDevice
-                    ? 'This phone can only transcribe speech online, which would send your '
-                          'voice to a server, so Notes doesn\'t use it. Voice notes need Android 12 '
-                          'or later with on-device speech recognition.'
-                    : 'Speech recognition isn\'t available on this phone, or the microphone isn\'t '
-                          'allowed for Notes.',
+                    ? context.l10n.voiceOnlineOnly
+                    : context.l10n.voiceUnavailable,
                 key: const Key('voice_unavailable'),
                 style: theme.textTheme.bodyMedium,
               )
@@ -211,8 +209,8 @@ class _VoiceNoteSheetState extends ConsumerState<VoiceNoteSheet> {
                   key: const Key('voice_language'),
                   initialValue: _language,
                   isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Language',
+                  decoration: InputDecoration(
+                    labelText: context.l10n.language,
                     border: OutlineInputBorder(),
                     isDense: true,
                   ),
@@ -231,7 +229,7 @@ class _VoiceNoteSheetState extends ConsumerState<VoiceNoteSheet> {
                     liveRegion: true,
                     child: Text(
                       text.isEmpty
-                          ? (listening ? 'Listening…' : 'Tap the microphone and speak.')
+                          ? (listening ? context.l10n.listening : context.l10n.tapMicAndSpeak)
                           : text,
                       textDirection: textDirectionOf(text),
                       style: text.isEmpty
@@ -259,7 +257,7 @@ class _VoiceNoteSheetState extends ConsumerState<VoiceNoteSheet> {
                           backgroundColor: listening ? scheme.error : scheme.primary,
                           foregroundColor: listening ? scheme.onError : scheme.onPrimary,
                         ),
-                        tooltip: listening ? 'Stop listening' : 'Start listening',
+                        tooltip: listening ? context.l10n.stopListening : context.l10n.startListening,
                         icon: Icon(listening ? Icons.stop : Icons.mic),
                         onPressed: listening ? (_stopping ? null : _stopAndWait) : _listen,
                       ),
@@ -271,13 +269,13 @@ class _VoiceNoteSheetState extends ConsumerState<VoiceNoteSheet> {
               children: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
+                  child: Text(context.l10n.cancel),
                 ),
                 const SizedBox(width: 8),
                 FilledButton(
                   style: inlineButtonStyle,
                   onPressed: text.isEmpty || _stopping ? null : _done,
-                  child: const Text('Add to note'),
+                  child: Text(context.l10n.addToNote),
                 ),
               ],
             ),

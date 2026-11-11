@@ -1,7 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- English (default). Hebrew is in values-iw. While the app has run, the
+     widgets use the language picked in the app's Settings instead (see
+     WidgetText.kt). -->
 <resources>
     <string name="quick_add_widget_label">New note</string>
     <string name="quick_add_widget_description">One tap to a new note. Make it wider for a "Take a note" bar</string>
     <string name="single_note_widget_label">Note</string>
     <string name="single_note_widget_description">One note on your home screen. Its text shows only when "Show details on the home screen" is on</string>
+    <string name="widget_new_note">New note</string>
+    <string name="widget_take_a_note">Take a note…</string>
+    <string name="widget_note">Note</string>
+    <string name="widget_tap_to_open">Tap to open in ZT Notes</string>
+    <string name="widget_untitled">(untitled)</string>
 </resources>

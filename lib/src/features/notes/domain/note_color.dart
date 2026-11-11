@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zerotrust_notes/l10n/l10n.dart';
 
 /// A note's background colour. Stored by [key], so the palette can be
 /// retuned without touching saved notes.
@@ -19,9 +20,30 @@ enum NoteColor {
   const NoteColor(this.key, this.label, this._light, this._dark);
 
   final String key;
+
+  /// English name (tests, logs). The UI uses [displayName].
   final String label;
   final Color? _light;
   final Color? _dark;
+
+  /// The colour's name in the app's language.
+  String get displayName {
+    final l = currentL10n;
+    return switch (this) {
+      none => l.colorDefault,
+      red => l.colorRed,
+      orange => l.colorOrange,
+      yellow => l.colorYellow,
+      green => l.colorGreen,
+      teal => l.colorTeal,
+      blue => l.colorBlue,
+      navy => l.colorNavy,
+      purple => l.colorPurple,
+      pink => l.colorPink,
+      brown => l.colorBrown,
+      gray => l.colorGray,
+    };
+  }
 
   static NoteColor fromKey(String? key) =>
       values.firstWhere((color) => color.key == key, orElse: () => none);

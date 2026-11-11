@@ -9,6 +9,7 @@ import '../application/export_service.dart';
 import '../application/export_temp_file_registry.dart';
 import '../data/export_file_writer.dart';
 import '../domain/export_format.dart';
+import 'package:zerotrust_notes/l10n/l10n.dart';
 
 /// Opens a sheet letting the user export either every note ([singleNote]
 /// null) or just one ([singleNote] set) as Markdown, PDF, or JSON, then
@@ -48,7 +49,7 @@ class _ExportSheetContentState extends ConsumerState<_ExportSheetContent> {
             Semantics(
               header: true,
               child: Text(
-                widget.singleNote == null ? 'Export all notes' : 'Export this note',
+                widget.singleNote == null ? context.l10n.exportAll : context.l10n.exportThis,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             ),
@@ -108,15 +109,14 @@ class _ExportSheetContentState extends ConsumerState<_ExportSheetContent> {
               context,
               ref,
               reason: lockedCount == 1
-                  ? 'Export includes a locked note'
-                  : 'Export includes $lockedCount locked notes',
+                  ? context.l10n.exportLockedOne
+                  : context.l10n.exportLockedMany(lockedCount),
             );
         if (!confirmed) {
           if (mounted) {
             setState(
               () => _errorMessage =
-                  'Not exported. Locked notes are only exported after your fingerprint, '
-                  'face or screen lock.',
+                  context.l10n.exportNeedsAuth,
             );
           }
           return;
@@ -140,7 +140,7 @@ class _ExportSheetContentState extends ConsumerState<_ExportSheetContent> {
       await SharePlus.instance.share(ShareParams(files: [xFile], subject: fileName));
       succeeded = true;
     } catch (error) {
-      if (mounted) setState(() => _errorMessage = 'Export failed: $error');
+      if (mounted) setState(() => _errorMessage = context.l10n.exportFailed('$error'));
     } finally {
       if (tempPath != null) {
         registry.unregister(tempPath);
@@ -161,7 +161,7 @@ class _FormatTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: 'Export as ${format.label}',
+      label: context.l10n.exportAs(format.label),
       button: true,
       child: SizedBox(
         height: 48,

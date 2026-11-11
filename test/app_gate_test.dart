@@ -74,6 +74,7 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(container: container, child: const ZeroTrustNotesApp()),
     );
+    await tester.pump(); // Strings load.
     expect(find.text('Zero-Trust Notes'), findsOneWidget);
 
     await tester.tap(find.text('Create a Zero-Trust account'));
@@ -123,6 +124,7 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(container: container, child: const ZeroTrustNotesApp()),
     );
+    await tester.pump(); // Strings load.
     await tester.tap(find.text('Create a Zero-Trust account'));
     await tester.pump();
     await tester.enterText(find.widgetWithText(TextFormField, 'Email'), email);
@@ -153,6 +155,7 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(container: container, child: const ZeroTrustNotesApp()),
     );
+    await tester.pump(); // Strings load.
     await tester.tap(find.text('Create a Zero-Trust account'));
     await tester.pump();
     await tester.enterText(find.widgetWithText(TextFormField, 'Email'), email);
@@ -197,6 +200,7 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(container: container, child: const ZeroTrustNotesApp()),
     );
+    await tester.pump(); // Strings load.
     await tester.tap(find.text('Create a Zero-Trust account'));
     await tester.pump();
     await tester.enterText(find.widgetWithText(TextFormField, 'Email'), email);

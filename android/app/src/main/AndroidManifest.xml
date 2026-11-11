@@ -9,6 +9,7 @@
     <!-- Voice notes: speech is transcribed on the phone (speech_to_text, on-device only). -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <application
+        android:supportsRtl="true"
         android:label="ZT Notes"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"

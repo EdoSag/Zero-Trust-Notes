@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:zero_trust_core/zero_trust_core.dart';
+import 'package:zerotrust_notes/l10n/l10n.dart';
 import 'package:zerotrust_notes/src/features/images/note_image_picker.dart';
 import 'package:zerotrust_notes/src/features/images/note_image_views.dart';
 import 'package:zerotrust_notes/src/features/notes/application/notes_providers.dart';
@@ -54,7 +56,7 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: phone.container,
-        child: MaterialApp(home: editor),
+        child: MaterialApp(localizationsDelegates: const [AppL10n.delegate, ...ZtLanguages.delegates], home: editor),
       ),
     );
     await settle(tester);

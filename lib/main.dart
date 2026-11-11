@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zero_trust_core/zero_trust_core.dart';
 
+import 'l10n/l10n.dart';
 import 'src/app/app_gate.dart';
 import 'src/features/widgets/application/home_widget_sync_service.dart';
+import 'src/features/widgets/presentation/widget_text_sync.dart';
 
 const notesAppConfig = ZtAppConfig(
   appId: 'notes',
@@ -29,6 +31,9 @@ Future<void> main() async {
   // can show right after a cold start.
   await const HomeWidgetSyncService().clearUnlessAllowed();
 
+  // English or Hebrew, as picked in Settings, from the first frame.
+  await ZtLanguageController.preload();
+
   runApp(
     ProviderScope(
       overrides: [ztAppConfigProvider.overrideWithValue(notesAppConfig)],
@@ -51,9 +56,13 @@ class ZeroTrustNotesApp extends ConsumerWidget {
         theme: theme,
         darkTheme: darkTheme,
         themeMode: mode,
+        // English (default) or Hebrew, from Settings → Appearance → Language.
+        locale: ref.watch(ztLanguageProvider),
+        supportedLocales: ZtLanguages.supported,
+        localizationsDelegates: const [AppL10n.delegate, ...ZtLanguages.delegates],
         home: const AppGate(),
         builder: (context, child) =>
-            AutoLockActivity(child: child ?? const SizedBox.shrink()),
+            AutoLockActivity(child: WidgetTextSync(child: child ?? const SizedBox.shrink())),
       ),
     );
   }

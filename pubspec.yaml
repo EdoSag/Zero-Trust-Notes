@@ -38,6 +38,8 @@ hooks:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -64,7 +66,9 @@ dependencies:
     git:
       url: https://github.com/EdoSag/Zero-Trust-Core.git
       path: packages/zero_trust_core
-      ref: v0.8.1
+      # 0.10.0: language setting + Hebrew (Core PR #21). Switch to the
+      # v0.10.0 tag once it is pushed.
+      ref: ba9a62de6bf17de7deb4596751c3f457d48d7942
   url_launcher: ^6.3.3
   flutter_local_notifications: ^23.0.0
   timezone: ^0.11.2
@@ -94,6 +98,7 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  generate: true
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

@@ -17,6 +17,7 @@ import '../features/widgets/application/widget_launch_listener.dart';
 import '../features/widgets/domain/pending_widget_action.dart';
 import '../features/widgets/presentation/note_picker_page.dart';
 import 'auth_providers.dart';
+import 'package:zerotrust_notes/l10n/l10n.dart';
 
 /// Routes between the shared account screens and the notes list.
 ///
@@ -208,6 +209,13 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
       _syncWidgetPreviews();
       _maybeConsumePendingWidgetAction();
     }, fireImmediately: true);
+    // Previews carry translated placeholders ("Untitled", locked note):
+    // rewrite them once the newly picked language has loaded.
+    ref.listenManual(ztLanguageProvider, (_, _) {
+      Timer(const Duration(milliseconds: 400), () {
+        if (mounted) _syncWidgetPreviews();
+      });
+    });
     ref.listenManual(pendingWidgetActionProvider, (_, next) {
       if (next != null) _maybeConsumePendingWidgetAction();
     });
@@ -262,8 +270,8 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
           final matches = notes.where((note) => note.id == noteId);
           if (matches.isEmpty) {
             ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-              const SnackBar(
-                content: Text('That note could not be found — it may have been deleted.'),
+              SnackBar(
+                content: Text(context.l10n.noteNotFound),
               ),
             );
           } else {
@@ -294,11 +302,11 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('Couldn\'t open your notes on this device.'),
+                Text(context.l10n.cantOpenNotes),
                 const SizedBox(height: 16),
                 FilledButton(
                   onPressed: () => ref.invalidate(notesStoreProvider),
-                  child: const Text('Try again'),
+                  child: Text(context.l10n.tryAgain),
                 ),
               ],
             ),
