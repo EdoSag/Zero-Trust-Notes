@@ -32,6 +32,7 @@ class Note {
     this.position,
     this.locked = false,
     this.placeReminder,
+    this.drawings = const {},
     this.extra = const {},
   });
 
@@ -62,6 +63,7 @@ class Note {
       position: (json['position'] as num?)?.toDouble(),
       locked: json['locked'] == true,
       placeReminder: NotePlaceReminder.fromJson(json['placeReminder']),
+      drawings: drawingsFromJson(json['drawings']),
       extra: {
         for (final entry in json.entries)
           if (!_knownKeys.contains(entry.key)) entry.key: entry.value,
@@ -85,6 +87,24 @@ class Note {
     return images;
   }
 
+  /// Image id -> the strokes it was drawn from; entries this build can't
+  /// read are skipped.
+  static Map<String, ZtAttachmentRef> drawingsFromJson(Object? value) {
+    if (value is! Map) return const {};
+    final drawings = <String, ZtAttachmentRef>{};
+    for (final entry in value.entries) {
+      if (entry.key is! String || entry.value is! Map) continue;
+      try {
+        drawings[entry.key as String] = ZtAttachmentRef.fromJson(
+          (entry.value as Map).cast<String, Object?>(),
+        );
+      } on Object {
+        // Malformed or from a newer format: leave it out.
+      }
+    }
+    return drawings;
+  }
+
   static DateTime? _date(Object? value) => switch (value) {
     final String s => DateTime.tryParse(s),
     _ => null,
@@ -106,6 +126,7 @@ class Note {
     'position',
     'locked',
     'placeReminder',
+    'drawings',
   };
 
   /// Notebooks and tags share the store with notes and carry a `kind`.
@@ -153,12 +174,19 @@ class Note {
   /// "Remind me when I arrive at / leave a place". The phone watches the
   /// place itself; the location never leaves it.
   final NotePlaceReminder? placeReminder;
+  /// Drawings among [images]: image id -> the encrypted strokes it was
+  /// drawn from, so it can be edited again. The picture itself is in
+  /// [images] like a photo, so older builds and exports show it.
+  final Map<String, ZtAttachmentRef> drawings;
   final Map<String, Object?> extra;
 
   bool get isTrashed => trashedAt != null;
   bool get isChecklist => checklist != null;
   bool get hasImages => images.isNotEmpty;
   bool get hasAnyReminder => reminderAt != null || placeReminder != null;
+
+  /// Every stored file this note uses: images and drawing strokes.
+  List<ZtAttachmentRef> get attachments => [...images, ...drawings.values];
 
   /// Custom order, highest first: a note's dragged [position], or its
   /// last edit for one never moved. New and edited notes come to the top;
@@ -188,6 +216,7 @@ class Note {
     Object? position = _unset,
     bool? locked,
     Object? placeReminder = _unset,
+    Map<String, ZtAttachmentRef>? drawings,
     DateTime? updatedAt,
   }) {
     return Note(
@@ -210,6 +239,7 @@ class Note {
       placeReminder: identical(placeReminder, _unset)
           ? this.placeReminder
           : placeReminder as NotePlaceReminder?,
+      drawings: drawings ?? this.drawings,
       extra: extra,
     );
   }
@@ -247,6 +277,7 @@ class Note {
     double? position,
     bool locked = false,
     NotePlaceReminder? placeReminder,
+    Map<String, ZtAttachmentRef> drawings = const {},
     Map<String, Object?> extra = const {},
   }) => {
     ...extra,
@@ -267,6 +298,8 @@ class Note {
     'position': ?position,
     if (locked) 'locked': true,
     if (placeReminder != null) 'placeReminder': placeReminder.toJson(),
+    if (drawings.isNotEmpty)
+      'drawings': {for (final e in drawings.entries) e.key: e.value.toJson()},
   };
 
   Map<String, Object?> toItemJson() => itemJson(
@@ -285,6 +318,7 @@ class Note {
     position: position,
     locked: locked,
     placeReminder: placeReminder,
+    drawings: drawings,
     extra: extra,
   );
 }

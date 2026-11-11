@@ -956,4 +956,99 @@ class AppL10nEn extends AppL10n {
 
   @override
   String get removePlaceReminder => 'Remove place reminder';
+
+  @override
+  String get imageTextTitle => 'Text from image';
+
+  @override
+  String get imageTextPrivacy =>
+      'The text is read on this phone. The image is never uploaded.';
+
+  @override
+  String get ocrBoth => 'Both';
+
+  @override
+  String get ocrEnglish => 'English';
+
+  @override
+  String get ocrHebrew => 'Hebrew';
+
+  @override
+  String get readingImageText => 'Reading the text…';
+
+  @override
+  String get cantReadImageText => 'Couldn\'t read the text in this image.';
+
+  @override
+  String get noImageText =>
+      'No text found in this image. Try another language above, or a sharper photo.';
+
+  @override
+  String get copyText => 'Copy';
+
+  @override
+  String get textCopied => 'Text copied';
+
+  @override
+  String get textFromPhoto => 'Text from a photo';
+
+  @override
+  String get grabImageText => 'Grab image text';
+
+  @override
+  String get choosePhoto => 'Choose a photo';
+
+  @override
+  String get addDrawing => 'Drawing';
+
+  @override
+  String get newDrawing => 'New drawing';
+
+  @override
+  String get editDrawing => 'Edit drawing';
+
+  @override
+  String get saveDrawing => 'Save drawing';
+
+  @override
+  String get drawSomethingFirst => 'Draw something first.';
+
+  @override
+  String get discardDrawingQ => 'Discard your changes to this drawing?';
+
+  @override
+  String get keepDrawing => 'Keep drawing';
+
+  @override
+  String get discard => 'Discard';
+
+  @override
+  String get colorBlack => 'Black';
+
+  @override
+  String get pen => 'Pen';
+
+  @override
+  String get highlighter => 'Highlighter';
+
+  @override
+  String get eraser => 'Eraser';
+
+  @override
+  String get redo => 'Redo';
+
+  @override
+  String get clearDrawing => 'Clear page';
+
+  @override
+  String get drawingCanvas => 'Drawing area. Draw with a finger or a stylus.';
+
+  @override
+  String get cantOpenDrawing =>
+      'This drawing can\'t be opened for editing here yet. Sync, then try again.';
+
+  @override
+  String thickness(int size) {
+    return 'Thickness $size';
+  }
 }

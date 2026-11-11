@@ -13,6 +13,9 @@ import 'package:zt_places/zt_places.dart';
 import '../../../shared/theme/app_spacing.dart';
 import '../../../shared/widgets/accessible_touch_target.dart';
 import '../../export/presentation/export_sheet.dart';
+import '../../drawing/drawing.dart';
+import '../../drawing/drawing_page.dart';
+import '../../image_text/image_text_sheet.dart';
 import '../../images/note_image_picker.dart';
 import '../../images/note_image_views.dart';
 import '../../notebooks/presentation/notebook_picker.dart';
@@ -87,6 +90,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   DateTime? _reminderAt;
   NotePlaceReminder? _placeReminder;
   List<ZtAttachmentRef> _images = const [];
+  Map<String, ZtAttachmentRef> _drawings = const {};
   bool _locked = false;
 
   /// A locked note stays hidden until the phone's lock confirms it's the
@@ -126,6 +130,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     _dropFiredPlaceReminder(ref.read(firedPlaceRemindersProvider));
     ref.listenManual(firedPlaceRemindersProvider, (_, fired) => _dropFiredPlaceReminder(fired));
     _images = note?.images ?? const [];
+    _drawings = note?.drawings ?? const {};
     _locked = note?.locked ?? false;
     _lockOpen = !_locked;
     if (!_lockOpen) WidgetsBinding.instance.addPostFrameCallback((_) => _openLock());
@@ -246,6 +251,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         images: _images,
         locked: _locked,
         placeReminder: _placeReminder,
+        drawings: _drawings,
       );
     } else {
       final updated = _note!.copyWith(
@@ -261,6 +267,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         images: _images,
         locked: _locked,
         placeReminder: _placeReminder,
+        drawings: _drawings,
       );
       await repository.updateNote(updated);
       _note = updated;
@@ -376,6 +383,9 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
           initialIndex: index,
           onRemove: _inTrash ? null : _removeImage,
           onShare: sharing.shareImage,
+          onGrabText: _inTrash ? null : _grabImageText,
+          onEditDrawing: _inTrash ? null : _editDrawing,
+          isDrawing: (image) => _drawings.containsKey(image.id),
         ),
       ),
     );
@@ -383,15 +393,163 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
 
   Future<void> _removeImage(ZtAttachmentRef image) async {
     final repository = ref.read(notesRepositoryProvider);
-    setState(
-      () => _images = [
+    final strokes = _drawings[image.id];
+    setState(() {
+      _images = [
         for (final i in _images)
           if (i.id != image.id) i,
-      ],
-    );
+      ];
+      if (strokes != null) _drawings = {..._drawings}..remove(image.id);
+    });
     _changed();
     // Delete the file only once the note no longer points at it.
-    if (await _saving) await repository?.releaseImages([image]);
+    if (await _saving) await repository?.releaseImages([image, ?strokes]);
+  }
+
+  /// Adds [text] read from an image: at the end of the text, or as new
+  /// checklist items.
+  void _appendText(String text) {
+    if (text.trim().isEmpty) return;
+    setState(() {
+      if (_checklist != null) {
+        _checklist = [..._checklist!, ...ChecklistItem.parseLines(text)];
+      } else {
+        final current = _bodyController.text.trimRight();
+        _bodyController.text = current.isEmpty ? text : '$current\n\n$text';
+        _previewMode = false;
+      }
+    });
+    _changed();
+  }
+
+  Future<void> _textFromPhoto() async {
+    final source = await showModalBottomSheet<NoteImageSource>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsetsDirectional.fromSTEB(24, 0, 24, 8),
+              child: Text(sheetContext.l10n.imageTextPrivacy),
+            ),
+            if (_hasCamera)
+              ListTile(
+                leading: const Icon(Icons.photo_camera_outlined),
+                title: Text(sheetContext.l10n.takePhoto),
+                onTap: () => Navigator.of(sheetContext).pop(NoteImageSource.camera),
+              ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: Text(sheetContext.l10n.choosePhoto),
+              onTap: () => Navigator.of(sheetContext).pop(NoteImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null || !mounted) return;
+    final List<PickedImage> picked;
+    try {
+      picked = await ref
+          .read(vaultControllerProvider.notifier)
+          .whileShowingSystemUi(() => ref.read(noteImagePickerProvider).pick(source));
+    } on Object {
+      if (mounted) {
+        _snack(
+          source == NoteImageSource.camera ? context.l10n.cantOpenCamera : context.l10n.cantOpenPhotos,
+        );
+      }
+      return;
+    }
+    if (picked.isEmpty || !mounted) return;
+    final text = await showImageTextSheet(context, picked.first.bytes);
+    if (text != null && mounted) _appendText(text);
+  }
+
+  Future<void> _grabImageText(ZtAttachmentRef image) async {
+    final repository = ref.read(notesRepositoryProvider);
+    if (repository == null) return;
+    final Uint8List bytes;
+    try {
+      bytes = await repository.readImage(image);
+    } on Object {
+      if (mounted) _snack(context.l10n.cantReadImageText);
+      return;
+    }
+    if (!mounted) return;
+    final text = await showImageTextSheet(context, bytes);
+    if (text != null && mounted) _appendText(text);
+  }
+
+  Future<void> _addDrawing() async {
+    final result = await DrawingPage.open(context);
+    if (result == null || !mounted) return;
+    await _storeDrawing(result);
+  }
+
+  Future<void> _editDrawing(ZtAttachmentRef image) async {
+    final repository = ref.read(notesRepositoryProvider);
+    final strokesRef = _drawings[image.id];
+    if (repository == null || strokesRef == null) return;
+    Drawing? drawing;
+    try {
+      drawing = Drawing.decode(await repository.readImage(strokesRef));
+    } on Object {
+      drawing = null;
+    }
+    if (!mounted) return;
+    if (drawing == null) {
+      _snack(context.l10n.cantOpenDrawing);
+      return;
+    }
+    final result = await DrawingPage.open(context, initial: drawing);
+    if (result == null || !mounted) return;
+    await _storeDrawing(result, replacing: image);
+  }
+
+  /// Encrypts and stores a drawing (picture and strokes) and puts it in the
+  /// note: in place of [replacing], or after the other images.
+  Future<void> _storeDrawing(DrawingResult result, {ZtAttachmentRef? replacing}) async {
+    final repository = ref.read(notesRepositoryProvider);
+    if (repository == null) return;
+    setState(() => _addingImages++);
+    try {
+      final picture = await repository.addImage(
+        result.png,
+        mimeType: 'image/png',
+        name: 'drawing.png',
+      );
+      final strokes = await repository.addFile(
+        result.drawing.encode(),
+        mimeType: Drawing.mimeType,
+        name: Drawing.fileName,
+      );
+      if (!mounted) return;
+      final old = replacing == null ? null : _drawings[replacing.id];
+      setState(() {
+        final at = replacing == null ? -1 : _images.indexWhere((i) => i.id == replacing.id);
+        _images = at < 0
+            ? [..._images, picture]
+            : [..._images.sublist(0, at), picture, ..._images.sublist(at + 1)];
+        _drawings = {
+          for (final e in _drawings.entries)
+            if (e.key != replacing?.id) e.key: e.value,
+          picture.id: strokes,
+        };
+      });
+      _changed();
+      if (replacing != null && await _saving) {
+        await repository.releaseImages([replacing, ?old]);
+      }
+    } on AttachmentTooLarge {
+      if (mounted) _snack(context.l10n.imagesTooLarge(1));
+    } on Object {
+      if (mounted) _snack(context.l10n.imagesFailed(1));
+    } finally {
+      if (mounted) setState(() => _addingImages--);
+    }
   }
 
   Future<void> _openLock() async {
@@ -790,6 +948,10 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
             _dictate();
           case 'place':
             _pickPlace();
+          case 'draw':
+            _addDrawing();
+          case 'scanText':
+            _textFromPhoto();
           case 'lock':
             _toggleLock();
           case 'camera':
@@ -822,6 +984,17 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
           child: ListTile(
             leading: Icon(Icons.add_location_alt_outlined),
             title: Text(context.l10n.remindAtPlace),
+          ),
+        ),
+        PopupMenuItem(
+          value: 'draw',
+          child: ListTile(leading: Icon(Icons.draw_outlined), title: Text(context.l10n.addDrawing)),
+        ),
+        PopupMenuItem(
+          value: 'scanText',
+          child: ListTile(
+            leading: Icon(Icons.document_scanner_outlined),
+            title: Text(context.l10n.textFromPhoto),
           ),
         ),
         if (_hasCamera)
