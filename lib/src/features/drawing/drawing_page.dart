@@ -54,6 +54,7 @@ class _DrawingPageState extends State<DrawingPage> {
   bool _saving = false;
   Size? _size;
   int? _pointer;
+  bool _pointerIsStylus = false;
 
   bool get _changed => _undo.isNotEmpty;
 
@@ -63,8 +64,17 @@ class _DrawingPageState extends State<DrawingPage> {
     _strokes = next;
   }
 
+  void _dropTouch() {
+    final erasing = _current == null;
+    setState(() {
+      _pointer = null;
+      _current = null;
+      if (erasing && _undo.isNotEmpty) _strokes = _undo.removeLast();
+    });
+  }
+
   bool _accepts(PointerEvent e) {
-    if (e.kind == PointerDeviceKind.stylus || e.kind == PointerDeviceKind.invertedStylus) {
+    if (_isStylus(e)) {
       _stylusSeen = true;
       return true;
     }
@@ -73,8 +83,17 @@ class _DrawingPageState extends State<DrawingPage> {
 
   Offset _toDrawing(Offset local, double scale) => local / scale;
 
+  bool _isStylus(PointerEvent e) =>
+      e.kind == PointerDeviceKind.stylus || e.kind == PointerDeviceKind.invertedStylus;
+
   void _down(PointerDownEvent e, double scale) {
+    if (_pointer != null && _isStylus(e) && !_pointerIsStylus) {
+      // A palm or finger touched first; the pen takes over and that touch's
+      // half-made stroke or erase is dropped.
+      _dropTouch();
+    }
     if (_pointer != null || !_accepts(e)) return;
+    _pointerIsStylus = _isStylus(e);
     _pointer = e.pointer;
     final point = _toDrawing(e.localPosition, scale);
     final eraser = _tool == DrawingTool.eraser || e.kind == PointerDeviceKind.invertedStylus;

@@ -288,4 +288,77 @@ void main() {
     expect(oldGone, isTrue, reason: 'the old picture was deleted');
     await finish(tester, phone);
   });
+  testWidgets('a pen that lands while the palm is down takes over the canvas', timeout: timeout, (
+    tester,
+  ) async {
+    await pumpEditor(tester);
+    await menu(tester, 'Drawing');
+    final canvas = tester.getRect(find.byKey(const Key('drawing_canvas')));
+    final palm = await tester.startGesture(canvas.bottomLeft + const Offset(30, -30));
+    await palm.moveBy(const Offset(20, 0));
+    await tester.pump();
+    final pen = await tester.startGesture(
+      canvas.center,
+      kind: PointerDeviceKind.stylus,
+      pointer: 7,
+    );
+    for (var i = 1; i <= 6; i++) {
+      await pen.moveBy(const Offset(6, 3));
+      await palm.moveBy(const Offset(5, 0));
+      await tester.pump();
+    }
+    await pen.up();
+    await palm.up();
+    await tester.pump();
+    await tester.runAsync(() async {
+      await tester.tap(find.byKey(const Key('drawing_save')));
+      for (var i = 0; i < 20; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        await tester.pump();
+      }
+    });
+    await settle(tester);
+    final note = (await tester.runAsync(() => phone.repo.fetchAll()))!.single;
+    final drawing = Drawing.decode(
+      (await tester.runAsync(() => phone.repo.readImage(note.drawings[note.images.single.id]!)))!,
+    )!;
+    expect(drawing.strokes, hasLength(1), reason: 'only the pen stroke is kept');
+    expect(drawing.strokes.single.pressures, isNotNull);
+    await finish(tester, phone);
+  });
+
+  testWidgets('the read text can be edited with the keyboard open', timeout: timeout, (
+    tester,
+  ) async {
+    await pumpEditor(
+      tester,
+      overrides: [
+        noteImagePickerProvider.overrideWithValue(FakePicker()),
+        imageTextReaderProvider.overrideWithValue(
+          FakeReader({'eng+heb': List.generate(40, (i) => 'Line $i').join('\n')}),
+        ),
+      ],
+    );
+    await menu(tester, 'Text from a photo');
+    await tester.tap(find.text('Choose a photo'));
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('image_text_field')));
+    tester.view.viewInsets = FakeViewPadding(bottom: tester.view.physicalSize.height * 0.45);
+    addTearDown(tester.view.resetViewInsets);
+    await settle(tester);
+    expect(tester.takeException(), isNull);
+    final field = tester.getRect(find.byKey(const Key('image_text_field')));
+    final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
+    final keyboardTop = screen.height * 0.55;
+    expect(field.top, lessThan(keyboardTop), reason: 'the field is above the keyboard');
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('image_text_add')),
+      50,
+      scrollable: find
+          .descendant(of: find.byType(BottomSheet), matching: find.byType(Scrollable))
+          .first,
+    );
+    expect(find.byKey(const Key('image_text_add')).hitTestable(), findsOneWidget);
+    await finish(tester, phone);
+  });
 }

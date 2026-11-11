@@ -88,13 +88,12 @@ class _ImageTextSheetState extends ConsumerState<ImageTextSheet> {
     final l10n = context.l10n;
     final theme = Theme.of(context);
     final hasText = !_reading && _text.text.trim().isNotEmpty;
-    return Padding(
-      padding: EdgeInsetsDirectional.fromSTEB(
-        16,
-        0,
-        16,
-        16 + MediaQuery.viewInsetsOf(context).bottom,
-      ),
+    final keyboard = MediaQuery.viewInsetsOf(context).bottom;
+    // The keyboard takes part of the screen while the text is edited, so the
+    // field only gets a share of what is left and the sheet scrolls.
+    final roomForText = (MediaQuery.sizeOf(context).height - keyboard) * 0.35;
+    return SingleChildScrollView(
+      padding: EdgeInsetsDirectional.fromSTEB(16, 0, 16, 16 + keyboard),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -136,7 +135,7 @@ class _ImageTextSheetState extends ConsumerState<ImageTextSheet> {
             )
           else
             ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.45),
+              constraints: BoxConstraints(maxHeight: roomForText.clamp(96.0, double.infinity)),
               child: TextField(
                 key: const Key('image_text_field'),
                 controller: _text,
