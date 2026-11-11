@@ -209,6 +209,13 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
       _syncWidgetPreviews();
       _maybeConsumePendingWidgetAction();
     }, fireImmediately: true);
+    // Previews carry translated placeholders ("Untitled", locked note):
+    // rewrite them once the newly picked language has loaded.
+    ref.listenManual(ztLanguageProvider, (_, _) {
+      Timer(const Duration(milliseconds: 400), () {
+        if (mounted) _syncWidgetPreviews();
+      });
+    });
     ref.listenManual(pendingWidgetActionProvider, (_, next) {
       if (next != null) _maybeConsumePendingWidgetAction();
     });
