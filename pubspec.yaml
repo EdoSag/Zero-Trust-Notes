@@ -77,6 +77,9 @@ dependencies:
   image_picker: ^1.2.4
   speech_to_text: ^7.5.0
   local_auth: ^3.0.2
+  # Text from images (N14): Tesseract runs on the phone, with English and
+  # Hebrew models bundled (tessdata_fast, same files as ZT Contacts).
+  flutter_tesseract_ocr: ^0.4.31
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -108,6 +111,8 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/images/
+    - assets/tessdata_config.json
+    - assets/tessdata/
     - .env
 
   # An image asset can refer to one or more resolution-specific "variants", see

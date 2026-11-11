@@ -60,6 +60,11 @@ android {
 
     buildTypes {
         release {
+            // Keeps Tesseract (text from images) intact in shrunk builds.
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
             // Without a release keystore (a fresh local checkout), fall back to
             // the debug keys so `flutter run --release` still works.
             signingConfig = if (System.getenv("CM_BUILD_DIR") != null || keystorePropertiesFile.exists())

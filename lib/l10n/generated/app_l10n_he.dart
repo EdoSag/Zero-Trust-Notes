@@ -953,4 +953,99 @@ class AppL10nHe extends AppL10n {
 
   @override
   String get widgetTapToOpen => 'יש להקיש כדי לפתוח ב-ZT Notes';
+
+  @override
+  String get imageTextTitle => 'טקסט מתמונה';
+
+  @override
+  String get imageTextPrivacy =>
+      'הטקסט נקרא בטלפון עצמו. התמונה לא נשלחת לשום מקום.';
+
+  @override
+  String get ocrBoth => 'שתיהן';
+
+  @override
+  String get ocrEnglish => 'אנגלית';
+
+  @override
+  String get ocrHebrew => 'עברית';
+
+  @override
+  String get readingImageText => 'קורא את הטקסט…';
+
+  @override
+  String get cantReadImageText => 'לא הצלחנו לקרוא את הטקסט בתמונה.';
+
+  @override
+  String get noImageText =>
+      'לא נמצא טקסט בתמונה. נסו שפה אחרת למעלה, או תמונה חדה יותר.';
+
+  @override
+  String get copyText => 'העתקה';
+
+  @override
+  String get textCopied => 'הטקסט הועתק';
+
+  @override
+  String get textFromPhoto => 'טקסט מתמונה';
+
+  @override
+  String get grabImageText => 'העתקת הטקסט מהתמונה';
+
+  @override
+  String get choosePhoto => 'בחירת תמונה';
+
+  @override
+  String get addDrawing => 'ציור';
+
+  @override
+  String get newDrawing => 'ציור חדש';
+
+  @override
+  String get editDrawing => 'עריכת הציור';
+
+  @override
+  String get saveDrawing => 'שמירת הציור';
+
+  @override
+  String get drawSomethingFirst => 'צריך לצייר משהו קודם.';
+
+  @override
+  String get discardDrawingQ => 'לבטל את השינויים בציור?';
+
+  @override
+  String get keepDrawing => 'המשך לצייר';
+
+  @override
+  String get discard => 'ביטול השינויים';
+
+  @override
+  String get colorBlack => 'שחור';
+
+  @override
+  String get pen => 'עט';
+
+  @override
+  String get highlighter => 'מרקר';
+
+  @override
+  String get eraser => 'מחק';
+
+  @override
+  String get redo => 'ביצוע מחדש';
+
+  @override
+  String get clearDrawing => 'ניקוי הדף';
+
+  @override
+  String get drawingCanvas => 'אזור הציור. אפשר לצייר באצבע או בעט.';
+
+  @override
+  String get cantOpenDrawing =>
+      'אי אפשר לערוך את הציור הזה כאן עדיין. סנכרנו ונסו שוב.';
+
+  @override
+  String thickness(int size) {
+    return 'עובי $size';
+  }
 }
