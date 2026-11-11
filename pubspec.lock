@@ -1620,8 +1620,8 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/zero_trust_core"
-      ref: "90995ed2cd58082188d2fa6bb896550b99df2ade"
-      resolved-ref: "90995ed2cd58082188d2fa6bb896550b99df2ade"
+      ref: "07be2c53fba2612d748ecf06de04700d23356736"
+      resolved-ref: "07be2c53fba2612d748ecf06de04700d23356736"
       url: "https://github.com/EdoSag/Zero-Trust-Core.git"
     source: git
     version: "0.10.0"
@@ -1629,8 +1629,8 @@ packages:
     dependency: transitive
     description:
       path: "packages/zt_crypto"
-      ref: "90995ed2cd58082188d2fa6bb896550b99df2ade"
-      resolved-ref: "90995ed2cd58082188d2fa6bb896550b99df2ade"
+      ref: "07be2c53fba2612d748ecf06de04700d23356736"
+      resolved-ref: "07be2c53fba2612d748ecf06de04700d23356736"
       url: "https://github.com/EdoSag/Zero-Trust-Core.git"
     source: git
     version: "0.3.2"
@@ -1638,8 +1638,8 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/zt_places"
-      ref: "6f397423bdc8d1a5313da870cc89677e40e93277"
-      resolved-ref: "6f397423bdc8d1a5313da870cc89677e40e93277"
+      ref: "07be2c53fba2612d748ecf06de04700d23356736"
+      resolved-ref: "07be2c53fba2612d748ecf06de04700d23356736"
       url: "https://github.com/EdoSag/Zero-Trust-Core.git"
     source: git
     version: "0.1.0"
@@ -1647,8 +1647,8 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/zt_sharing_ui"
-      ref: "90995ed2cd58082188d2fa6bb896550b99df2ade"
-      resolved-ref: "90995ed2cd58082188d2fa6bb896550b99df2ade"
+      ref: "07be2c53fba2612d748ecf06de04700d23356736"
+      resolved-ref: "07be2c53fba2612d748ecf06de04700d23356736"
       url: "https://github.com/EdoSag/Zero-Trust-Core.git"
     source: git
     version: "0.1.0"
