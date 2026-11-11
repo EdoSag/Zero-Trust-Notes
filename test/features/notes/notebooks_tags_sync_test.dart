@@ -84,7 +84,7 @@ void main() {
 
   test('saving a deleted note again brings it back (undo)', () async {
     final note = await phone.repo.createNote(title: 'Oops', body: 'keep me');
-    await phone.repo.deleteNote(note.id);
+    await phone.repo.deleteNote(note);
     expect(await phone.notes(), isEmpty);
 
     await phone.repo.updateNote(note);

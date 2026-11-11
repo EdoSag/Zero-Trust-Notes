@@ -83,7 +83,7 @@ class NoteActions {
       ),
     );
     if (confirmed != true) return false;
-    await ref.read(notesRepositoryProvider)?.deleteNote(note.id);
+    await ref.read(notesRepositoryProvider)?.deleteNote(note);
     return true;
   }
 

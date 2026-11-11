@@ -53,6 +53,7 @@ class NoteCard extends StatelessWidget {
         snippet,
       if (note.reminderAt != null) context.l10n.semReminder(formatReminder(note.reminderAt!)),
       if (tagNames.isNotEmpty) context.l10n.semTags(tagNames.join(', ')),
+      if (note.isShared) context.l10n.semShared,
     ].join(' ');
 
     return Semantics(
@@ -113,7 +114,7 @@ class NoteCard extends StatelessWidget {
                       ),
                     if (title.isEmpty && snippet.isEmpty && !note.isChecklist && !note.hasImages && !locked)
                       Text(context.l10n.emptyNote, style: theme.textTheme.bodyMedium?.copyWith(color: muted)),
-                    if (note.reminderAt != null || tagNames.isNotEmpty) ...[
+                    if (note.reminderAt != null || tagNames.isNotEmpty || note.isShared) ...[
                       const SizedBox(height: AppSpacing.sm),
                       Wrap(
                         spacing: AppSpacing.xs,
@@ -125,6 +126,13 @@ class NoteCard extends StatelessWidget {
                               label: formatReminder(note.reminderAt!),
                               color: onColor,
                               strike: note.reminderAt!.isBefore(DateTime.now()),
+                            ),
+                          if (note.isShared)
+                            _Pill(
+                              key: const Key('note_shared_pill'),
+                              icon: Icons.people_outline,
+                              label: context.l10n.sharedHeading,
+                              color: onColor,
                             ),
                           for (final name in tagNames.take(3)) _Pill(label: name, color: onColor),
                           if (tagNames.length > 3)
@@ -249,7 +257,7 @@ class _ChecklistPreview extends StatelessWidget {
 }
 
 class _Pill extends StatelessWidget {
-  const _Pill({required this.label, required this.color, this.icon, this.strike = false});
+  const _Pill({super.key, required this.label, required this.color, this.icon, this.strike = false});
 
   final String label;
   final Color color;

@@ -52,7 +52,7 @@ void main() {
     await laptop.sync();
     expect(await laptop.notes(), [('Draft', 'v2')]);
 
-    await phone.repo.deleteNote(note.id);
+    await phone.repo.deleteNote(note);
     await phone.sync();
     await laptop.sync();
     expect(await laptop.notes(), isEmpty);

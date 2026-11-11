@@ -7,14 +7,17 @@ import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zero_trust_core/zero_trust_core.dart';
+import 'package:zt_sharing_ui/zt_sharing_ui.dart';
 
 import '../../../shared/theme/app_spacing.dart';
 import '../../../shared/widgets/accessible_touch_target.dart';
 import '../../export/presentation/export_sheet.dart';
 import '../../images/note_image_picker.dart';
 import '../../images/note_image_views.dart';
+import '../../notebooks/domain/notebook.dart';
 import '../../notebooks/presentation/notebook_picker.dart';
 import '../../sharing/note_sharing.dart';
+import '../../sharing/sharing_flows.dart';
 import '../../tags/presentation/tag_picker.dart';
 import '../../voice/voice_note_sheet.dart';
 import '../../../shared/text_direction.dart';
@@ -101,6 +104,13 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   Future<bool> _saving = Future.value(true);
 
   bool get _isEditing => _note != null;
+
+  /// Kept in a shared space now, or will be once saved (its notebook is
+  /// shared).
+  bool get _inShared => _note?.isShared == true || Notebook.spaceIdOf(_notebookId) != null;
+
+  /// Shared on its own, not as part of a shared notebook.
+  bool get _sharedAlone => _note?.isShared == true && Notebook.spaceIdOf(_notebookId) == null;
   bool get _inTrash => _note?.isTrashed ?? false;
 
   @override
@@ -243,8 +253,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         images: _images,
         locked: _locked,
       );
-      await repository.updateNote(updated);
-      _note = updated;
+      _note = await repository.updateNote(updated);
     }
   }
 
@@ -387,6 +396,10 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   }
 
   void _toggleLock() {
+    if (!_locked && _inShared) {
+      _snack(context.l10n.sharedCantBeLocked);
+      return;
+    }
     setState(() => _locked = !_locked);
     _changed();
     _snack(
@@ -459,9 +472,53 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     if (await _persist() && mounted) Navigator.of(context).pop();
   }
 
-  void _setNotebook(String? notebookId) {
+  Future<void> _setNotebook(String? notebookId) async {
+    final from = Notebook.spaceIdOf(_notebookId);
+    final to = Notebook.spaceIdOf(notebookId);
+    if (to != null && _locked) {
+      _snack(context.l10n.lockedCantBeShared);
+      return;
+    }
+    if (from != null && from != to && _note?.isShared == true) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(context.l10n.moveOutOfSharedQ),
+          content: Text(context.l10n.moveOutOfSharedBody),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(context.l10n.cancel)),
+            TextButton(
+              key: const Key('move_out_of_shared'),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(context.l10n.moveAction),
+            ),
+          ],
+        ),
+      );
+      if (ok != true || !mounted) return;
+    }
     setState(() => _notebookId = notebookId);
     _changed();
+  }
+
+  /// Shares the note on its own, or shows who it is shared with.
+  Future<void> _share() async {
+    if (_note == null || _dirty) {
+      if (!await _persist() || !mounted) return;
+    }
+    final note = _note;
+    if (note == null) return;
+    if (Notebook.spaceIdOf(_notebookId) case final spaceId?) {
+      await openSharedSpace(context, ref, spaceId);
+      return;
+    }
+    final shared = await shareNoteFlow(context, ref, note);
+    if (shared != null && mounted) {
+      setState(() {
+        _note = shared;
+        _notebookId = null;
+      });
+    }
   }
 
   void _setTags(List<String> tagIds) {
@@ -634,7 +691,15 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
                       spacing: AppSpacing.xs,
                       runSpacing: AppSpacing.xs,
                       children: [
-                        NotebookField(notebookId: _notebookId, onChanged: _setNotebook),
+                        if (_sharedAlone)
+                          ActionChip(
+                            key: const Key('shared_note_chip'),
+                            avatar: const Icon(Icons.people_outline, size: 18),
+                            label: Text(context.l10n.sharedNote),
+                            onPressed: _share,
+                          )
+                        else
+                          NotebookField(notebookId: _notebookId, onChanged: _setNotebook),
                         TagField(tagIds: _tagIds, onChanged: _setTags),
                         if (_reminderAt != null)
                           InputChip(
@@ -728,6 +793,8 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
             _dictate();
           case 'lock':
             _toggleLock();
+          case 'share':
+            _share();
           case 'camera':
             _pickImages(NoteImageSource.camera);
           case 'gallery':
@@ -753,18 +820,31 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
           value: 'voice',
           child: ListTile(leading: Icon(Icons.mic_none), title: Text(context.l10n.voiceNote)),
         ),
-        if (_hasCamera)
+        if (_hasCamera && !_inShared)
           PopupMenuItem(
             value: 'camera',
             child: ListTile(leading: Icon(Icons.photo_camera_outlined), title: Text(context.l10n.takePhoto)),
           ),
-        PopupMenuItem(
-          value: 'gallery',
-          child: ListTile(
-            leading: Icon(Icons.add_photo_alternate_outlined),
-            title: Text(context.l10n.addImage),
+        if (!_inShared)
+          PopupMenuItem(
+            value: 'gallery',
+            child: ListTile(
+              leading: Icon(Icons.add_photo_alternate_outlined),
+              title: Text(context.l10n.addImage),
+            ),
           ),
-        ),
+        if (!_inTrash && !_locked)
+          PopupMenuItem(
+            value: 'share',
+            child: ListTile(
+              leading: const Icon(Icons.group_add_outlined),
+              title: Text(
+                _inShared
+                    ? ZtSharingStrings.of(context).peopleAndSharing
+                    : context.l10n.shareWithPeople,
+              ),
+            ),
+          ),
         PopupMenuItem(
           value: 'send',
           child: ListTile(leading: Icon(Icons.share_outlined), title: Text(context.l10n.send)),
@@ -788,13 +868,14 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
               title: Text(_previewMode ? context.l10n.editText : context.l10n.previewMarkdown),
             ),
           ),
-        PopupMenuItem(
-          value: 'lock',
-          child: ListTile(
-            leading: Icon(_locked ? Icons.lock_open_outlined : Icons.lock_outline),
-            title: Text(_locked ? context.l10n.unlockNote : context.l10n.lockNote),
+        if (!_inShared)
+          PopupMenuItem(
+            value: 'lock',
+            child: ListTile(
+              leading: Icon(_locked ? Icons.lock_open_outlined : Icons.lock_outline),
+              title: Text(_locked ? context.l10n.unlockNote : context.l10n.lockNote),
+            ),
           ),
-        ),
         if (_isEditing)
           PopupMenuItem(
             value: 'export',

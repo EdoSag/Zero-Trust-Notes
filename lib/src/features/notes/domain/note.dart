@@ -31,6 +31,7 @@ class Note {
     this.position,
     this.locked = false,
     this.extra = const {},
+    this.spaceId,
   });
 
   /// A live (not deleted) item from the local store.
@@ -147,6 +148,13 @@ class Note {
   final bool locked;
   final Map<String, Object?> extra;
 
+  /// Set for a note kept in a shared space (a shared notebook or a note
+  /// shared on its own) instead of the account's own store. Never stored:
+  /// it comes from where the note was read.
+  final String? spaceId;
+
+  bool get isShared => spaceId != null;
+
   bool get isTrashed => trashedAt != null;
   bool get isChecklist => checklist != null;
   bool get hasImages => images.isNotEmpty;
@@ -198,8 +206,32 @@ class Note {
       position: identical(position, _unset) ? this.position : position as double?,
       locked: locked ?? this.locked,
       extra: extra,
+      spaceId: spaceId,
     );
   }
+
+  /// The same note, as read from shared space [spaceId] (or from the
+  /// account's own store when null), filed in [notebookId].
+  Note located(String? spaceId, {required String? notebookId}) => Note(
+    id: id,
+    notebookId: notebookId,
+    title: title,
+    body: body,
+    createdAt: createdAt,
+    updatedAt: updatedAt,
+    tagIds: tagIds,
+    pinned: pinned,
+    color: color,
+    archived: archived,
+    trashedAt: trashedAt,
+    checklist: checklist,
+    reminderAt: reminderAt,
+    images: images,
+    position: position,
+    locked: locked,
+    extra: extra,
+    spaceId: spaceId,
+  );
 
   /// Turns a text note into a checklist (one item per non-empty line) or a
   /// checklist back into text (one line per item, ticks dropped).
