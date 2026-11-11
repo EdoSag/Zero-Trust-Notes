@@ -91,6 +91,14 @@ final allNotesProvider = Provider<AsyncValue<List<Note>>>((ref) {
   });
 });
 
+/// Whether every note is in [allNotesProvider]: shared notes are read after
+/// the account's own, so right after an unlock the list can be short. A
+/// note that isn't found then may still arrive.
+final allNotesLoadedProvider = Provider<bool>((ref) {
+  return ref.watch(allNotesProvider).hasValue &&
+      ref.watch(sharedNotesProvider.select((s) => s.ready));
+});
+
 /// Notes outside Trash (archived ones included), newest first. Widgets,
 /// pickers and export read this.
 final notesListProvider = Provider<AsyncValue<List<Note>>>((ref) {

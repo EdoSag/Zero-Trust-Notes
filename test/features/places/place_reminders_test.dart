@@ -111,6 +111,43 @@ void main() {
     expect(updated.single.placeReminder, isNull);
   });
 
+  test('a fired reminder waits for shared notes that are still loading', () async {
+    final updated = <Note>[];
+    final fired = {reminder().idFor('own'), reminder().idFor('shared')};
+    final own = [note('own', place: reminder())];
+    // Right after unlock only the account's own notes are in.
+    var handled = await clearFiredPlaceReminders(
+      (n) async => updated.add(n),
+      own,
+      fired,
+      allLoaded: false,
+    );
+    expect(handled, {reminder().idFor('own')});
+    // Then the shared note arrives and its reminder is cleared too.
+    handled = await clearFiredPlaceReminders((n) async => updated.add(n), [
+      ...own,
+      note('shared', place: reminder()),
+    ], fired.difference(handled));
+    expect(handled, {reminder().idFor('shared')});
+    expect(updated.map((n) => n.id), ['own', 'shared']);
+  });
+
+  test('clearing nothing does not announce a change to the fired reminders', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final fired = container.read(firedPlaceRemindersProvider.notifier)..add('a');
+    var changes = 0;
+    container.listen(firedPlaceRemindersProvider, (_, _) => changes++);
+    // The note is not in yet, so nothing was handled: no change, or the
+    // listener that clears reminders would run again and again.
+    fired.removeAll(const []);
+    fired.removeAll(const ['other']);
+    expect(changes, 0);
+    fired.removeAll(const ['a']);
+    expect(changes, 1);
+    expect(container.read(firedPlaceRemindersProvider), isEmpty);
+  });
+
   test('trash drops the place reminder; saved places sync like notes', timeout: timeout, () async {
     final server = FakeSyncBackend();
     final phone = Device('phone', server);

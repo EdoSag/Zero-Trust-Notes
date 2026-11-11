@@ -258,6 +258,13 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
       _clearFiredPlaceReminders();
     }, fireImmediately: true);
     ref.listenManual(firedPlaceRemindersProvider, (_, _) => _clearFiredPlaceReminders());
+    // A tap on a shared note, or a shared note's reminder, waited for the
+    // shared notes: try again now that they are in.
+    ref.listenManual(allNotesLoadedProvider, (_, loaded) {
+      if (!loaded) return;
+      _maybeConsumePendingWidgetAction();
+      _clearFiredPlaceReminders();
+    });
   }
 
   /// Hands this account's place reminders to the phone.
@@ -277,7 +284,12 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
     final repository = ref.read(notesRepositoryProvider);
     if (fired.isEmpty || notes == null || repository == null) return;
     try {
-      final handled = await clearFiredPlaceReminders(repository.updateNote, notes, fired);
+      final handled = await clearFiredPlaceReminders(
+        repository.updateNote,
+        notes,
+        fired,
+        allLoaded: ref.read(allNotesLoadedProvider),
+      );
       ref.read(firedPlaceRemindersProvider.notifier).removeAll(handled);
     } on Object {
       // Locked meanwhile: tried again on the next change.
@@ -310,6 +322,12 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
     if (notes == null) return;
     final action = ref.read(pendingWidgetActionProvider);
     if (action == null) return;
+    // Shared notes arrive a moment after the account's own: a note that
+    // isn't here yet may be one of them, so keep the tap until they are in.
+    if (action case OpenNote(:final noteId)
+        when !ref.read(allNotesLoadedProvider) && !notes.any((n) => n.id == noteId)) {
+      return;
+    }
     ref.read(pendingWidgetActionProvider.notifier).clear();
 
     // Not while a listener is notifying: navigation rebuilds widgets.
