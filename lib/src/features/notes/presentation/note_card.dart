@@ -58,6 +58,7 @@ class NoteCard extends StatelessWidget {
       if (note.reminderAt != null) context.l10n.semReminder(formatReminder(note.reminderAt!)),
       if (note.placeReminder != null) placeReminderLabel(context, note.placeReminder!),
       if (tagNames.isNotEmpty) context.l10n.semTags(tagNames.join(', ')),
+      if (note.isShared) context.l10n.semShared,
     ].join(' ');
 
     return Semantics(
@@ -128,7 +129,7 @@ class NoteCard extends StatelessWidget {
                         context.l10n.emptyNote,
                         style: theme.textTheme.bodyMedium?.copyWith(color: muted),
                       ),
-                    if (note.hasAnyReminder || tagNames.isNotEmpty) ...[
+                    if (note.hasAnyReminder || tagNames.isNotEmpty || note.isShared) ...[
                       const SizedBox(height: AppSpacing.sm),
                       Wrap(
                         spacing: AppSpacing.xs,
@@ -140,6 +141,13 @@ class NoteCard extends StatelessWidget {
                               label: formatReminder(note.reminderAt!),
                               color: onColor,
                               strike: note.reminderAt!.isBefore(DateTime.now()),
+                            ),
+                          if (note.isShared)
+                            _Pill(
+                              key: const Key('note_shared_pill'),
+                              icon: Icons.people_outline,
+                              label: context.l10n.sharedHeading,
+                              color: onColor,
                             ),
                           if (note.placeReminder != null)
                             _Pill(
@@ -269,7 +277,7 @@ class _ChecklistPreview extends StatelessWidget {
 }
 
 class _Pill extends StatelessWidget {
-  const _Pill({required this.label, required this.color, this.icon, this.strike = false});
+  const _Pill({super.key, required this.label, required this.color, this.icon, this.strike = false});
 
   final String label;
   final Color color;

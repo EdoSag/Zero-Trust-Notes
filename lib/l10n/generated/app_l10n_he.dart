@@ -955,6 +955,66 @@ class AppL10nHe extends AppL10n {
   String get widgetTapToOpen => 'יש להקיש כדי לפתוח ב-ZT Notes';
 
   @override
+  String get shareNotebook => 'שיתוף מחברת';
+
+  @override
+  String get shareWithPeople => 'שיתוף עם אנשים';
+
+  @override
+  String shareNamed(String name) {
+    return 'שיתוף ״$name״';
+  }
+
+  @override
+  String get shareNotebookExplain =>
+      'הפתקים שלה יעברו למחברת משותפת שרק האנשים שתזמינו יכולים לקרוא, בהצפנה מקצה לקצה. פתקים נעולים נשארים פרטיים. בינתיים תמונות מוצגות רק במכשירים שלך.';
+
+  @override
+  String get shareNoteExplain =>
+      'הפתק יעבור למרחב משותף שרק האנשים שתזמינו יכולים לקרוא, בהצפנה מקצה לקצה. בינתיים תמונות מוצגות רק במכשירים שלך.';
+
+  @override
+  String get joinWithInvite => 'הצטרפות עם הזמנה';
+
+  @override
+  String get sharedHeading => 'משותפים';
+
+  @override
+  String get sharedNote => 'פתק משותף';
+
+  @override
+  String get semShared => 'משותף עם אנשים אחרים.';
+
+  @override
+  String get sharedNotebookDescription =>
+      'מוצפן מקצה לקצה. כל מי שכאן יכול להוסיף ולערוך פתקים; בעלים יכולים גם להזמין ולהסיר אנשים.';
+
+  @override
+  String get moveOutOfSharedQ => 'להוציא מהמחברת המשותפת?';
+
+  @override
+  String get moveOutOfSharedBody => 'האחרים לא יראו את הפתק הזה יותר.';
+
+  @override
+  String get moveAction => 'העברה';
+
+  @override
+  String get lockedCantBeShared =>
+      'אי אפשר לשתף פתקים נעולים. הסירו קודם את הנעילה.';
+
+  @override
+  String get sharedCantBeLocked =>
+      'אי אפשר לנעול פתקים משותפים: הנעילה שייכת רק לך.';
+
+  @override
+  String get noPhotosInShared =>
+      'עדיין אי אפשר להוסיף תמונות וציורים לפתקים משותפים.';
+
+  @override
+  String get sharingUnavailable =>
+      'השיתוף לא זמין כרגע. בדקו את החיבור לאינטרנט.';
+
+  @override
   String get remindAtPlace => 'תזכורת לפי מיקום';
 
   @override

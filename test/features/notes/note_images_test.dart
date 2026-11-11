@@ -110,11 +110,11 @@ void main() {
       final copy = await phone.repo.createNote(title: 'A (copy)', body: '', images: [image]);
       await uploads();
 
-      await phone.repo.deleteNote(original.id);
+      await phone.repo.deleteNote(original);
       await uploads();
       expect(files.files, hasLength(1));
 
-      await phone.repo.deleteNote(copy.id);
+      await phone.repo.deleteNote(copy);
       await uploads();
       expect(files.files, isEmpty);
     });

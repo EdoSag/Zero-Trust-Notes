@@ -952,6 +952,66 @@ class AppL10nEn extends AppL10n {
   String get widgetTapToOpen => 'Tap to open in ZT Notes';
 
   @override
+  String get shareNotebook => 'Share notebook';
+
+  @override
+  String get shareWithPeople => 'Share with people';
+
+  @override
+  String shareNamed(String name) {
+    return 'Share “$name”';
+  }
+
+  @override
+  String get shareNotebookExplain =>
+      'Its notes move into a shared notebook that only the people you invite can read, end-to-end encrypted. Locked notes stay private. Photos show only on your devices for now.';
+
+  @override
+  String get shareNoteExplain =>
+      'The note moves into a shared space that only the people you invite can read, end-to-end encrypted. Photos show only on your devices for now.';
+
+  @override
+  String get joinWithInvite => 'Join with an invite';
+
+  @override
+  String get sharedHeading => 'Shared';
+
+  @override
+  String get sharedNote => 'Shared note';
+
+  @override
+  String get semShared => 'Shared with other people.';
+
+  @override
+  String get sharedNotebookDescription =>
+      'End-to-end encrypted. Everyone here can add and edit notes; owners can also invite and remove people.';
+
+  @override
+  String get moveOutOfSharedQ => 'Move out of the shared notebook?';
+
+  @override
+  String get moveOutOfSharedBody => 'The others won\'t see this note any more.';
+
+  @override
+  String get moveAction => 'Move';
+
+  @override
+  String get lockedCantBeShared =>
+      'Locked notes can\'t be shared. Remove the lock first.';
+
+  @override
+  String get sharedCantBeLocked =>
+      'Shared notes can\'t be locked: the lock is only yours.';
+
+  @override
+  String get noPhotosInShared =>
+      'Photos and drawings can\'t be added to shared notes yet.';
+
+  @override
+  String get sharingUnavailable =>
+      'Sharing isn\'t available right now. Check your internet connection.';
+
+  @override
   String get remindAtPlace => 'Remind me at a place';
 
   @override

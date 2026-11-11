@@ -66,9 +66,15 @@ dependencies:
     git:
       url: https://github.com/EdoSag/Zero-Trust-Core.git
       path: packages/zero_trust_core
-      # 0.10.0: language setting + Hebrew (Core PR #21). Switch to the
-      # v0.10.0 tag once it is pushed.
-      ref: ba9a62de6bf17de7deb4596751c3f457d48d7942
+      # Core Dev with Z24 shared spaces plus the shared sharing screens
+      # (Core PR #28). zt_sharing_ui must stay on the same commit. Switch
+      # both to the next tag once it is pushed.
+      ref: 90995ed2cd58082188d2fa6bb896550b99df2ade
+  zt_sharing_ui:
+    git:
+      url: https://github.com/EdoSag/Zero-Trust-Core.git
+      path: packages/zt_sharing_ui
+      ref: 90995ed2cd58082188d2fa6bb896550b99df2ade
   # On-device place reminders (N16), shared with Tasks. Android's own
   # LocationManager, no Google Play services. Pinned to Core PR #26 until a
   # tag includes it.

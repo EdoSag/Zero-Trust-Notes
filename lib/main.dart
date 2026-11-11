@@ -6,6 +6,7 @@ import 'package:zero_trust_core/zero_trust_core.dart';
 
 import 'l10n/l10n.dart';
 import 'src/app/app_gate.dart';
+import 'src/features/sharing/shared_notebooks.dart';
 import 'src/features/widgets/application/home_widget_sync_service.dart';
 import 'src/features/widgets/presentation/widget_text_sync.dart';
 
@@ -36,7 +37,10 @@ Future<void> main() async {
 
   runApp(
     ProviderScope(
-      overrides: [ztAppConfigProvider.overrideWithValue(notesAppConfig)],
+      overrides: [
+        ztAppConfigProvider.overrideWithValue(notesAppConfig),
+        ztSpacePolicyProvider.overrideWithValue(notesSpacePolicy),
+      ],
       child: const ZeroTrustNotesApp(),
     ),
   );

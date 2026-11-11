@@ -64,13 +64,15 @@ class Device {
   final DeviceLink link;
   late final ProviderContainer container;
 
-  Future<void> unlock() async {
+  /// [seed] picks the account key: devices of different people need
+  /// different ones.
+  Future<void> unlock({int seed = 0}) async {
     // As the notes list does: keep sync and conflict copies running.
     container.listen(ztSyncControllerProvider, (_, _) {});
     container.listen(conflictCopiesProvider, (_, _) {});
     await container
         .read(vaultControllerProvider.notifier)
-        .unlock(Uint8List.fromList(List.generate(32, (i) => i)));
+        .unlock(Uint8List.fromList(List.generate(32, (i) => (i + seed) % 256)));
     await container.read(notesStoreProvider.future);
     await container.read(ztSyncEngineProvider.future);
   }

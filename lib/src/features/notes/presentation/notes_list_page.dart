@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:zero_trust_core/zero_trust_core.dart';
+import 'package:zt_sharing_ui/zt_sharing_ui.dart';
 
 import '../../../shared/theme/app_spacing.dart';
 import '../../../shared/widgets/accessible_touch_target.dart';
@@ -13,6 +14,8 @@ import '../../legacy_import/presentation/legacy_import.dart';
 import '../../notebooks/application/notebooks_controller.dart';
 import '../../notebooks/domain/notebook.dart';
 import '../../settings/notes_settings_page.dart';
+import '../../sharing/shared_notebooks.dart';
+import '../../sharing/sharing_flows.dart';
 import '../../sync/application/conflict_copies.dart';
 import '../../sync/presentation/sync_status_badge.dart';
 import '../../tags/application/tags_controller.dart';
@@ -67,10 +70,22 @@ class _NotesListPageState extends ConsumerState<NotesListPage> {
     _searchController.addListener(
       () => setState(() => _filter = _filter.copyWith(query: _searchController.text)),
     );
-    // Notes kept in Trash past 30 days are deleted for good.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(ref.read(notesRepositoryProvider)?.purgeExpiredTrash().catchError((_) => 0));
-    });
+    // Notes kept in Trash past 30 days are deleted for good. Shared notes
+    // load (or sync in) later, so it runs again when an expired one shows up.
+    void purge() =>
+        unawaited(ref.read(notesRepositoryProvider)?.purgeExpiredTrash().catchError((_) => 0));
+    WidgetsBinding.instance.addPostFrameCallback((_) => purge());
+    ref.listenManual(
+      sharedNotesProvider.select((s) => s.notes.any(_expired)),
+      (_, expired) {
+        if (expired) purge();
+      },
+    );
+  }
+
+  static bool _expired(Note note) {
+    final purgeAt = note.purgeAt;
+    return purgeAt != null && !purgeAt.isAfter(DateTime.now());
   }
 
   @override
@@ -210,6 +225,8 @@ class _NotesListPageState extends ConsumerState<NotesListPage> {
               setState(() => _filter = NotesFilter(tagId: id));
             },
             onImportFromKeep: () => showKeepImportFlow(context, ref),
+            onSharedSpace: (spaceId) => openSharedSpace(context, ref, spaceId),
+            onJoin: () => openJoinShared(context, ref),
           ),
           appBar: AppBar(
             title: _searchActive
@@ -253,8 +270,19 @@ class _NotesListPageState extends ConsumerState<NotesListPage> {
                 onSelected: (value) {
                   if (value is _SortOption) setState(() => _sort = value);
                   if (value == 'empty') _emptyTrash();
+                  if (value == 'share') _shareNotebook(notebooks);
                 },
                 itemBuilder: (context) => [
+                  if (_filter.notebookId != null && notebooks.any((n) => n.id == _filter.notebookId))
+                    PopupMenuItem(
+                      key: const Key('notebook_share'),
+                      value: 'share',
+                      child: Text(
+                        Notebook.spaceIdOf(_filter.notebookId) != null
+                            ? ZtSharingStrings.of(context).peopleAndSharing
+                            : context.l10n.shareNotebook,
+                      ),
+                    ),
                   if (_filter.view == NotesView.trash)
                     PopupMenuItem(value: 'empty', child: Text(context.l10n.emptyTrash)),
                   if (_filter.view == NotesView.notes || _filter.view == NotesView.archive)
@@ -271,6 +299,7 @@ class _NotesListPageState extends ConsumerState<NotesListPage> {
           body: Column(
             children: [
               const LegacyImportBanner(),
+              const SharedJoinRequests(),
               if (_searchActive)
                 _SearchFilters(
                   filter: _filter,
@@ -362,6 +391,15 @@ class _NotesListPageState extends ConsumerState<NotesListPage> {
     );
   }
 
+  Future<void> _shareNotebook(List<Notebook> notebooks) async {
+    final notebook = notebooks.where((n) => n.id == _filter.notebookId).firstOrNull;
+    if (notebook == null) return;
+    final id = await shareNotebookFlow(context, ref, notebook);
+    if (id != null && mounted && id != notebook.id) {
+      setState(() => _filter = NotesFilter(notebookId: id));
+    }
+  }
+
   String _heading(List<Notebook> notebooks, List<Tag> tags) {
     if (_filter.tagId != null) {
       return tags.where((tag) => tag.id == _filter.tagId).firstOrNull?.name ?? context.l10n.tag;
@@ -379,6 +417,8 @@ class _NotesDrawer extends ConsumerWidget {
     required this.onNotebook,
     required this.onTag,
     required this.onImportFromKeep,
+    required this.onSharedSpace,
+    required this.onJoin,
   });
 
   final NotesFilter filter;
@@ -393,8 +433,18 @@ class _NotesDrawer extends ConsumerWidget {
   /// stop at its first dialog.
   final VoidCallback onImportFromKeep;
 
+  /// Opens a shared space that has no notebook to show yet (waiting to be
+  /// let in). Runs on the notes page.
+  final ValueChanged<String> onSharedSpace;
+  final VoidCallback onJoin;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final sharing = ref.watch(sharedNotesProvider);
+    final waiting = [
+      for (final n in sharing.notebooks)
+        if (n.shared!.waiting) n,
+    ];
     final plainView = filter.notebookId == null && filter.tagId == null;
     Widget viewTile(NotesView view, IconData icon, String label) => ListTile(
       leading: Icon(icon),
@@ -415,10 +465,23 @@ class _NotesDrawer extends ConsumerWidget {
           _DrawerHeading(context.l10n.notebooks),
           for (final notebook in notebooks)
             ListTile(
-              leading: const Icon(Icons.book_outlined),
+              leading: Icon(notebook.isShared ? Icons.folder_shared_outlined : Icons.book_outlined),
               title: Text(notebook.name),
               selected: filter.notebookId == notebook.id,
               onTap: () => onNotebook(notebook.id),
+            ),
+        ],
+        if (waiting.isNotEmpty) ...[
+          const Divider(),
+          _DrawerHeading(context.l10n.sharedHeading),
+          for (final notebook in waiting)
+            ListTile(
+              leading: const Icon(Icons.hourglass_top),
+              title: Text(ZtSharingStrings.of(context).waitingToJoin),
+              onTap: () {
+                Navigator.of(context).pop();
+                onSharedSpace(notebook.shared!.spaceId);
+              },
             ),
         ],
         if (tags.isNotEmpty) ...[
@@ -436,6 +499,16 @@ class _NotesDrawer extends ConsumerWidget {
         viewTile(NotesView.archive, Icons.archive_outlined, context.l10n.viewArchive),
         viewTile(NotesView.trash, Icons.delete_outline, context.l10n.viewTrash),
         const Divider(),
+        if (sharing.available)
+          ListTile(
+            key: const Key('drawer_join_shared'),
+            leading: const Icon(Icons.group_add_outlined),
+            title: Text(context.l10n.joinWithInvite),
+            onTap: () {
+              Navigator.of(context).pop();
+              onJoin();
+            },
+          ),
         ListTile(
           leading: const Icon(Icons.download_outlined),
           title: Text(context.l10n.importFromKeep),

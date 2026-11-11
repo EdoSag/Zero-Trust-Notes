@@ -92,8 +92,8 @@ class _ExportSheetContentState extends ConsumerState<_ExportSheetContent> {
       final notes = widget.singleNote != null
           ? [widget.singleNote!]
           : [
-              // Everything but Trash.
-              for (final note in await ref.read(notesRepositoryProvider)!.fetchAll())
+              // Everything but Trash, shared notes included.
+              for (final note in await ref.read(notesRepositoryProvider)!.fetchEverything())
                 if (!note.isTrashed) note,
             ];
 

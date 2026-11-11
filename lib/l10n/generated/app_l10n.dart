@@ -1639,6 +1639,108 @@ abstract class AppL10n {
   /// **'Tap to open in ZT Notes'**
   String get widgetTapToOpen;
 
+  /// No description provided for @shareNotebook.
+  ///
+  /// In en, this message translates to:
+  /// **'Share notebook'**
+  String get shareNotebook;
+
+  /// No description provided for @shareWithPeople.
+  ///
+  /// In en, this message translates to:
+  /// **'Share with people'**
+  String get shareWithPeople;
+
+  /// No description provided for @shareNamed.
+  ///
+  /// In en, this message translates to:
+  /// **'Share “{name}”'**
+  String shareNamed(String name);
+
+  /// No description provided for @shareNotebookExplain.
+  ///
+  /// In en, this message translates to:
+  /// **'Its notes move into a shared notebook that only the people you invite can read, end-to-end encrypted. Locked notes stay private. Photos show only on your devices for now.'**
+  String get shareNotebookExplain;
+
+  /// No description provided for @shareNoteExplain.
+  ///
+  /// In en, this message translates to:
+  /// **'The note moves into a shared space that only the people you invite can read, end-to-end encrypted. Photos show only on your devices for now.'**
+  String get shareNoteExplain;
+
+  /// No description provided for @joinWithInvite.
+  ///
+  /// In en, this message translates to:
+  /// **'Join with an invite'**
+  String get joinWithInvite;
+
+  /// No description provided for @sharedHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Shared'**
+  String get sharedHeading;
+
+  /// No description provided for @sharedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Shared note'**
+  String get sharedNote;
+
+  /// No description provided for @semShared.
+  ///
+  /// In en, this message translates to:
+  /// **'Shared with other people.'**
+  String get semShared;
+
+  /// No description provided for @sharedNotebookDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'End-to-end encrypted. Everyone here can add and edit notes; owners can also invite and remove people.'**
+  String get sharedNotebookDescription;
+
+  /// No description provided for @moveOutOfSharedQ.
+  ///
+  /// In en, this message translates to:
+  /// **'Move out of the shared notebook?'**
+  String get moveOutOfSharedQ;
+
+  /// No description provided for @moveOutOfSharedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The others won\'t see this note any more.'**
+  String get moveOutOfSharedBody;
+
+  /// No description provided for @moveAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Move'**
+  String get moveAction;
+
+  /// No description provided for @lockedCantBeShared.
+  ///
+  /// In en, this message translates to:
+  /// **'Locked notes can\'t be shared. Remove the lock first.'**
+  String get lockedCantBeShared;
+
+  /// No description provided for @sharedCantBeLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Shared notes can\'t be locked: the lock is only yours.'**
+  String get sharedCantBeLocked;
+
+  /// No description provided for @noPhotosInShared.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos and drawings can\'t be added to shared notes yet.'**
+  String get noPhotosInShared;
+
+  /// No description provided for @sharingUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Sharing isn\'t available right now. Check your internet connection.'**
+  String get sharingUnavailable;
+
   /// No description provided for @remindAtPlace.
   ///
   /// In en, this message translates to:

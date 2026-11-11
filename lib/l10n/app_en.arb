@@ -549,6 +549,30 @@
   "widgetTakeANote": "Take a note…",
   "widgetNote": "Note",
   "widgetTapToOpen": "Tap to open in ZT Notes",
+  "shareNotebook": "Share notebook",
+  "shareWithPeople": "Share with people",
+  "shareNamed": "Share “{name}”",
+  "@shareNamed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "shareNotebookExplain": "Its notes move into a shared notebook that only the people you invite can read, end-to-end encrypted. Locked notes stay private. Photos show only on your devices for now.",
+  "shareNoteExplain": "The note moves into a shared space that only the people you invite can read, end-to-end encrypted. Photos show only on your devices for now.",
+  "joinWithInvite": "Join with an invite",
+  "sharedHeading": "Shared",
+  "sharedNote": "Shared note",
+  "semShared": "Shared with other people.",
+  "sharedNotebookDescription": "End-to-end encrypted. Everyone here can add and edit notes; owners can also invite and remove people.",
+  "moveOutOfSharedQ": "Move out of the shared notebook?",
+  "moveOutOfSharedBody": "The others won't see this note any more.",
+  "moveAction": "Move",
+  "lockedCantBeShared": "Locked notes can't be shared. Remove the lock first.",
+  "sharedCantBeLocked": "Shared notes can't be locked: the lock is only yours.",
+  "noPhotosInShared": "Photos and drawings can't be added to shared notes yet.",
+  "sharingUnavailable": "Sharing isn't available right now. Check your internet connection.",
   "remindAtPlace": "Remind me at a place",
   "removePlaceReminder": "Remove place reminder",
   "imageTextTitle": "Text from image",
