@@ -143,7 +143,12 @@ class FiredPlaceReminders extends Notifier<Set<String>> {
 
   void add(String reminderId) => state = {...state, reminderId};
 
-  void removeAll(Iterable<String> ids) => state = state.difference(ids.toSet());
+  void removeAll(Iterable<String> ids) {
+    final next = state.difference(ids.toSet());
+    // Nothing removed: keep the same set, or everyone watching it would be
+    // told about a change that did not happen.
+    if (next.length != state.length) state = next;
+  }
 }
 
 final firedPlaceRemindersProvider = NotifierProvider<FiredPlaceReminders, Set<String>>(

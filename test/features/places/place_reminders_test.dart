@@ -132,6 +132,22 @@ void main() {
     expect(updated.map((n) => n.id), ['own', 'shared']);
   });
 
+  test('clearing nothing does not announce a change to the fired reminders', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final fired = container.read(firedPlaceRemindersProvider.notifier)..add('a');
+    var changes = 0;
+    container.listen(firedPlaceRemindersProvider, (_, _) => changes++);
+    // The note is not in yet, so nothing was handled: no change, or the
+    // listener that clears reminders would run again and again.
+    fired.removeAll(const []);
+    fired.removeAll(const ['other']);
+    expect(changes, 0);
+    fired.removeAll(const ['a']);
+    expect(changes, 1);
+    expect(container.read(firedPlaceRemindersProvider), isEmpty);
+  });
+
   test('trash drops the place reminder; saved places sync like notes', timeout: timeout, () async {
     final server = FakeSyncBackend();
     final phone = Device('phone', server);
