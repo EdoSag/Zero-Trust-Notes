@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 import '../notes/domain/note.dart';
+import 'package:zerotrust_notes/l10n/l10n.dart';
 
 /// A reminder the OS should show at [at], for the note [noteId].
 @immutable
@@ -101,10 +102,10 @@ class LocalNotificationsReminderScheduler implements ReminderScheduler {
   String? _launchNoteId;
   Future<void>? _ready;
 
-  static const _channel = AndroidNotificationDetails(
+  static AndroidNotificationDetails get _channel => AndroidNotificationDetails(
     'note_reminders',
-    'Note reminders',
-    channelDescription: 'Reminders you set on notes',
+    currentL10n.reminderChannel,
+    channelDescription: currentL10n.reminderChannelDesc,
     importance: Importance.high,
     priority: Priority.high,
     category: AndroidNotificationCategory.reminder,
@@ -112,9 +113,9 @@ class LocalNotificationsReminderScheduler implements ReminderScheduler {
     visibility: NotificationVisibility.private,
   );
 
-  static const _details = NotificationDetails(
+  static NotificationDetails get _details => NotificationDetails(
     android: _channel,
-    iOS: DarwinNotificationDetails(),
+    iOS: const DarwinNotificationDetails(),
   );
 
   Future<void> _init() => _ready ??= () async {
@@ -196,7 +197,7 @@ class LocalNotificationsReminderScheduler implements ReminderScheduler {
       await _plugin.zonedSchedule(
         id: reminder.notificationId,
         title: _title(reminder),
-        body: 'Note reminder',
+        body: currentL10n.noteReminder,
         payload: reminder.payload,
         // An absolute instant, so the device's time zone doesn't matter.
         scheduledDate: tz.TZDateTime.from(reminder.at.toUtc(), tz.UTC),
@@ -209,7 +210,7 @@ class LocalNotificationsReminderScheduler implements ReminderScheduler {
   }
 
   String _title(ScheduledReminder reminder) =>
-      reminder.title.trim().isEmpty ? 'Reminder' : reminder.title.trim();
+      reminder.title.trim().isEmpty ? currentL10n.reminder : reminder.title.trim();
 
   @override
   Future<void> cancelAll() async {

@@ -6,6 +6,7 @@ import '../../../app/auth_providers.dart';
 import '../../notes/application/notes_providers.dart';
 import '../legacy_notes_importer.dart';
 import '../legacy_snapshot_codec.dart';
+import 'package:zerotrust_notes/l10n/l10n.dart';
 
 /// Overridable so tests can supply fake sources.
 final legacySourcesProvider = Provider<List<LegacyNotesSource> Function(String userId)>(
@@ -63,20 +64,20 @@ class _LegacyImportBannerState extends ConsumerState<LegacyImportBanner> {
     if (!pending || _hidden) return const SizedBox.shrink();
     return MaterialBanner(
       leading: const Icon(Icons.move_down_outlined),
-      content: const Text(
-        'Notes now uses your Zero-Trust account. Bring over the notes from your old vault?',
+      content: Text(
+        context.l10n.legacyBanner,
       ),
       actions: [
-        TextButton(onPressed: () => setState(() => _hidden = true), child: const Text('Later')),
+        TextButton(onPressed: () => setState(() => _hidden = true), child: Text(context.l10n.later)),
         FilledButton(
           onPressed: () async {
             final count = await showLegacyImportDialog(context);
             if (count == null || !context.mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Imported $count ${count == 1 ? 'note' : 'notes'}.')),
+              SnackBar(content: Text(context.l10n.importedNotes(count))),
             );
           },
-          child: const Text('Import'),
+          child: Text(context.l10n.import),
         ),
       ],
     );
@@ -116,17 +117,17 @@ class _LegacyImportDialogState extends ConsumerState<_LegacyImportDialog> {
       if (count > 0) ref.read(ztSyncControllerProvider.notifier).syncNow();
       if (mounted) Navigator.pop(context, count);
     } on WrongLegacyPassphrase {
-      if (mounted) setState(() => _error = 'That passphrase doesn\'t open your old notes.');
+      if (mounted) setState(() => _error = context.l10n.legacyWrongPass);
     } on SnapshotIntegrityException {
       if (mounted) {
         setState(
           () =>
-              _error = 'Your old cloud backup failed its integrity check, so it wasn\'t imported.',
+              _error = context.l10n.legacyIntegrity,
         );
       }
     } catch (_) {
       if (mounted) {
-        setState(() => _error = 'Couldn\'t import. Check your connection and try again.');
+        setState(() => _error = context.l10n.importFailedConnection);
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -136,18 +137,18 @@ class _LegacyImportDialogState extends ConsumerState<_LegacyImportDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Import old notes'),
+      title: Text(context.l10n.legacyTitle),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Enter the vault passphrase you used before this update. It\'s only needed once.',
+          Text(
+            context.l10n.legacyExplain,
           ),
           const SizedBox(height: 16),
           TextField(
             controller: _passphrase,
-            decoration: InputDecoration(labelText: 'Old vault passphrase', errorText: _error),
+            decoration: InputDecoration(labelText: context.l10n.legacyPassLabel, errorText: _error),
             obscureText: true,
             autofocus: true,
             onSubmitted: (_) => _import(),
@@ -157,9 +158,9 @@ class _LegacyImportDialogState extends ConsumerState<_LegacyImportDialog> {
       actions: [
         TextButton(
           onPressed: _busy ? null : () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.cancel),
         ),
-        FilledButton(onPressed: _busy ? null : _import, child: const Text('Import')),
+        FilledButton(onPressed: _busy ? null : _import, child: Text(context.l10n.import)),
       ],
     );
   }

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/theme/app_spacing.dart';
 import '../application/notebooks_controller.dart';
 import '../domain/notebook.dart';
+import 'package:zerotrust_notes/l10n/l10n.dart';
 
 /// Compact chip shown in the note editor for the note's current notebook.
 /// Tapping opens [_NotebookManagerSheet] to reassign, create, rename, or
@@ -30,11 +31,11 @@ class NotebookField extends ConsumerWidget {
 
     return Semantics(
       button: true,
-      label: 'Notebook: ${name ?? 'None'}',
-      hint: 'Opens notebook picker',
+      label: context.l10n.semNotebook(name ?? context.l10n.none),
+      hint: context.l10n.opensNotebookPicker,
       child: ActionChip(
         avatar: const Icon(Icons.folder_outlined, size: 18),
-        label: Text(name ?? 'No notebook'),
+        label: Text(name ?? context.l10n.noNotebook),
         onPressed: () async {
           final result = await showModalBottomSheet<Object?>(
             context: context,
@@ -88,13 +89,13 @@ class _NotebookManagerSheetState extends ConsumerState<_NotebookManagerSheet> {
     final newName = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Rename notebook'),
+        title: Text(context.l10n.renameNotebook),
         content: TextField(controller: controller, autofocus: true),
         actions: [
-          TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: Text(context.l10n.cancel)),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(controller.text.trim()),
-            child: const Text('Save'),
+            child: Text(context.l10n.save),
           ),
         ],
       ),
@@ -123,11 +124,11 @@ class _NotebookManagerSheetState extends ConsumerState<_NotebookManagerSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Semantics(header: true, child: const Text('Notebook', style: TextStyle(fontWeight: FontWeight.bold))),
+            Semantics(header: true, child: Text(context.l10n.notebook, style: TextStyle(fontWeight: FontWeight.bold))),
             const SizedBox(height: AppSpacing.sm),
             ListTile(
               leading: const Icon(Icons.block),
-              title: const Text('No notebook'),
+              title: Text(context.l10n.noNotebook),
               selected: widget.selectedId == null,
               onTap: () => Navigator.of(context).pop<Object?>(_explicitNone),
             ),
@@ -147,12 +148,12 @@ class _NotebookManagerSheetState extends ConsumerState<_NotebookManagerSheet> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                            tooltip: 'Rename notebook',
+                            tooltip: context.l10n.renameNotebook,
                             icon: const Icon(Icons.edit_outlined),
                             onPressed: () => _rename(notebook),
                           ),
                           IconButton(
-                            tooltip: 'Delete notebook',
+                            tooltip: context.l10n.deleteNotebook,
                             icon: const Icon(Icons.delete_outline),
                             onPressed: () => _delete(notebook),
                           ),
@@ -167,7 +168,7 @@ class _NotebookManagerSheetState extends ConsumerState<_NotebookManagerSheet> {
                 ),
                 error: (error, _) => Padding(
                   padding: const EdgeInsets.all(AppSpacing.md),
-                  child: Text('Failed to load notebooks: $error'),
+                  child: Text(context.l10n.failedNotebooks('$error')),
                 ),
               ),
             ),
@@ -177,13 +178,13 @@ class _NotebookManagerSheetState extends ConsumerState<_NotebookManagerSheet> {
                 Expanded(
                   child: TextField(
                     controller: _newNotebookController,
-                    decoration: const InputDecoration(hintText: 'New notebook name'),
+                    decoration: InputDecoration(hintText: context.l10n.newNotebookName),
                     onSubmitted: (_) => _createNotebook(),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 IconButton(
-                  tooltip: 'Create notebook',
+                  tooltip: context.l10n.createNotebook,
                   icon: const Icon(Icons.add_circle_outline),
                   onPressed: _createNotebook,
                 ),

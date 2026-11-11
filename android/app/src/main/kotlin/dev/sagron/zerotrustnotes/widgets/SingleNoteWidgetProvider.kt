@@ -76,9 +76,18 @@ class SingleNoteWidgetProvider : HomeWidgetProvider() {
         val views = if (noteId == null || locked) {
             RemoteViews(context.packageName, R.layout.widget_single_note_locked).apply {
                 setOnClickPendingIntent(R.id.single_note_widget_root, clickIntent)
+                setTextViewText(
+                    R.id.single_note_locked_title,
+                    WidgetText.get(context, widgetData, "note", R.string.widget_note),
+                )
+                setTextViewText(
+                    R.id.single_note_locked_hint,
+                    WidgetText.get(context, widgetData, "tap_to_open", R.string.widget_tap_to_open),
+                )
             }
         } else {
-            val title = widgetData.getString("widget_${widgetId}_title", null) ?: "(untitled)"
+            val title = widgetData.getString("widget_${widgetId}_title", null)
+                ?: WidgetText.get(context, widgetData, "untitled", R.string.widget_untitled)
             val body = widgetData.getString("widget_${widgetId}_body", null) ?: ""
             // Portrait height (MAX_HEIGHT); 0 before the launcher says.
             val height = appWidgetManager

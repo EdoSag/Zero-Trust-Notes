@@ -1,0 +1,552 @@
+{
+  "@@locale": "en",
+  "cancel": "Cancel",
+  "import": "Import",
+  "done": "Done",
+  "remove": "Remove",
+  "delete": "Delete",
+  "save": "Save",
+  "notesCount": "{count, plural, =1{1 note} other{{count} notes}}",
+  "@notesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importedNotes": "Imported {count, plural, =1{1 note} other{{count} notes}}.",
+  "@importedNotes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noteNotFound": "That note could not be found — it may have been deleted.",
+  "cantOpenNotes": "Couldn't open your notes on this device.",
+  "tryAgain": "Try again",
+  "legacyBanner": "Notes now uses your Zero-Trust account. Bring over the notes from your old vault?",
+  "later": "Later",
+  "legacyWrongPass": "That passphrase doesn't open your old notes.",
+  "legacyIntegrity": "Your old cloud backup failed its integrity check, so it wasn't imported.",
+  "importFailedConnection": "Couldn't import. Check your connection and try again.",
+  "legacyTitle": "Import old notes",
+  "legacyExplain": "Enter the vault passphrase you used before this update. It's only needed once.",
+  "legacyPassLabel": "Old vault passphrase",
+  "keepChooseFile": "Choose your Google Takeout file",
+  "importFromKeep": "Import from Google Keep",
+  "keepExplain": "1. Go to takeout.google.com and choose only \"Keep\".\n2. Download the export to this phone.\n3. Pick the .zip file here (or the .json files from its Keep folder).\n\nThe file is read on this phone and your notes are encrypted before they sync. Labels become tags; colours, pins, archive and checklists come along. Notes already imported are skipped. Images and recordings aren't imported yet.",
+  "chooseFile": "Choose file",
+  "cantOpenFile": "Couldn't open that file.",
+  "noFileChosen": "No .zip or .json file was chosen.",
+  "keepNoneFound": "No Google Keep notes were found in that file.",
+  "importingNotes": "Importing your notes…",
+  "keepStopped": "The import stopped part-way ({failure}). Run it again to finish; notes already imported are skipped.",
+  "@keepStopped": {
+    "placeholders": {
+      "failure": {
+        "type": "String"
+      }
+    }
+  },
+  "keepImportedTitle": "Imported {count, plural, =1{1 note} other{{count} notes}}",
+  "@keepImportedTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "keepSkippedDup": "{count} already in Notes, skipped.",
+  "@keepSkippedDup": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "keepSkippedTrash": "{count} from Keep's trash, skipped.",
+  "@keepSkippedTrash": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "keepAttachmentsSkipped": "{count} images or recordings weren't imported.",
+  "@keepAttachmentsSkipped": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "keepEverything": "Everything came across.",
+  "imageNofM": "Image {n} of {total}",
+  "@imageNofM": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "opensImage": "Opens the image",
+  "removeImageQ": "Remove this image?",
+  "removeImageBody": "It will be removed from this note on every device.",
+  "nOfM": "{n} of {total}",
+  "@nOfM": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "image": "Image",
+  "sendImage": "Send image",
+  "removeImage": "Remove image",
+  "voiceNote": "Voice note",
+  "voiceExplain": "Transcribed on this phone. Your voice is never sent anywhere.",
+  "voiceOnlineOnly": "This phone can only transcribe speech online, which would send your voice to a server, so Notes doesn't use it. Voice notes need Android 12 or later with on-device speech recognition.",
+  "voiceUnavailable": "Speech recognition isn't available on this phone, or the microphone isn't allowed for Notes.",
+  "language": "Language",
+  "listening": "Listening…",
+  "tapMicAndSpeak": "Tap the microphone and speak.",
+  "stopListening": "Stop listening",
+  "startListening": "Start listening",
+  "addToNote": "Add to note",
+  "voiceLangMissing": "Speech recognition for {language} isn't on this phone yet, and Notes only transcribes on the device. Download {language} for offline speech in your phone's settings (search for \"offline speech recognition\"), then try again.",
+  "@voiceLangMissing": {
+    "placeholders": {
+      "language": {
+        "type": "String"
+      }
+    }
+  },
+  "voiceNeedsMic": "Notes needs the microphone for voice notes. Allow it in your phone's settings.",
+  "voiceNoMatch": "Didn't catch that. Tap the microphone and try again.",
+  "voiceBusy": "Speech recognition is busy. Try again in a moment.",
+  "voiceStopped": "Voice notes stopped ({code}). Try again.",
+  "@voiceStopped": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "listItem": "List item",
+  "tickedItems": "{count, plural, =1{1 ticked item} other{{count} ticked items}}",
+  "@tickedItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "removeItem": "Remove item",
+  "undo": "Undo",
+  "noteArchived": "Note archived",
+  "noteUnarchived": "Note unarchived",
+  "noteTrashed": "Note moved to Trash",
+  "noteRestored": "Note restored",
+  "deleteForeverQ": "Delete forever?",
+  "deleteForeverBody": "This note will be deleted on every device. This can't be undone.",
+  "restore": "Restore",
+  "deleteForever": "Delete forever",
+  "unpin": "Unpin",
+  "pin": "Pin",
+  "unarchive": "Unarchive",
+  "archive": "Archive",
+  "colour": "Colour",
+  "remindMe": "Remind me",
+  "send": "Send",
+  "moveToTrash": "Move to Trash",
+  "reasonSendLocked": "Send your locked note",
+  "laterToday": "Later today",
+  "tomorrowMorning": "Tomorrow morning",
+  "nextWeek": "Next week",
+  "pickDateTime": "Pick date and time",
+  "removeReminder": "Remove reminder",
+  "pickFutureTime": "Pick a time in the future.",
+  "reminderNotifsOff": "Reminder saved, but notifications are off for Notes. Turn them on in system settings.",
+  "todayAt": "Today, {time}",
+  "@todayAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "tomorrowAt": "Tomorrow, {time}",
+  "@tomorrowAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "yesterdayAt": "Yesterday, {time}",
+  "@yesterdayAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "semPinned": "Pinned.",
+  "semLocked": "Locked.",
+  "semImages": "{count, plural, =1{1 image.} other{{count} images.}}",
+  "@semImages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "semUntitled": "Untitled note.",
+  "semChecklist": "Checklist, {done} of {total} done.",
+  "@semChecklist": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "semReminder": "Reminder {when}.",
+  "@semReminder": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "semTags": "Tags: {tags}.",
+  "@semTags": {
+    "placeholders": {
+      "tags": {
+        "type": "String"
+      }
+    }
+  },
+  "semOpensNote": "Opens note. Long press for more actions.",
+  "locked": "Locked",
+  "emptyNote": "Empty note",
+  "nMore": "+ {count} more",
+  "@nMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "plusTicked": "{count, plural, =1{+ 1 ticked item} other{+ {count} ticked items}}",
+  "@plusTicked": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "wrongPassword": "That password isn't right.",
+  "openLockedNote": "Open locked note",
+  "noScreenLock": "This phone has no screen lock, so enter your account password. Set a screen lock to use your fingerprint or face instead.",
+  "accountPassword": "Account password",
+  "open": "Open",
+  "semNotebook": "Notebook: {name}",
+  "@semNotebook": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "none": "None",
+  "opensNotebookPicker": "Opens notebook picker",
+  "noNotebook": "No notebook",
+  "renameNotebook": "Rename notebook",
+  "notebook": "Notebook",
+  "deleteNotebook": "Delete notebook",
+  "failedNotebooks": "Failed to load notebooks: {error}",
+  "@failedNotebooks": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "newNotebookName": "New notebook name",
+  "createNotebook": "Create notebook",
+  "addTag": "Add tag",
+  "tags": "Tags",
+  "deleteTag": "Delete tag",
+  "failedTags": "Failed to load tags: {error}",
+  "@failedTags": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "newTagName": "New tag name",
+  "createTag": "Create tag",
+  "exportAll": "Export all notes",
+  "exportThis": "Export this note",
+  "exportLockedOne": "Export includes a locked note",
+  "exportLockedMany": "Export includes {count} locked notes",
+  "@exportLockedMany": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exportNeedsAuth": "Not exported. Locked notes are only exported after your fingerprint, face or screen lock.",
+  "exportFailed": "Export failed: {error}",
+  "@exportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "exportAs": "Export as {format}",
+  "@exportAs": {
+    "placeholders": {
+      "format": {
+        "type": "String"
+      }
+    }
+  },
+  "widgetDetails": "Show details on the home screen",
+  "widgetDetailsBody": "Off: the Note widget shows a lock. On: the title and start of each pinned note are stored unencrypted on this phone for the home screen. Locked notes never show their text",
+  "exportFormats": "Markdown, JSON or PDF",
+  "keepSubtitle": "From a Google Takeout file, on this phone",
+  "importOldVault": "Import notes from your old vault",
+  "importOldVaultSub": "Needs the vault passphrase you used before this update",
+  "syncing": "Syncing",
+  "notSynced": "Not synced",
+  "notSyncedYet": "Not synced yet",
+  "synced": "Synced",
+  "syncStatus": "Sync status: {status}",
+  "@syncStatus": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "syncNow": "Sync now",
+  "showTextQ": "Show note text on the home screen?",
+  "showTextBody": "This turns on \"Show details on the home screen\" for every note widget, including ones you already placed. Their titles and the start of their text will be stored unencrypted on this phone so the widgets can show them. You can turn this off in Settings.",
+  "keepHidden": "Keep hidden",
+  "showOnAll": "Show on all widgets",
+  "chooseNoteToPin": "Choose a note to pin",
+  "noNotesCreateFirst": "No notes yet. Create one first.",
+  "lockedNote": "Locked note",
+  "failedNotes": "Failed to load notes: {error}",
+  "@failedNotes": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "untitled": "(untitled)",
+  "noteDeleted": "Note deleted",
+  "nothingToSend": "This note is empty: there is nothing to send.",
+  "imagesNotHere": "{count, plural, =1{One image isn't on this device yet, so it wasn't sent.} other{{count} images aren't on this device yet, so they weren't sent.}}",
+  "@imagesNotHere": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "cantShare": "Couldn't open the share sheet.",
+  "reminderChannel": "Note reminders",
+  "reminderChannelDesc": "Reminders you set on notes",
+  "noteReminder": "Note reminder",
+  "reminder": "Reminder",
+  "saveFailed": "Couldn't save this note. Your changes are still here; try again.",
+  "cantOpenCamera": "Couldn't open the camera.",
+  "cantOpenPhotos": "Couldn't open your photos.",
+  "imagesTooLarge": "{count, plural, =1{That image is over 20 MB, too large to add.} other{{count} images are over 20 MB, too large to add.}}",
+  "@imagesTooLarge": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "imagesFailed": "{count, plural, =1{Couldn't add an image.} other{Couldn't add {count} images.}}",
+  "@imagesFailed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sharedSkipped": "{count, plural, =1{One shared item couldn't be added (only text and images up to 20 MB can).} other{{count} shared items couldn't be added (only text and images up to 20 MB can).}}",
+  "@sharedSkipped": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reasonOpenLocked": "Open your locked note",
+  "noteLockedMsg": "Note locked. Opening it will ask for your fingerprint, face or screen lock.",
+  "noteUnlockedMsg": "Note unlocked.",
+  "confirmToOpen": "Confirm it's you to open this note.",
+  "unlock": "Unlock",
+  "saving": "Saving…",
+  "saved": "Saved",
+  "notSaved": "Not saved",
+  "inTrash": "In Trash",
+  "editNote": "Edit note",
+  "newNote": "New note",
+  "trashNoEdit": "Notes in Trash can't be edited. Restore it to make changes.",
+  "noteTitle": "Note title",
+  "title": "Title",
+  "addingImages": "Adding images",
+  "unpinNote": "Unpin note",
+  "pinNote": "Pin note",
+  "changeReminder": "Change reminder",
+  "unarchiveNote": "Unarchive note",
+  "archiveNote": "Archive note",
+  "moreOptions": "More options",
+  "takePhoto": "Take photo",
+  "addImage": "Add image",
+  "hideCheckboxes": "Hide checkboxes",
+  "showCheckboxes": "Show checkboxes",
+  "editText": "Edit text",
+  "previewMarkdown": "Preview Markdown",
+  "unlockNote": "Unlock note",
+  "lockNote": "Lock note",
+  "exportNote": "Export note",
+  "saveAndClose": "Save and close",
+  "nothingToPreview": "Nothing to preview yet.",
+  "noteBody": "Note body",
+  "bodyLabel": "Body (Markdown supported)",
+  "wordCount": "{count, plural, =1{1 word} other{{count} words}}",
+  "@wordCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "editedAgo": "{words} · Edited {when}",
+  "@editedAgo": {
+    "placeholders": {
+      "words": {
+        "type": "String"
+      },
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "justNow": "just now",
+  "secondsAgo": "{n}s ago",
+  "@secondsAgo": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "minutesAgo": "{n}m ago",
+  "@minutesAgo": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "hoursAgo": "{n}h ago",
+  "@hoursAgo": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "daysAgo": "{n}d ago",
+  "@daysAgo": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "sortCustom": "Custom order (drag to move)",
+  "sortUpdatedDesc": "Last edited (newest)",
+  "sortUpdatedAsc": "Last edited (oldest)",
+  "sortCreatedDesc": "Date created (newest)",
+  "sortCreatedAsc": "Date created (oldest)",
+  "sortTitle": "Title (A-Z)",
+  "emptyTrashQ": "Empty Trash?",
+  "emptyTrashBody": "All notes in Trash will be deleted on every device. This can't be undone.",
+  "emptyTrash": "Empty Trash",
+  "viewNotes": "Notes",
+  "viewReminders": "Reminders",
+  "viewArchive": "Archive",
+  "viewTrash": "Trash",
+  "syncFailed": "Couldn't sync. Your notes are saved on this device and will sync later.",
+  "searchNotes": "Search notes",
+  "searchIn": "Search {place}…",
+  "@searchIn": {
+    "placeholders": {
+      "place": {
+        "type": "String"
+      }
+    }
+  },
+  "closeSearch": "Close search",
+  "showAsList": "Show as list",
+  "showAsGrid": "Show as grid",
+  "trashAfter30": "Notes in Trash are deleted after 30 days.",
+  "newVoiceNote": "New voice note",
+  "newChecklist": "New checklist",
+  "createNote": "Create new note",
+  "tag": "Tag",
+  "notebooks": "Notebooks",
+  "settings": "Settings",
+  "all": "All",
+  "unfiled": "Unfiled",
+  "checklists": "Checklists",
+  "clearFilters": "Clear filters",
+  "any": "Any",
+  "pinned": "Pinned",
+  "others": "Others",
+  "noMatch": "No notes match your search or filter.",
+  "noNotesHere": "No notes here yet.",
+  "noNotesYet": "No notes yet. Tap + to create one.",
+  "remindersEmpty": "Notes with reminders appear here.",
+  "archiveEmpty": "Your archived notes appear here.",
+  "trashEmpty": "No notes in Trash.",
+  "colorDefault": "Default",
+  "colorRed": "Red",
+  "colorOrange": "Orange",
+  "colorYellow": "Yellow",
+  "colorGreen": "Green",
+  "colorTeal": "Teal",
+  "colorBlue": "Blue",
+  "colorNavy": "Dark blue",
+  "colorPurple": "Purple",
+  "colorPink": "Pink",
+  "colorBrown": "Brown",
+  "colorGray": "Gray",
+  "widgetTakeANote": "Take a note…",
+  "widgetNote": "Note",
+  "widgetTapToOpen": "Tap to open in ZT Notes"
+}

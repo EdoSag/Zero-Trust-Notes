@@ -25,17 +25,24 @@ import '../domain/notes_filter.dart';
 import 'note_actions.dart';
 import 'note_card.dart';
 import 'note_editor_page.dart';
+import 'package:zerotrust_notes/l10n/l10n.dart';
 
 enum _SortOption {
-  custom('Custom order (drag to move)'),
-  updatedDesc('Last edited (newest)'),
-  updatedAsc('Last edited (oldest)'),
-  createdDesc('Date created (newest)'),
-  createdAsc('Date created (oldest)'),
-  titleAsc('Title (A-Z)');
+  custom,
+  updatedDesc,
+  updatedAsc,
+  createdDesc,
+  createdAsc,
+  titleAsc;
 
-  const _SortOption(this.label);
-  final String label;
+  String label(AppL10n l) => switch (this) {
+    custom => l.sortCustom,
+    updatedDesc => l.sortUpdatedDesc,
+    updatedAsc => l.sortUpdatedAsc,
+    createdDesc => l.sortCreatedDesc,
+    createdAsc => l.sortCreatedAsc,
+    titleAsc => l.sortTitle,
+  };
 }
 
 class NotesListPage extends ConsumerStatefulWidget {
@@ -124,18 +131,18 @@ class _NotesListPageState extends ConsumerState<NotesListPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Empty Trash?'),
-        content: const Text(
-          'All notes in Trash will be deleted on every device. This can\'t be undone.',
+        title: Text(context.l10n.emptyTrashQ),
+        content: Text(
+          context.l10n.emptyTrashBody,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Empty Trash'),
+            child: Text(context.l10n.emptyTrash),
           ),
         ],
       ),
@@ -145,10 +152,10 @@ class _NotesListPageState extends ConsumerState<NotesListPage> {
   }
 
   String get _title => switch (_filter.view) {
-    NotesView.notes => 'Notes',
-    NotesView.reminders => 'Reminders',
-    NotesView.archive => 'Archive',
-    NotesView.trash => 'Trash',
+    NotesView.notes => context.l10n.viewNotes,
+    NotesView.reminders => context.l10n.viewReminders,
+    NotesView.archive => context.l10n.viewArchive,
+    NotesView.trash => context.l10n.viewTrash,
   };
 
   @override
@@ -163,9 +170,9 @@ class _NotesListPageState extends ConsumerState<NotesListPage> {
       // Once per failure streak; the controller keeps retrying on its own.
       if (next.error != null && previous?.error == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'Couldn\'t sync. Your notes are saved on this device and will sync later.',
+              context.l10n.syncFailed,
             ),
           ),
         );
@@ -208,12 +215,12 @@ class _NotesListPageState extends ConsumerState<NotesListPage> {
             title: _searchActive
                 ? Semantics(
                     textField: true,
-                    label: 'Search notes',
+                    label: context.l10n.searchNotes,
                     child: TextField(
                       controller: _searchController,
                       autofocus: true,
                       decoration: InputDecoration(
-                        hintText: 'Search ${_title.toLowerCase()}…',
+                        hintText: context.l10n.searchIn(_title.toLowerCase()),
                         border: InputBorder.none,
                       ),
                     ),
@@ -221,7 +228,7 @@ class _NotesListPageState extends ConsumerState<NotesListPage> {
                 : Semantics(header: true, child: Text(_heading(notebooks, tags))),
             actions: [
               AccessibleIconButton(
-                label: _searchActive ? 'Close search' : 'Search notes',
+                label: _searchActive ? context.l10n.closeSearch : context.l10n.searchNotes,
                 icon: _searchActive ? Icons.close : Icons.search,
                 onPressed: () => setState(() {
                   _searchActive = !_searchActive;
@@ -236,26 +243,26 @@ class _NotesListPageState extends ConsumerState<NotesListPage> {
                 }),
               ),
               AccessibleIconButton(
-                label: layout == NotesLayout.grid ? 'Show as list' : 'Show as grid',
+                label: layout == NotesLayout.grid ? context.l10n.showAsList : context.l10n.showAsGrid,
                 icon: layout == NotesLayout.grid ? Icons.view_agenda_outlined : Icons.grid_view,
                 onPressed: () => ref.read(notesLayoutProvider.notifier).toggle(),
               ),
               const Padding(padding: EdgeInsets.symmetric(horizontal: 4), child: SyncStatusBadge()),
               PopupMenuButton<Object>(
-                tooltip: 'More options',
+                tooltip: context.l10n.moreOptions,
                 onSelected: (value) {
                   if (value is _SortOption) setState(() => _sort = value);
                   if (value == 'empty') _emptyTrash();
                 },
                 itemBuilder: (context) => [
                   if (_filter.view == NotesView.trash)
-                    const PopupMenuItem(value: 'empty', child: Text('Empty Trash')),
+                    PopupMenuItem(value: 'empty', child: Text(context.l10n.emptyTrash)),
                   if (_filter.view == NotesView.notes || _filter.view == NotesView.archive)
                     for (final option in _SortOption.values)
                       CheckedPopupMenuItem(
                         value: option,
                         checked: option == _sort,
-                        child: Text(option.label),
+                        child: Text(option.label(context.l10n)),
                       ),
                 ],
               ),
@@ -286,7 +293,7 @@ class _NotesListPageState extends ConsumerState<NotesListPage> {
                     0,
                   ),
                   child: Text(
-                    'Notes in Trash are deleted after 30 days.',
+                    context.l10n.trashAfter30,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),
@@ -317,7 +324,7 @@ class _NotesListPageState extends ConsumerState<NotesListPage> {
                     );
                   },
                   loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (error, _) => Center(child: Text('Failed to load notes: $error')),
+                  error: (error, _) => Center(child: Text(context.l10n.failedNotes('$error'))),
                 ),
               ),
             ],
@@ -329,21 +336,21 @@ class _NotesListPageState extends ConsumerState<NotesListPage> {
                   children: [
                     FloatingActionButton.small(
                       heroTag: 'new_voice',
-                      tooltip: 'New voice note',
+                      tooltip: context.l10n.newVoiceNote,
                       onPressed: () => _create(voice: true),
                       child: const Icon(Icons.mic_none),
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     FloatingActionButton.small(
                       heroTag: 'new_list',
-                      tooltip: 'New checklist',
+                      tooltip: context.l10n.newChecklist,
                       onPressed: () => _create(checklist: true),
                       child: const Icon(Icons.checklist),
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     FloatingActionButton(
                       heroTag: 'new_note',
-                      tooltip: 'Create new note',
+                      tooltip: context.l10n.createNote,
                       onPressed: _create,
                       child: const Icon(Icons.add),
                     ),
@@ -357,7 +364,7 @@ class _NotesListPageState extends ConsumerState<NotesListPage> {
 
   String _heading(List<Notebook> notebooks, List<Tag> tags) {
     if (_filter.tagId != null) {
-      return tags.where((tag) => tag.id == _filter.tagId).firstOrNull?.name ?? 'Tag';
+      return tags.where((tag) => tag.id == _filter.tagId).firstOrNull?.name ?? context.l10n.tag;
     }
     return _title;
   }
@@ -398,14 +405,14 @@ class _NotesDrawer extends ConsumerWidget {
     return NavigationDrawer(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(28, 16, 16, 8),
+          padding: const EdgeInsetsDirectional.fromSTEB(28, 16, 16, 8),
           child: Text('ZT Notes', style: Theme.of(context).textTheme.titleLarge),
         ),
-        viewTile(NotesView.notes, Icons.lightbulb_outline, 'Notes'),
-        viewTile(NotesView.reminders, Icons.notifications_none, 'Reminders'),
+        viewTile(NotesView.notes, Icons.lightbulb_outline, context.l10n.viewNotes),
+        viewTile(NotesView.reminders, Icons.notifications_none, context.l10n.viewReminders),
         if (notebooks.isNotEmpty) ...[
           const Divider(),
-          const _DrawerHeading('Notebooks'),
+          _DrawerHeading(context.l10n.notebooks),
           for (final notebook in notebooks)
             ListTile(
               leading: const Icon(Icons.book_outlined),
@@ -416,7 +423,7 @@ class _NotesDrawer extends ConsumerWidget {
         ],
         if (tags.isNotEmpty) ...[
           const Divider(),
-          const _DrawerHeading('Tags'),
+          _DrawerHeading(context.l10n.tags),
           for (final tag in tags)
             ListTile(
               leading: const Icon(Icons.label_outline),
@@ -426,12 +433,12 @@ class _NotesDrawer extends ConsumerWidget {
             ),
         ],
         const Divider(),
-        viewTile(NotesView.archive, Icons.archive_outlined, 'Archive'),
-        viewTile(NotesView.trash, Icons.delete_outline, 'Trash'),
+        viewTile(NotesView.archive, Icons.archive_outlined, context.l10n.viewArchive),
+        viewTile(NotesView.trash, Icons.delete_outline, context.l10n.viewTrash),
         const Divider(),
         ListTile(
           leading: const Icon(Icons.download_outlined),
-          title: const Text('Import from Google Keep'),
+          title: Text(context.l10n.importFromKeep),
           onTap: () {
             Navigator.of(context).pop();
             onImportFromKeep();
@@ -439,7 +446,7 @@ class _NotesDrawer extends ConsumerWidget {
         ),
         ListTile(
           leading: const Icon(Icons.settings_outlined),
-          title: const Text('Settings'),
+          title: Text(context.l10n.settings),
           onTap: () {
             Navigator.of(context).pop();
             Navigator.of(
@@ -459,7 +466,7 @@ class _DrawerHeading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(28, 8, 16, 4),
+    padding: const EdgeInsetsDirectional.fromSTEB(28, 8, 16, 4),
     child: Text(text, style: Theme.of(context).textTheme.titleSmall),
   );
 }
@@ -487,24 +494,24 @@ class _NotebookFilterBar extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
         children: [
           Padding(
-            padding: const EdgeInsets.only(right: AppSpacing.xs),
+            padding: const EdgeInsetsDirectional.only(end: AppSpacing.xs),
             child: ChoiceChip(
-              label: const Text('All'),
+              label: Text(context.l10n.all),
               selected: all,
               onSelected: (_) => onChanged(filter.copyWith(notebookId: null, unfiledOnly: false)),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.only(right: AppSpacing.xs),
+            padding: const EdgeInsetsDirectional.only(end: AppSpacing.xs),
             child: ChoiceChip(
-              label: const Text('Unfiled'),
+              label: Text(context.l10n.unfiled),
               selected: filter.unfiledOnly,
               onSelected: (_) => onChanged(filter.copyWith(notebookId: null, unfiledOnly: true)),
             ),
           ),
           for (final notebook in notebooks)
             Padding(
-              padding: const EdgeInsets.only(right: AppSpacing.xs),
+              padding: const EdgeInsetsDirectional.only(end: AppSpacing.xs),
               child: ChoiceChip(
                 label: Text(notebook.name),
                 selected: filter.notebookId == notebook.id,
@@ -538,7 +545,7 @@ class _SearchFilters extends StatelessWidget {
     final tagName = tags.where((t) => t.id == filter.tagId).firstOrNull?.name;
     final notebookName = notebooks.where((n) => n.id == filter.notebookId).firstOrNull?.name;
     Widget gap(Widget child) => Padding(
-      padding: const EdgeInsets.only(right: AppSpacing.xs),
+      padding: const EdgeInsetsDirectional.only(end: AppSpacing.xs),
       child: child,
     );
 
@@ -551,7 +558,7 @@ class _SearchFilters extends StatelessWidget {
           gap(
             FilterChip(
               avatar: const Icon(Icons.checklist, size: 18),
-              label: const Text('Checklists'),
+              label: Text(context.l10n.checklists),
               selected: filter.checklistsOnly,
               onSelected: (on) => onChanged(filter.copyWith(checklistsOnly: on)),
             ),
@@ -559,7 +566,7 @@ class _SearchFilters extends StatelessWidget {
           gap(
             FilterChip(
               avatar: const Icon(Icons.alarm, size: 18),
-              label: const Text('Reminders'),
+              label: Text(context.l10n.viewReminders),
               selected: filter.withReminderOnly,
               onSelected: (on) => onChanged(filter.copyWith(withReminderOnly: on)),
             ),
@@ -569,7 +576,7 @@ class _SearchFilters extends StatelessWidget {
               avatar: filter.color == null
                   ? const Icon(Icons.palette_outlined, size: 18)
                   : CircleAvatar(backgroundColor: filter.color!.background(brightness)),
-              label: Text(filter.color?.label ?? 'Colour'),
+              label: Text(filter.color?.displayName ?? context.l10n.colour),
               selected: filter.color != null,
               onSelected: (_) async {
                 if (filter.color != null) {
@@ -585,7 +592,7 @@ class _SearchFilters extends StatelessWidget {
             gap(
               _MenuChip<String>(
                 icon: Icons.label_outline,
-                label: tagName ?? 'Tag',
+                label: tagName ?? context.l10n.tag,
                 selected: filter.tagId != null,
                 options: {for (final tag in tags) tag.id: tag.name},
                 onSelected: (id) => onChanged(filter.copyWith(tagId: id)),
@@ -595,7 +602,7 @@ class _SearchFilters extends StatelessWidget {
             gap(
               _MenuChip<String>(
                 icon: Icons.book_outlined,
-                label: notebookName ?? 'Notebook',
+                label: notebookName ?? context.l10n.notebook,
                 selected: filter.notebookId != null,
                 options: {for (final notebook in notebooks) notebook.id: notebook.name},
                 onSelected: (id) => onChanged(filter.copyWith(notebookId: id)),
@@ -604,7 +611,7 @@ class _SearchFilters extends StatelessWidget {
           if (filter.isFiltering)
             TextButton(
               onPressed: () => onChanged(filter.cleared().copyWith(query: filter.query)),
-              child: const Text('Clear filters'),
+              child: Text(context.l10n.clearFilters),
             ),
         ],
       ),
@@ -632,7 +639,7 @@ class _MenuChip<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     return MenuAnchor(
       menuChildren: [
-        if (selected) MenuItemButton(onPressed: () => onSelected(null), child: const Text('Any')),
+        if (selected) MenuItemButton(onPressed: () => onSelected(null), child: Text(context.l10n.any)),
         for (final MapEntry(:key, :value) in options.entries)
           MenuItemButton(onPressed: () => onSelected(key), child: Text(value)),
       ],
@@ -727,8 +734,8 @@ class _NotesBody extends StatelessWidget {
     }
 
     final showHeadings = pinned.isNotEmpty;
-    section(showHeadings ? 'Pinned' : null, pinned);
-    section(showHeadings && others.isNotEmpty ? 'Others' : null, others);
+    section(showHeadings ? context.l10n.pinned : null, pinned);
+    section(showHeadings && others.isNotEmpty ? context.l10n.others : null, others);
     slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 140)));
     return CustomScrollView(slivers: slivers);
   }
@@ -769,7 +776,7 @@ class _NotesBody extends StatelessWidget {
           color: scheme.secondaryContainer,
           borderRadius: BorderRadius.circular(12),
         ),
-        alignment: Alignment.centerLeft,
+        alignment: AlignmentDirectional.centerStart,
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
         child: Icon(
           note.archived ? Icons.unarchive_outlined : Icons.archive_outlined,
@@ -781,7 +788,7 @@ class _NotesBody extends StatelessWidget {
           color: scheme.secondaryContainer,
           borderRadius: BorderRadius.circular(12),
         ),
-        alignment: Alignment.centerRight,
+        alignment: AlignmentDirectional.centerEnd,
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
         child: Icon(
           note.archived ? Icons.unarchive_outlined : Icons.archive_outlined,
@@ -798,15 +805,15 @@ class _NotesBody extends StatelessWidget {
 
   Widget _empty(BuildContext context) {
     final (icon, text) = isFiltering
-        ? (Icons.search_off, 'No notes match your search or filter.')
+        ? (Icons.search_off, context.l10n.noMatch)
         : switch (view) {
             NotesView.notes => (
               Icons.note_add_outlined,
-              hasAnyNotes ? 'No notes here yet.' : 'No notes yet. Tap + to create one.',
+              hasAnyNotes ? context.l10n.noNotesHere : context.l10n.noNotesYet,
             ),
-            NotesView.reminders => (Icons.notifications_none, 'Notes with reminders appear here.'),
-            NotesView.archive => (Icons.archive_outlined, 'Your archived notes appear here.'),
-            NotesView.trash => (Icons.delete_outline, 'No notes in Trash.'),
+            NotesView.reminders => (Icons.notifications_none, context.l10n.remindersEmpty),
+            NotesView.archive => (Icons.archive_outlined, context.l10n.archiveEmpty),
+            NotesView.trash => (Icons.delete_outline, context.l10n.trashEmpty),
           };
     return Center(
       child: Padding(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:zero_trust_core/zero_trust_core.dart';
+import 'package:zerotrust_notes/l10n/l10n.dart';
 
 /// Confirms it's the phone's owner before a locked note opens.
 abstract interface class NoteLockAuthenticator {
@@ -94,7 +95,7 @@ class _PasswordDialogState extends ConsumerState<_PasswordDialog> {
       if (mounted) {
         setState(() {
           _checking = false;
-          _error = 'That password isn\'t right.';
+          _error = context.l10n.wrongPassword;
         });
       }
     }
@@ -103,14 +104,13 @@ class _PasswordDialogState extends ConsumerState<_PasswordDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Open locked note'),
+      title: Text(context.l10n.openLockedNote),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'This phone has no screen lock, so enter your account password. '
-            'Set a screen lock to use your fingerprint or face instead.',
+          Text(
+            context.l10n.noScreenLock,
           ),
           const SizedBox(height: 12),
           TextField(
@@ -120,7 +120,7 @@ class _PasswordDialogState extends ConsumerState<_PasswordDialog> {
             enabled: !_checking,
             onSubmitted: (_) => _check(),
             decoration: InputDecoration(
-              labelText: 'Account password',
+              labelText: context.l10n.accountPassword,
               errorText: _error,
               border: const OutlineInputBorder(),
             ),
@@ -131,9 +131,9 @@ class _PasswordDialogState extends ConsumerState<_PasswordDialog> {
       actions: [
         TextButton(
           onPressed: _checking ? null : () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.cancel),
         ),
-        FilledButton(onPressed: _checking ? null : _check, child: const Text('Open')),
+        FilledButton(onPressed: _checking ? null : _check, child: Text(context.l10n.open)),
       ],
     );
   }

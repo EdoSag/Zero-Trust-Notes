@@ -27,6 +27,7 @@ import '../domain/note.dart';
 import '../domain/note_color.dart';
 import 'checklist_editor.dart';
 import 'note_actions.dart';
+import 'package:zerotrust_notes/l10n/l10n.dart';
 
 enum _SaveStatus { idle, saving, saved, failed }
 
@@ -180,9 +181,9 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
             if (mounted) {
               setState(() => _status = _SaveStatus.failed);
               ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-                const SnackBar(
+                SnackBar(
                   content: Text(
-                    'Couldn\'t save this note. Your changes are still here; try again.',
+                    context.l10n.saveFailed,
                   ),
                 ),
               );
@@ -265,8 +266,8 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
       if (mounted) {
         _snack(
           source == NoteImageSource.camera
-              ? 'Couldn\'t open the camera.'
-              : 'Couldn\'t open your photos.',
+              ? context.l10n.cantOpenCamera
+              : context.l10n.cantOpenPhotos,
         );
       }
       return;
@@ -315,12 +316,10 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     }
     if (mounted && tooLarge > 0) {
       _snack(
-        tooLarge == 1
-            ? 'That image is over 20 MB, too large to add.'
-            : '$tooLarge images are over 20 MB, too large to add.',
+        context.l10n.imagesTooLarge(tooLarge),
       );
     } else if (mounted && failed > 0) {
-      _snack(failed == 1 ? 'Couldn\'t add an image.' : 'Couldn\'t add $failed images.');
+      _snack(context.l10n.imagesFailed(failed));
     }
     return added;
   }
@@ -348,9 +347,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     ]);
     if (mounted && shared.skipped > 0) {
       _snack(
-        shared.skipped == 1
-            ? 'One shared item couldn\'t be added (only text and images up to 20 MB can).'
-            : '${shared.skipped} shared items couldn\'t be added (only text and images up to 20 MB can).',
+        context.l10n.sharedSkipped(shared.skipped),
       );
     }
   }
@@ -385,7 +382,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   Future<void> _openLock() async {
     final ok = await ref
         .read(noteLockAuthenticatorProvider)
-        .confirm(context, ref, reason: 'Open your locked note');
+        .confirm(context, ref, reason: context.l10n.reasonOpenLocked);
     if (ok && mounted) setState(() => _lockOpen = true);
   }
 
@@ -394,8 +391,8 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     _changed();
     _snack(
       _locked
-          ? 'Note locked. Opening it will ask for your fingerprint, face or screen lock.'
-          : 'Note unlocked.',
+          ? context.l10n.noteLockedMsg
+          : context.l10n.noteUnlockedMsg,
     );
   }
 
@@ -416,7 +413,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   }
 
   Widget _lockedScreen(ThemeData theme) => Scaffold(
-    appBar: AppBar(title: const Text('Locked note')),
+    appBar: AppBar(title: Text(context.l10n.lockedNote)),
     body: Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
@@ -426,21 +423,21 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
             Icon(Icons.lock_outline, size: 56, color: theme.colorScheme.onSurfaceVariant),
             const SizedBox(height: AppSpacing.md),
             Text(
-              widget.note?.title.trim().isNotEmpty ?? false ? widget.note!.title : 'Locked note',
+              widget.note?.title.trim().isNotEmpty ?? false ? widget.note!.title : context.l10n.lockedNote,
               textDirection: textDirectionOf(widget.note?.title ?? ''),
               style: theme.textTheme.titleMedium,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.sm),
-            const Text(
-              'Confirm it\'s you to open this note.',
+            Text(
+              context.l10n.confirmToOpen,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.md),
             FilledButton.icon(
               onPressed: _openLock,
               icon: const Icon(Icons.fingerprint),
-              label: const Text('Unlock'),
+              label: Text(context.l10n.unlock),
             ),
           ],
         ),
@@ -452,7 +449,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     if (!await _persist() || !mounted) return;
     final note = _note;
     if (note == null) {
-      _snack('This note is empty: there is nothing to send.');
+      _snack(context.l10n.nothingToSend);
       return;
     }
     await NoteSharing(context, ref).shareNote(note);
@@ -491,7 +488,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     final wasArchived = _archived;
     ScaffoldMessenger.maybeOf(
       context,
-    )?.showSnackBar(SnackBar(content: Text(wasArchived ? 'Note archived' : 'Note unarchived')));
+    )?.showSnackBar(SnackBar(content: Text(wasArchived ? context.l10n.noteArchived : context.l10n.noteUnarchived)));
     if (wasArchived) Navigator.of(context).pop();
   }
 
@@ -569,9 +566,9 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
 
   String get _statusLabel => switch (_status) {
     _SaveStatus.idle => '',
-    _SaveStatus.saving => 'Saving…',
-    _SaveStatus.saved => 'Saved',
-    _SaveStatus.failed => 'Not saved',
+    _SaveStatus.saving => context.l10n.saving,
+    _SaveStatus.saved => context.l10n.saved,
+    _SaveStatus.failed => context.l10n.notSaved,
   };
 
   @override
@@ -599,7 +596,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
               backgroundColor: background,
               title: Semantics(
                 header: true,
-                child: Text(_inTrash ? 'In Trash' : (_isEditing ? 'Edit note' : 'New note')),
+                child: Text(_inTrash ? context.l10n.inTrash : (_isEditing ? context.l10n.editNote : context.l10n.newNote)),
               ),
               actions: _inTrash ? _trashActions() : _editActions(isChecklist),
             ),
@@ -612,20 +609,20 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
                     Padding(
                       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                       child: Text(
-                        'Notes in Trash can\'t be edited. Restore it to make changes.',
+                        context.l10n.trashNoEdit,
                         style: theme.textTheme.bodySmall,
                       ),
                     ),
                   Semantics(
                     textField: true,
-                    label: 'Note title',
+                    label: context.l10n.noteTitle,
                     child: TextField(
                       key: const Key('note_title_field'),
                       controller: _titleController,
                       textDirection: textDirectionOf(_titleController.text),
                       readOnly: _inTrash,
-                      decoration: const InputDecoration(
-                        labelText: 'Title',
+                      decoration: InputDecoration(
+                        labelText: context.l10n.title,
                         border: OutlineInputBorder(),
                       ),
                       textInputAction: TextInputAction.next,
@@ -648,7 +645,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
                               setState(() => _reminderAt = null);
                               _changed();
                             },
-                            deleteButtonTooltipMessage: 'Remove reminder',
+                            deleteButtonTooltipMessage: context.l10n.removeReminder,
                           ),
                       ],
                     ),
@@ -660,7 +657,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
                   if (_addingImages > 0) ...[
                     Semantics(
                       liveRegion: true,
-                      label: 'Adding images',
+                      label: context.l10n.addingImages,
                       child: const LinearProgressIndicator(),
                     ),
                     const SizedBox(height: AppSpacing.sm),
@@ -687,12 +684,12 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
 
   List<Widget> _trashActions() => [
     AccessibleIconButton(
-      label: 'Restore',
+      label: context.l10n.restore,
       icon: Icons.restore_from_trash_outlined,
       onPressed: _restore,
     ),
     AccessibleIconButton(
-      label: 'Delete forever',
+      label: context.l10n.deleteForever,
       icon: Icons.delete_forever_outlined,
       onPressed: _deleteForever,
     ),
@@ -709,22 +706,22 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
       ),
     ),
     AccessibleIconButton(
-      label: _pinned ? 'Unpin note' : 'Pin note',
+      label: _pinned ? context.l10n.unpinNote : context.l10n.pinNote,
       icon: _pinned ? Icons.push_pin : Icons.push_pin_outlined,
       onPressed: _togglePin,
     ),
     AccessibleIconButton(
-      label: _reminderAt == null ? 'Remind me' : 'Change reminder',
+      label: _reminderAt == null ? context.l10n.remindMe : context.l10n.changeReminder,
       icon: _reminderAt == null ? Icons.add_alert_outlined : Icons.notifications_active_outlined,
       onPressed: _pickReminder,
     ),
     AccessibleIconButton(
-      label: _archived ? 'Unarchive note' : 'Archive note',
+      label: _archived ? context.l10n.unarchiveNote : context.l10n.archiveNote,
       icon: _archived ? Icons.unarchive_outlined : Icons.archive_outlined,
       onPressed: _toggleArchive,
     ),
     PopupMenuButton<String>(
-      tooltip: 'More options',
+      tooltip: context.l10n.moreOptions,
       onSelected: (value) {
         switch (value) {
           case 'voice':
@@ -752,35 +749,35 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         }
       },
       itemBuilder: (context) => [
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'voice',
-          child: ListTile(leading: Icon(Icons.mic_none), title: Text('Voice note')),
+          child: ListTile(leading: Icon(Icons.mic_none), title: Text(context.l10n.voiceNote)),
         ),
         if (_hasCamera)
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'camera',
-            child: ListTile(leading: Icon(Icons.photo_camera_outlined), title: Text('Take photo')),
+            child: ListTile(leading: Icon(Icons.photo_camera_outlined), title: Text(context.l10n.takePhoto)),
           ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'gallery',
           child: ListTile(
             leading: Icon(Icons.add_photo_alternate_outlined),
-            title: Text('Add image'),
+            title: Text(context.l10n.addImage),
           ),
         ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'send',
-          child: ListTile(leading: Icon(Icons.share_outlined), title: Text('Send')),
+          child: ListTile(leading: Icon(Icons.share_outlined), title: Text(context.l10n.send)),
         ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'color',
-          child: ListTile(leading: Icon(Icons.palette_outlined), title: Text('Colour')),
+          child: ListTile(leading: Icon(Icons.palette_outlined), title: Text(context.l10n.colour)),
         ),
         PopupMenuItem(
           value: 'checklist',
           child: ListTile(
             leading: Icon(isChecklist ? Icons.notes : Icons.checklist),
-            title: Text(isChecklist ? 'Hide checkboxes' : 'Show checkboxes'),
+            title: Text(isChecklist ? context.l10n.hideCheckboxes : context.l10n.showCheckboxes),
           ),
         ),
         if (!isChecklist)
@@ -788,29 +785,29 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
             value: 'preview',
             child: ListTile(
               leading: Icon(_previewMode ? Icons.edit_outlined : Icons.visibility_outlined),
-              title: Text(_previewMode ? 'Edit text' : 'Preview Markdown'),
+              title: Text(_previewMode ? context.l10n.editText : context.l10n.previewMarkdown),
             ),
           ),
         PopupMenuItem(
           value: 'lock',
           child: ListTile(
             leading: Icon(_locked ? Icons.lock_open_outlined : Icons.lock_outline),
-            title: Text(_locked ? 'Unlock note' : 'Lock note'),
+            title: Text(_locked ? context.l10n.unlockNote : context.l10n.lockNote),
           ),
         ),
         if (_isEditing)
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'export',
-            child: ListTile(leading: Icon(Icons.ios_share), title: Text('Export note')),
+            child: ListTile(leading: Icon(Icons.ios_share), title: Text(context.l10n.exportNote)),
           ),
         if (_isEditing)
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'trash',
-            child: ListTile(leading: Icon(Icons.delete_outline), title: Text('Move to Trash')),
+            child: ListTile(leading: Icon(Icons.delete_outline), title: Text(context.l10n.moveToTrash)),
           ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'save',
-          child: ListTile(leading: Icon(Icons.check), title: Text('Save and close')),
+          child: ListTile(leading: Icon(Icons.check), title: Text(context.l10n.saveAndClose)),
         ),
       ],
     ),
@@ -830,7 +827,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         ),
         child: _bodyController.text.trim().isEmpty
             ? Text(
-                'Nothing to preview yet.',
+                context.l10n.nothingToPreview,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -844,13 +841,13 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     }
     return Semantics(
       textField: true,
-      label: 'Note body',
+      label: context.l10n.noteBody,
       child: TextField(
         key: const Key('note_body_field'),
         controller: _bodyController,
         textDirection: textDirectionOf(_bodyController.text),
-        decoration: const InputDecoration(
-          labelText: 'Body (Markdown supported)',
+        decoration: InputDecoration(
+          labelText: context.l10n.bodyLabel,
           border: OutlineInputBorder(),
           alignLabelWithHint: true,
         ),
@@ -862,18 +859,18 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   }
 
   String _footerText() {
-    final words = '$_wordCount word${_wordCount == 1 ? '' : 's'}';
+    final words = context.l10n.wordCount(_wordCount);
     if (_lastSavedAt == null) return words;
-    return '$words · Edited ${_relativeTime(_lastSavedAt!)}';
+    return context.l10n.editedAgo(words, _relativeTime(_lastSavedAt!));
   }
 
   String _relativeTime(DateTime time) {
     final diff = DateTime.now().difference(time);
-    if (diff.inSeconds < 10) return 'just now';
-    if (diff.inMinutes < 1) return '${diff.inSeconds}s ago';
-    if (diff.inHours < 1) return '${diff.inMinutes}m ago';
-    if (diff.inDays < 1) return '${diff.inHours}h ago';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    if (diff.inSeconds < 10) return context.l10n.justNow;
+    if (diff.inMinutes < 1) return context.l10n.secondsAgo(diff.inSeconds);
+    if (diff.inHours < 1) return context.l10n.minutesAgo(diff.inMinutes);
+    if (diff.inDays < 1) return context.l10n.hoursAgo(diff.inHours);
+    if (diff.inDays < 7) return context.l10n.daysAgo(diff.inDays);
     return '${time.year}-${time.month.toString().padLeft(2, '0')}-${time.day.toString().padLeft(2, '0')}';
   }
 }

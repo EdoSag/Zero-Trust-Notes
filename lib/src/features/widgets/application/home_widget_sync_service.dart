@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:home_widget/home_widget.dart';
 
 import '../../notes/domain/note.dart';
+import 'package:zerotrust_notes/l10n/l10n.dart';
 
 /// Keeps the native Single Note widget's SharedPreferences-backed render
 /// cache in sync with the vault's lock state.
@@ -68,6 +69,27 @@ class HomeWidgetSyncService {
 
   /// The vault locked or the app left the screen: removes the previews
   /// unless the user chose to keep note text on the home screen.
+  static const quickAddProviderQualifiedName = 'dev.sagron.zerotrustnotes.widgets.QuickAddWidgetProvider';
+
+  /// The widgets' fixed texts ("Take a note…", the locked note's caption)
+  /// in [l]'s language, so they follow Settings → Language rather than the
+  /// phone's. Read by `WidgetText.kt`.
+  Future<void> saveTexts(AppL10n l) async {
+    if (!isSupported) return;
+    final texts = {
+      'new_note': l.newNote,
+      'take_a_note': l.widgetTakeANote,
+      'note': l.widgetNote,
+      'tap_to_open': l.widgetTapToOpen,
+      'untitled': l.untitled,
+    };
+    for (final MapEntry(:key, :value) in texts.entries) {
+      await HomeWidget.saveWidgetData<String>('notes_widget_text_$key', value);
+    }
+    await HomeWidget.updateWidget(qualifiedAndroidName: quickAddProviderQualifiedName);
+    await HomeWidget.updateWidget(qualifiedAndroidName: singleNoteProviderQualifiedName);
+  }
+
   Future<void> clearUnlessAllowed() async {
     if (await detailsAllowed()) return;
     return clearAllPlaintext();
@@ -138,16 +160,16 @@ class HomeWidgetSyncService {
 
   Future<void> _writePreview(String appWidgetId, Note note) async {
     // A locked note shows only its title, here as in the list.
-    final text = note.locked ? 'Locked note' : note.body;
+    final text = note.locked ? currentL10n.lockedNote : note.body;
     final body = text.length > _bodyPreviewLength ? '${text.substring(0, _bodyPreviewLength)}…' : text;
     await HomeWidget.saveWidgetData<bool>(_lockedKey(appWidgetId), false);
-    await HomeWidget.saveWidgetData<String>(_titleKey(appWidgetId), note.title.isEmpty ? '(untitled)' : note.title);
+    await HomeWidget.saveWidgetData<String>(_titleKey(appWidgetId), note.title.isEmpty ? currentL10n.untitled : note.title);
     await HomeWidget.saveWidgetData<String>(_bodyKey(appWidgetId), body);
   }
 
   Future<void> _writeMissingNotePlaceholder(String appWidgetId) async {
     await HomeWidget.saveWidgetData<bool>(_lockedKey(appWidgetId), false);
-    await HomeWidget.saveWidgetData<String>(_titleKey(appWidgetId), 'Note deleted');
+    await HomeWidget.saveWidgetData<String>(_titleKey(appWidgetId), currentL10n.noteDeleted);
     await HomeWidget.saveWidgetData<String>(_bodyKey(appWidgetId), '');
   }
 
