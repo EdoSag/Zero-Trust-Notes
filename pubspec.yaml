@@ -66,22 +66,24 @@ dependencies:
     git:
       url: https://github.com/EdoSag/Zero-Trust-Core.git
       path: packages/zero_trust_core
-      # Core Dev after the sharing screens (Core PR #28) and the place
-      # reminder fixes (Core PR #31). zt_sharing_ui and zt_places stay on the
-      # same commit. Switch all three to the next tag once it is pushed.
-      ref: 07be2c53fba2612d748ecf06de04700d23356736
+      # Core Dev with the shared spaces trust chain fix (Core PR #35) and
+      # invite links per app (Core PR #37). Every app that shares must be on
+      # this commit or later: older ones cannot read the new member records.
+      # zt_sharing_ui and zt_places stay on the same commit. Switch all three
+      # to the next tag once it is pushed.
+      ref: cb397d13efd868e34a34d465251a7f705b49f9e1
   zt_sharing_ui:
     git:
       url: https://github.com/EdoSag/Zero-Trust-Core.git
       path: packages/zt_sharing_ui
-      ref: 07be2c53fba2612d748ecf06de04700d23356736
+      ref: cb397d13efd868e34a34d465251a7f705b49f9e1
   # On-device place reminders (N16), shared with Tasks. Android's own
   # LocationManager, no Google Play services.
   zt_places:
     git:
       url: https://github.com/EdoSag/Zero-Trust-Core.git
       path: packages/zt_places
-      ref: 07be2c53fba2612d748ecf06de04700d23356736
+      ref: cb397d13efd868e34a34d465251a7f705b49f9e1
   url_launcher: ^6.3.3
   flutter_local_notifications: ^23.0.0
   timezone: ^0.11.2
