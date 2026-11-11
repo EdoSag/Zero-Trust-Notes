@@ -1,5 +1,6 @@
 import 'package:zero_trust_core/zero_trust_core.dart';
 
+import '../../places/note_place_reminder.dart';
 import 'checklist_item.dart';
 import 'note_color.dart';
 
@@ -30,6 +31,7 @@ class Note {
     this.images = const [],
     this.position,
     this.locked = false,
+    this.placeReminder,
     this.drawings = const {},
     this.extra = const {},
   });
@@ -60,6 +62,7 @@ class Note {
       images: imagesFromJson(json['images']),
       position: (json['position'] as num?)?.toDouble(),
       locked: json['locked'] == true,
+      placeReminder: NotePlaceReminder.fromJson(json['placeReminder']),
       drawings: drawingsFromJson(json['drawings']),
       extra: {
         for (final entry in json.entries)
@@ -122,6 +125,7 @@ class Note {
     'images',
     'position',
     'locked',
+    'placeReminder',
     'drawings',
   };
 
@@ -167,6 +171,9 @@ class Note {
   /// again, and the list shows only its title.
   final bool locked;
 
+  /// "Remind me when I arrive at / leave a place". The phone watches the
+  /// place itself; the location never leaves it.
+  final NotePlaceReminder? placeReminder;
   /// Drawings among [images]: image id -> the encrypted strokes it was
   /// drawn from, so it can be edited again. The picture itself is in
   /// [images] like a photo, so older builds and exports show it.
@@ -176,6 +183,7 @@ class Note {
   bool get isTrashed => trashedAt != null;
   bool get isChecklist => checklist != null;
   bool get hasImages => images.isNotEmpty;
+  bool get hasAnyReminder => reminderAt != null || placeReminder != null;
 
   /// Every stored file this note uses: images and drawing strokes.
   List<ZtAttachmentRef> get attachments => [...images, ...drawings.values];
@@ -191,7 +199,7 @@ class Note {
   static const _unset = Object();
 
   /// Nullable fields ([notebookId], [trashedAt], [checklist], [reminderAt],
-  /// [position])
+  /// [position], [placeReminder])
   /// default to "leave unchanged"; pass `null` explicitly to clear them.
   Note copyWith({
     String? title,
@@ -207,6 +215,7 @@ class Note {
     List<ZtAttachmentRef>? images,
     Object? position = _unset,
     bool? locked,
+    Object? placeReminder = _unset,
     Map<String, ZtAttachmentRef>? drawings,
     DateTime? updatedAt,
   }) {
@@ -227,6 +236,9 @@ class Note {
       images: images ?? this.images,
       position: identical(position, _unset) ? this.position : position as double?,
       locked: locked ?? this.locked,
+      placeReminder: identical(placeReminder, _unset)
+          ? this.placeReminder
+          : placeReminder as NotePlaceReminder?,
       drawings: drawings ?? this.drawings,
       extra: extra,
     );
@@ -264,6 +276,7 @@ class Note {
     List<ZtAttachmentRef> images = const [],
     double? position,
     bool locked = false,
+    NotePlaceReminder? placeReminder,
     Map<String, ZtAttachmentRef> drawings = const {},
     Map<String, Object?> extra = const {},
   }) => {
@@ -284,6 +297,7 @@ class Note {
     if (images.isNotEmpty) 'images': [for (final image in images) image.toJson()],
     'position': ?position,
     if (locked) 'locked': true,
+    if (placeReminder != null) 'placeReminder': placeReminder.toJson(),
     if (drawings.isNotEmpty)
       'drawings': {for (final e in drawings.entries) e.key: e.value.toJson()},
   };
@@ -303,6 +317,7 @@ class Note {
     images: images,
     position: position,
     locked: locked,
+    placeReminder: placeReminder,
     drawings: drawings,
     extra: extra,
   );

@@ -549,6 +549,8 @@
   "widgetTakeANote": "Take a note…",
   "widgetNote": "Note",
   "widgetTapToOpen": "Tap to open in ZT Notes",
+  "remindAtPlace": "Remind me at a place",
+  "removePlaceReminder": "Remove place reminder",
   "imageTextTitle": "Text from image",
   "imageTextPrivacy": "The text is read on this phone. The image is never uploaded.",
   "ocrBoth": "Both",

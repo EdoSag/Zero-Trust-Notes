@@ -1639,6 +1639,18 @@ abstract class AppL10n {
   /// **'Tap to open in ZT Notes'**
   String get widgetTapToOpen;
 
+  /// No description provided for @remindAtPlace.
+  ///
+  /// In en, this message translates to:
+  /// **'Remind me at a place'**
+  String get remindAtPlace;
+
+  /// No description provided for @removePlaceReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove place reminder'**
+  String get removePlaceReminder;
+
   /// No description provided for @imageTextTitle.
   ///
   /// In en, this message translates to:

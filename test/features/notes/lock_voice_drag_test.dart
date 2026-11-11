@@ -130,6 +130,9 @@ void main() {
     await settle(tester);
     await tester.tap(find.byTooltip('More options'));
     await settle(tester);
+    // The menu is longer than the test screen; scroll to the entry.
+    await tester.ensureVisible(find.text('Lock note'));
+    await settle(tester);
     await tester.tap(find.text('Lock note'));
     await settle(tester);
     expect((await real(tester, phone.repo.fetchAll)).single.locked, isTrue);

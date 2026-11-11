@@ -65,7 +65,7 @@ class NotesFilter {
 
   bool _inView(Note note) => switch (view) {
     NotesView.notes => !note.isTrashed && !note.archived,
-    NotesView.reminders => !note.isTrashed && note.reminderAt != null,
+    NotesView.reminders => !note.isTrashed && note.hasAnyReminder,
     NotesView.archive => !note.isTrashed && note.archived,
     NotesView.trash => note.isTrashed,
   };
@@ -80,7 +80,9 @@ class NotesFilter {
     List<Notebook> notebooks = const [],
   }) {
     final tagNames = {for (final tag in tags) tag.id: tag.name.toLowerCase()};
-    final notebookNames = {for (final notebook in notebooks) notebook.id: notebook.name.toLowerCase()};
+    final notebookNames = {
+      for (final notebook in notebooks) notebook.id: notebook.name.toLowerCase(),
+    };
     final words = query.toLowerCase().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
 
     bool matchesQuery(Note note) {
@@ -104,13 +106,20 @@ class NotesFilter {
       if (tagId != null && !note.tagIds.contains(tagId)) return false;
       if (color != null && note.color != color) return false;
       if (checklistsOnly && !note.isChecklist) return false;
-      if (withReminderOnly && note.reminderAt == null) return false;
+      if (withReminderOnly && !note.hasAnyReminder) return false;
       return matchesQuery(note);
     }).toList();
 
     switch (view) {
       case NotesView.reminders:
-        result.sort((a, b) => a.reminderAt!.compareTo(b.reminderAt!));
+        // Timed reminders by time, then place reminders (no time) by title.
+        result.sort((a, b) {
+          final at = a.reminderAt, bt = b.reminderAt;
+          if (at != null && bt != null) return at.compareTo(bt);
+          if (at != null) return -1;
+          if (bt != null) return 1;
+          return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+        });
       case NotesView.trash:
         result.sort((a, b) => b.trashedAt!.compareTo(a.trashedAt!));
       case NotesView.notes || NotesView.archive:
@@ -124,8 +133,14 @@ class NotesFilter {
   ({List<Note> pinned, List<Note> others}) pinnedFirst(List<Note> notes) {
     if (view != NotesView.notes) return (pinned: const [], others: notes);
     return (
-      pinned: [for (final note in notes) if (note.pinned) note],
-      others: [for (final note in notes) if (!note.pinned) note],
+      pinned: [
+        for (final note in notes)
+          if (note.pinned) note,
+      ],
+      others: [
+        for (final note in notes)
+          if (!note.pinned) note,
+      ],
     );
   }
 }

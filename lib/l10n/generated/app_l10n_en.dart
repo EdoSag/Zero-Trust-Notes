@@ -952,6 +952,12 @@ class AppL10nEn extends AppL10n {
   String get widgetTapToOpen => 'Tap to open in ZT Notes';
 
   @override
+  String get remindAtPlace => 'Remind me at a place';
+
+  @override
+  String get removePlaceReminder => 'Remove place reminder';
+
+  @override
   String get imageTextTitle => 'Text from image';
 
   @override

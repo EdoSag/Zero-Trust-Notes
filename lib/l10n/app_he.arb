@@ -257,6 +257,8 @@
   "widgetTakeANote": "כתיבת פתק…",
   "widgetNote": "פתק",
   "widgetTapToOpen": "יש להקיש כדי לפתוח ב-ZT Notes",
+  "remindAtPlace": "תזכורת לפי מיקום",
+  "removePlaceReminder": "הסרת התזכורת לפי מיקום",
   "imageTextTitle": "טקסט מתמונה",
   "imageTextPrivacy": "הטקסט נקרא בטלפון עצמו. התמונה לא נשלחת לשום מקום.",
   "ocrBoth": "שתיהן",
