@@ -44,6 +44,9 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          # Pinned: Flutter 3.50 deprecates package:flutter/material.dart, which
+          # fails analyze. Same version as Zero-Trust-Core CI.
+          flutter-version: 3.47.9
           cache: true
 
       - name: Write .env when it is not committed
