@@ -75,6 +75,14 @@ dependencies:
       url: https://github.com/EdoSag/Zero-Trust-Core.git
       path: packages/zt_sharing_ui
       ref: 90995ed2cd58082188d2fa6bb896550b99df2ade
+  # On-device place reminders (N16), shared with Tasks. Android's own
+  # LocationManager, no Google Play services. Pinned to Core PR #26 until a
+  # tag includes it.
+  zt_places:
+    git:
+      url: https://github.com/EdoSag/Zero-Trust-Core.git
+      path: packages/zt_places
+      ref: 6f397423bdc8d1a5313da870cc89677e40e93277
   url_launcher: ^6.3.3
   flutter_local_notifications: ^23.0.0
   timezone: ^0.11.2

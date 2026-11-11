@@ -1634,6 +1634,15 @@ packages:
       url: "https://github.com/EdoSag/Zero-Trust-Core.git"
     source: git
     version: "0.3.2"
+  zt_places:
+    dependency: "direct main"
+    description:
+      path: "packages/zt_places"
+      ref: "6f397423bdc8d1a5313da870cc89677e40e93277"
+      resolved-ref: "6f397423bdc8d1a5313da870cc89677e40e93277"
+      url: "https://github.com/EdoSag/Zero-Trust-Core.git"
+    source: git
+    version: "0.1.0"
   zt_sharing_ui:
     dependency: "direct main"
     description:

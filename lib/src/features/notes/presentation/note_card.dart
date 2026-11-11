@@ -4,6 +4,7 @@ import '../../../shared/markdown_snippet.dart';
 import '../../../shared/text_direction.dart';
 import '../../../shared/theme/app_spacing.dart';
 import '../../images/note_image_views.dart';
+import '../../places/place_providers.dart';
 import '../domain/note.dart';
 import 'note_actions.dart';
 import 'package:zerotrust_notes/l10n/l10n.dart';
@@ -23,6 +24,7 @@ class NoteCard extends StatelessWidget {
   final Note note;
   final List<String> tagNames;
   final VoidCallback onTap;
+
   /// Null when a parent handles long press (dragging to reorder).
   final VoidCallback? onLongPress;
 
@@ -44,14 +46,17 @@ class NoteCard extends StatelessWidget {
     final semantics = [
       if (note.pinned) context.l10n.semPinned,
       if (locked) context.l10n.semLocked,
-      if (note.hasImages && !locked)
-        context.l10n.semImages(note.images.length),
+      if (note.hasImages && !locked) context.l10n.semImages(note.images.length),
       title.isEmpty ? context.l10n.semUntitled : '$title.',
       if (note.isChecklist && !locked)
-        context.l10n.semChecklist(note.checklist!.where((i) => i.checked).length, note.checklist!.length)
+        context.l10n.semChecklist(
+          note.checklist!.where((i) => i.checked).length,
+          note.checklist!.length,
+        )
       else if (snippet.isNotEmpty)
         snippet,
       if (note.reminderAt != null) context.l10n.semReminder(formatReminder(note.reminderAt!)),
+      if (note.placeReminder != null) placeReminderLabel(context, note.placeReminder!),
       if (tagNames.isNotEmpty) context.l10n.semTags(tagNames.join(', ')),
       if (note.isShared) context.l10n.semShared,
     ].join(' ');
@@ -99,7 +104,10 @@ class NoteCard extends StatelessWidget {
                         children: [
                           Icon(Icons.lock_outline, size: 18, color: muted),
                           const SizedBox(width: 6),
-                          Text(context.l10n.locked, style: theme.textTheme.bodyMedium?.copyWith(color: muted)),
+                          Text(
+                            context.l10n.locked,
+                            style: theme.textTheme.bodyMedium?.copyWith(color: muted),
+                          ),
                         ],
                       )
                     else if (note.isChecklist)
@@ -112,9 +120,16 @@ class NoteCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodyMedium?.copyWith(color: onColor),
                       ),
-                    if (title.isEmpty && snippet.isEmpty && !note.isChecklist && !note.hasImages && !locked)
-                      Text(context.l10n.emptyNote, style: theme.textTheme.bodyMedium?.copyWith(color: muted)),
-                    if (note.reminderAt != null || tagNames.isNotEmpty || note.isShared) ...[
+                    if (title.isEmpty &&
+                        snippet.isEmpty &&
+                        !note.isChecklist &&
+                        !note.hasImages &&
+                        !locked)
+                      Text(
+                        context.l10n.emptyNote,
+                        style: theme.textTheme.bodyMedium?.copyWith(color: muted),
+                      ),
+                    if (note.hasAnyReminder || tagNames.isNotEmpty || note.isShared) ...[
                       const SizedBox(height: AppSpacing.sm),
                       Wrap(
                         spacing: AppSpacing.xs,
@@ -132,6 +147,12 @@ class NoteCard extends StatelessWidget {
                               key: const Key('note_shared_pill'),
                               icon: Icons.people_outline,
                               label: context.l10n.sharedHeading,
+                              color: onColor,
+                            ),
+                          if (note.placeReminder != null)
+                            _Pill(
+                              icon: Icons.place_outlined,
+                              label: placeReminderLabel(context, note.placeReminder!),
                               color: onColor,
                             ),
                           for (final name in tagNames.take(3)) _Pill(label: name, color: onColor),
@@ -245,12 +266,11 @@ class _ChecklistPreview extends StatelessWidget {
             ),
           ),
         if (open.length > shown.length)
-          Text(context.l10n.nMore(open.length - shown.length), style: style?.copyWith(color: muted)),
-        if (done > 0)
           Text(
-            context.l10n.plusTicked(done),
+            context.l10n.nMore(open.length - shown.length),
             style: style?.copyWith(color: muted),
           ),
+        if (done > 0) Text(context.l10n.plusTicked(done), style: style?.copyWith(color: muted)),
       ],
     );
   }

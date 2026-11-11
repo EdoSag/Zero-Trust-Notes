@@ -573,6 +573,8 @@
   "sharedCantBeLocked": "Shared notes can't be locked: the lock is only yours.",
   "noPhotosInShared": "Photos and drawings can't be added to shared notes yet.",
   "sharingUnavailable": "Sharing isn't available right now. Check your internet connection.",
+  "remindAtPlace": "Remind me at a place",
+  "removePlaceReminder": "Remove place reminder",
   "imageTextTitle": "Text from image",
   "imageTextPrivacy": "The text is read on this phone. The image is never uploaded.",
   "ocrBoth": "Both",

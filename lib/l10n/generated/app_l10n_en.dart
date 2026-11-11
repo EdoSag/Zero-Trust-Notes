@@ -1012,6 +1012,12 @@ class AppL10nEn extends AppL10n {
       'Sharing isn\'t available right now. Check your internet connection.';
 
   @override
+  String get remindAtPlace => 'Remind me at a place';
+
+  @override
+  String get removePlaceReminder => 'Remove place reminder';
+
+  @override
   String get imageTextTitle => 'Text from image';
 
   @override

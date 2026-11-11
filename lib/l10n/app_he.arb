@@ -274,6 +274,8 @@
   "sharedCantBeLocked": "אי אפשר לנעול פתקים משותפים: הנעילה שייכת רק לך.",
   "noPhotosInShared": "עדיין אי אפשר להוסיף תמונות וציורים לפתקים משותפים.",
   "sharingUnavailable": "השיתוף לא זמין כרגע. בדקו את החיבור לאינטרנט.",
+  "remindAtPlace": "תזכורת לפי מיקום",
+  "removePlaceReminder": "הסרת התזכורת לפי מיקום",
   "imageTextTitle": "טקסט מתמונה",
   "imageTextPrivacy": "הטקסט נקרא בטלפון עצמו. התמונה לא נשלחת לשום מקום.",
   "ocrBoth": "שתיהן",

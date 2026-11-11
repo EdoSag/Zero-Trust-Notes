@@ -1741,6 +1741,18 @@ abstract class AppL10n {
   /// **'Sharing isn\'t available right now. Check your internet connection.'**
   String get sharingUnavailable;
 
+  /// No description provided for @remindAtPlace.
+  ///
+  /// In en, this message translates to:
+  /// **'Remind me at a place'**
+  String get remindAtPlace;
+
+  /// No description provided for @removePlaceReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove place reminder'**
+  String get removePlaceReminder;
+
   /// No description provided for @imageTextTitle.
   ///
   /// In en, this message translates to:
