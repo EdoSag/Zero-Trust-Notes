@@ -121,6 +121,10 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     _checklist = note?.checklist ?? (widget.startAsChecklist && note == null ? const [] : null);
     _reminderAt = note?.reminderAt;
     _placeReminder = note?.placeReminder;
+    // A place reminder that goes off while the note is open is done: the
+    // editor lets it go too, so saving doesn't put it back.
+    _dropFiredPlaceReminder(ref.read(firedPlaceRemindersProvider));
+    ref.listenManual(firedPlaceRemindersProvider, (_, fired) => _dropFiredPlaceReminder(fired));
     _images = note?.images ?? const [];
     _locked = note?.locked ?? false;
     _lockOpen = !_locked;
@@ -195,6 +199,17 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         );
     _saving = result;
     return result;
+  }
+
+  void _dropFiredPlaceReminder(Set<String> fired) {
+    final note = _note;
+    final reminder = _placeReminder;
+    if (note == null || reminder == null || !fired.contains(reminder.idFor(note.id))) return;
+    if (mounted) {
+      setState(() => _placeReminder = null);
+    } else {
+      _placeReminder = null;
+    }
   }
 
   Future<void> _persistNow(NotesRepository? repository) async {
@@ -505,7 +520,18 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
 
   Future<void> _pickPlace() async {
     final places = ref.read(placeRemindersProvider);
-    final saved = ref.read(savedPlacesProvider).value ?? const <ZtPlace>[];
+    // Wait for the saved places the first time, so the list isn't empty
+    // just because it was still loading.
+    var saved = const <ZtPlace>[];
+    final listening = ref.listenManual(savedPlacesProvider, (_, _) {});
+    try {
+      saved = await ref.read(savedPlacesProvider.future).timeout(const Duration(seconds: 3));
+    } on Object {
+      saved = ref.read(savedPlacesProvider).value ?? const <ZtPlace>[];
+    } finally {
+      listening.close();
+    }
+    if (!mounted) return;
     final repository = ref.read(savedPlacesRepositoryProvider);
     final choice = await ZtPlacePickerPage.show(
       context,

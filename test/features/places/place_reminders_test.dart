@@ -193,4 +193,55 @@ void main() {
     expect(places.single.name, 'Supermarket');
     await finish(tester, phone);
   });
+  testWidgets(
+    'a place reminder that goes off while the note is open is not saved back',
+    timeout: timeout,
+    (tester) async {
+      final phone = Device('phone', FakeSyncBackend());
+      unawaited(phone.unlock());
+      for (var i = 0; i < 50 && phone.container.read(notesRepositoryProvider) == null; i++) {
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
+        await tester.pump(const Duration(milliseconds: 20));
+      }
+      final created = (await tester.runAsync(
+        () => phone.repo.createNote(title: 'Buy milk', body: '', placeReminder: reminder()),
+      ))!;
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: phone.container,
+          child: MaterialApp(
+            theme: ZtTheme.light(),
+            localizationsDelegates: const [AppL10n.delegate, ...ZtLanguages.delegates],
+            home: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => Navigator.of(
+                  context,
+                ).push(MaterialPageRoute<void>(builder: (_) => NoteEditorPage(note: created))),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.tap(find.text('open'));
+      await settle(tester);
+      expect(find.byKey(const Key('note_place_reminder_chip')), findsOneWidget);
+
+      // It goes off at the shop while the note is open.
+      phone.container
+          .read(firedPlaceRemindersProvider.notifier)
+          .add(created.placeReminder!.idFor(created.id));
+      await settle(tester);
+      expect(find.byKey(const Key('note_place_reminder_chip')), findsNothing);
+
+      await tester.enterText(find.byKey(const Key('note_title_field')), 'Buy milk and bread');
+      await tester.pageBack();
+      await settle(tester);
+      final saved = (await tester.runAsync(() => phone.repo.fetchAll()))!.single;
+      expect(saved.title, 'Buy milk and bread');
+      expect(saved.placeReminder, isNull);
+      await finish(tester, phone);
+    },
+  );
 }
