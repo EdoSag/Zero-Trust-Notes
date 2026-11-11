@@ -70,10 +70,22 @@ class _NotesListPageState extends ConsumerState<NotesListPage> {
     _searchController.addListener(
       () => setState(() => _filter = _filter.copyWith(query: _searchController.text)),
     );
-    // Notes kept in Trash past 30 days are deleted for good.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(ref.read(notesRepositoryProvider)?.purgeExpiredTrash().catchError((_) => 0));
-    });
+    // Notes kept in Trash past 30 days are deleted for good. Shared notes
+    // load (or sync in) later, so it runs again when an expired one shows up.
+    void purge() =>
+        unawaited(ref.read(notesRepositoryProvider)?.purgeExpiredTrash().catchError((_) => 0));
+    WidgetsBinding.instance.addPostFrameCallback((_) => purge());
+    ref.listenManual(
+      sharedNotesProvider.select((s) => s.notes.any(_expired)),
+      (_, expired) {
+        if (expired) purge();
+      },
+    );
+  }
+
+  static bool _expired(Note note) {
+    final purgeAt = note.purgeAt;
+    return purgeAt != null && !purgeAt.isAfter(DateTime.now());
   }
 
   @override

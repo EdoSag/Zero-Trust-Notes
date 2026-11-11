@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,6 +5,7 @@ import 'package:zero_trust_core/zero_trust_core.dart';
 import 'package:zerotrust_notes/l10n/l10n.dart';
 import 'package:zerotrust_notes/src/features/notebooks/application/notebooks_controller.dart';
 import 'package:zerotrust_notes/src/features/notes/presentation/notes_list_page.dart';
+import 'package:zerotrust_notes/src/features/sharing/shared_notebooks.dart';
 
 import '../../support/sharing_people.dart';
 import '../notes/notes_list_page_test.dart' show settle;
@@ -128,4 +127,54 @@ void main() {
     );
     await finish(tester);
   });
+  testWidgets(
+    'Trash past 30 days is emptied of shared notes too, once they load',
+    timeout: timeout,
+    (tester) async {
+      late String oldId;
+      await open(tester);
+      await run(tester, () async {
+        final note = await a.device.repo.createNote(title: 'Old', body: 'x');
+        await a.device.repo.shareNote(a.shared, note, myName: 'Alice', name: 'Old');
+        await until(() => a.notes.length == 1 && a.notes.single.isShared);
+        oldId = a.notes.single.id;
+        final trashed = a.notes.single.copyWith(
+          trashedAt: DateTime.now().toUtc().subtract(const Duration(days: 40)),
+        );
+        await a.device.repo.updateNote(trashed);
+        await a.shared.reload();
+        expect(a.notes.single.trashedAt, isNotNull);
+        // Lock, then open the list before the shared notes are back.
+        a.c.read(vaultControllerProvider.notifier).lock();
+        await until(() => !a.c.read(sharedNotesProvider).ready);
+      });
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          key: UniqueKey(),
+          container: a.c,
+          child: MaterialApp(
+            localizationsDelegates: const [AppL10n.delegate, ...ZtLanguages.delegates],
+            home: const NotesListPage(),
+          ),
+        ),
+      );
+      await run(tester, () async {
+        await a.device.unlock(seed: 1);
+        await until(() => a.c.read(sharedNotesProvider).ready);
+        // A fresh unlock in tests starts from an empty phone store; the
+        // shared note comes back with the next sync.
+        await a.device.sync();
+        await a.shared.reload();
+        final copy = a.copies.stores.values.single;
+        var deleted = false;
+        for (var i = 0; i < 200 && !deleted; i++) {
+          await Future<void>.delayed(const Duration(milliseconds: 10));
+          deleted = (await copy.get(oldId))?.deleted ?? false;
+        }
+        expect(deleted, isTrue, reason: 'the expired shared note is deleted');
+      });
+      await finish(tester);
+    },
+  );
 }

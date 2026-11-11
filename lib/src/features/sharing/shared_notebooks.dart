@@ -71,11 +71,16 @@ class SharedNotesController extends Notifier<SharedNotesState> implements Shared
   bool _again = false;
   bool _disposed = false;
 
+  /// Bumped on every build (a lock, an unlock, sharing coming up), so a
+  /// read that started before it can't publish the old vault's notes.
+  int _generation = 0;
+
   static const _anchorPrefix = 'zt.space-anchor/';
 
   @override
   SharedNotesState build() {
     _disposed = false;
+    _generation++;
     final store = watchOpenNotesStore(ref);
     final spacesValue = ref.watch(ztSharedSpacesProvider);
     _private = store;
@@ -136,6 +141,8 @@ class SharedNotesController extends Notifier<SharedNotesState> implements Shared
     final store = _private;
     final spaces = _spaces;
     if (store == null || spaces == null || _disposed) return;
+    final generation = _generation;
+    bool stale() => _disposed || generation != _generation;
     final List<LocalItem> items;
     try {
       items = await store.all();
@@ -156,11 +163,20 @@ class SharedNotesController extends Notifier<SharedNotesState> implements Shared
       } on Object {
         continue; // not let in yet, or can't vouch for it yet
       }
+      if (stale()) return;
       if (space.gone) continue;
       _watch(space);
       Map<String, Object?>? meta;
       final inSpace = <Note>[];
-      for (final item in await space.store.all()) {
+      final List<LocalItem> spaceItems;
+      try {
+        spaceItems = await space.store.all();
+      } on Object {
+        if (stale()) return; // closed by a lock
+        continue;
+      }
+      if (stale()) return;
+      for (final item in spaceItems) {
         if (item.deleted) continue;
         final json = item.json;
         if (item.itemId == notebookItemId && Notebook.isNotebookJson(json)) {
@@ -188,10 +204,11 @@ class SharedNotesController extends Notifier<SharedNotesState> implements Shared
         notes.add(note.located(spaceId, notebookId: single ? null : id));
       }
     }
+    if (stale()) return;
     for (final gone in _watching.keys.where((id) => !spaceIds.contains(id)).toList()) {
       await _watching.remove(gone)?.cancel();
     }
-    if (_disposed) return;
+    if (stale()) return;
     notebooks.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     state = SharedNotesState(notebooks: notebooks, notes: notes, ready: true, available: true);
   }

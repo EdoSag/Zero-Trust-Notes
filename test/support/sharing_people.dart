@@ -21,11 +21,23 @@ class FakeUserAccount extends AccountService {
   String? get currentUserId => id;
 }
 
-class MemorySpaceOpener implements SpaceStoreOpener {
-  final Map<String, InMemoryItemStore> stores = {};
+/// A space's copy on the phone; [beforeRead] lets a test step in while a
+/// read is running.
+class SpaceCopy extends InMemoryItemStore {
+  Future<void> Function()? beforeRead;
   @override
-  Future<LocalItemStore> open(String spaceId) async =>
-      stores.putIfAbsent(spaceId, InMemoryItemStore.new);
+  Future<List<LocalItem>> all() async {
+    final hook = beforeRead;
+    beforeRead = null;
+    if (hook != null) await hook();
+    return super.all();
+  }
+}
+
+class MemorySpaceOpener implements SpaceStoreOpener {
+  final Map<String, SpaceCopy> stores = {};
+  @override
+  Future<LocalItemStore> open(String spaceId) async => stores.putIfAbsent(spaceId, SpaceCopy.new);
   @override
   Future<void> delete(String spaceId) async => stores.remove(spaceId);
   @override
@@ -35,14 +47,17 @@ class MemorySpaceOpener implements SpaceStoreOpener {
 /// One person's phone: their own account (own vault server) on the shared
 /// spaces server.
 class Person {
-  Person(this.userId, InMemorySpaceServer spaces, this.seed)
+  Person(String userId, InMemorySpaceServer spaces, int seed)
+    : this._(userId, spaces, seed, MemorySpaceOpener());
+
+  Person._(this.userId, InMemorySpaceServer spaces, this.seed, this.copies)
     : device = Device(
         userId,
         FakeSyncBackend(),
         overrides: [
           accountServiceProvider.overrideWithValue(FakeUserAccount(userId)),
           ztSpaceBackendProvider.overrideWithValue(spaces.backendFor(userId)),
-          ztSpaceStoreOpenerProvider.overrideWithValue(MemorySpaceOpener()),
+          ztSpaceStoreOpenerProvider.overrideWithValue(copies),
           ztSpacePolicyProvider.overrideWithValue(notesSpacePolicy),
         ],
       );
@@ -50,6 +65,7 @@ class Person {
   final String userId;
   final int seed;
   final Device device;
+  final MemorySpaceOpener copies;
 
   ProviderContainer get c => device.container;
   SharedNotesController get shared => c.read(sharedNotesProvider.notifier);
@@ -85,4 +101,3 @@ Future<void> until(bool Function() test, {String? reason}) async {
   }
   fail('never happened${reason == null ? '' : ': $reason'}');
 }
-

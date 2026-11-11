@@ -4,6 +4,8 @@ import 'package:zerotrust_notes/src/features/notebooks/application/notebooks_con
 import 'package:zerotrust_notes/src/features/notebooks/domain/notebook.dart';
 import 'package:zerotrust_notes/src/features/notes/application/notes_providers.dart';
 
+import 'package:zerotrust_notes/src/features/sharing/shared_notebooks.dart';
+
 import '../../support/sharing_people.dart';
 
 void main() {
@@ -37,7 +39,12 @@ void main() {
   test('a shared notebook: notes move in, both people read and edit them', () async {
     final trip = await a.c.read(notebooksRepositoryProvider)!.create('Trip');
     await a.device.repo.createNote(title: 'Packing', body: 'tent', notebookId: trip.id);
-    await a.device.repo.createNote(title: 'Passwords', body: 'x', notebookId: trip.id, locked: true);
+    await a.device.repo.createNote(
+      title: 'Passwords',
+      body: 'x',
+      notebookId: trip.id,
+      locked: true,
+    );
     await a.device.repo.createNote(title: 'Other', body: '');
 
     final spaceId = await a.device.repo.shareNotebook(a.shared, trip, myName: 'Alice');
@@ -102,7 +109,12 @@ void main() {
 
   test('one note shared on its own stays in its space when edited', () async {
     final note = await a.device.repo.createNote(title: 'Groceries', body: 'milk');
-    final spaceId = await a.device.repo.shareNote(a.shared, note, myName: 'Alice', name: 'Groceries');
+    final spaceId = await a.device.repo.shareNote(
+      a.shared,
+      note,
+      myName: 'Alice',
+      name: 'Groceries',
+    );
     await until(() => a.notes.length == 1 && a.notes.single.isShared);
     // Not a notebook: it shows in the main list.
     expect(a.notebooks, isEmpty);
@@ -133,5 +145,22 @@ void main() {
     final ownItems = await a.c.read(notesStoreProvider.future).then((s) => s.liveItems());
     expect(ownItems.map((i) => i.json?['kind']), everyElement(isNotNull));
     expect(a.notes.single.title, 'Solo');
+  });
+  test('a read still running when the vault locks shows nothing afterwards', () async {
+    final trip = await a.c.read(notebooksRepositoryProvider)!.create('Trip');
+    await a.device.repo.createNote(title: 'Packing', body: 'tent', notebookId: trip.id);
+    await a.device.repo.shareNotebook(a.shared, trip, myName: 'Alice');
+    await until(() => a.notes.length == 1);
+
+    // The vault locks while the space's notes are being read.
+    a.copies.stores.values.single.beforeRead = () async {
+      a.c.read(vaultControllerProvider.notifier).lock();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    };
+    await a.shared.reload();
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    final state = a.c.read(sharedNotesProvider);
+    expect(state.notes, isEmpty, reason: 'nothing from before the lock is published');
+    expect(state.notebooks, isEmpty);
   });
 }
