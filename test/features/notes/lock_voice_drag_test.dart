@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zero_trust_core/zero_trust_core.dart';
+import 'package:zerotrust_notes/l10n/l10n.dart';
 import 'package:zerotrust_notes/src/features/notes/application/note_lock.dart';
 import 'package:zerotrust_notes/src/features/notes/application/notes_providers.dart';
 import 'package:zerotrust_notes/src/features/notes/presentation/note_editor_page.dart';
@@ -80,7 +82,7 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: phone.container,
-        child: MaterialApp(home: home),
+        child: MaterialApp(localizationsDelegates: const [AppL10n.delegate, ...ZtLanguages.delegates], home: home),
       ),
     );
     await settle(tester);
@@ -127,6 +129,9 @@ void main() {
     await tester.enterText(find.byKey(const Key('note_title_field')), 'Secret');
     await settle(tester);
     await tester.tap(find.byTooltip('More options'));
+    await settle(tester);
+    // The menu is longer than the test screen; scroll to the entry.
+    await tester.ensureVisible(find.text('Lock note'));
     await settle(tester);
     await tester.tap(find.text('Lock note'));
     await settle(tester);

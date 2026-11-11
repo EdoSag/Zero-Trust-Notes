@@ -10,6 +10,7 @@ import android.widget.RemoteViews
 import dev.sagron.zerotrustnotes.MainActivity
 import dev.sagron.zerotrustnotes.R
 import es.antonborri.home_widget.HomeWidgetLaunchIntent
+import es.antonborri.home_widget.HomeWidgetPlugin
 import es.antonborri.home_widget.HomeWidgetProvider
 
 /**
@@ -51,7 +52,15 @@ class QuickAddWidgetProvider : HomeWidgetProvider() {
     private fun buildViews(context: Context, options: Bundle?): RemoteViews {
         val width = options?.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0) ?: 0
         val bar = width >= BAR_MIN_WIDTH_DP
+        val prefs = HomeWidgetPlugin.getData(context)
+        val newNote = WidgetText.get(context, prefs, "new_note", R.string.widget_new_note)
         return RemoteViews(context.packageName, R.layout.widget_quick_add).apply {
+            setTextViewText(
+                R.id.quick_add_hint,
+                WidgetText.get(context, prefs, "take_a_note", R.string.widget_take_a_note),
+            )
+            setContentDescription(R.id.quick_add_compact, newNote)
+            setContentDescription(R.id.quick_add_bar_button, newNote)
             setViewVisibility(R.id.quick_add_compact, if (bar) View.GONE else View.VISIBLE)
             setViewVisibility(R.id.quick_add_bar, if (bar) View.VISIBLE else View.GONE)
             val pendingIntent = HomeWidgetLaunchIntent.getActivity(

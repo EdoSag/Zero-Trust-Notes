@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:speech_to_text/speech_recognition_error.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import 'package:zerotrust_notes/l10n/l10n.dart';
 
 /// A language the phone can recognise speech in.
 class VoiceLanguage {
@@ -38,15 +39,13 @@ class VoiceError {
 
   String message(String languageName) => switch (code) {
     _ when languageMissing =>
-      'Speech recognition for $languageName isn\'t on this phone yet, and Notes only '
-          'transcribes on the device. Download $languageName for offline speech in your '
-          'phone\'s settings (search for "offline speech recognition"), then try again.',
+      currentL10n.voiceLangMissing(languageName),
     'error_permission' || 'error_insufficient_permissions' =>
-      'Notes needs the microphone for voice notes. Allow it in your phone\'s settings.',
+      currentL10n.voiceNeedsMic,
     'error_no_match' ||
-    'error_speech_timeout' => 'Didn\'t catch that. Tap the microphone and try again.',
-    'error_busy' || 'error_recognizer_busy' => 'Speech recognition is busy. Try again in a moment.',
-    _ => 'Voice notes stopped ($code). Try again.',
+    'error_speech_timeout' => currentL10n.voiceNoMatch,
+    'error_busy' || 'error_recognizer_busy' => currentL10n.voiceBusy,
+    _ => currentL10n.voiceStopped(code),
   };
 }
 

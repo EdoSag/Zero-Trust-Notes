@@ -9,6 +9,7 @@ import '../application/note_lock.dart';
 import '../application/notes_providers.dart';
 import '../domain/note.dart';
 import '../domain/note_color.dart';
+import 'package:zerotrust_notes/l10n/l10n.dart';
 
 /// Pin, archive, colour, reminder, send, trash: the actions the list (long
 /// press) and the editor share.
@@ -26,7 +27,7 @@ class NoteActions {
         content: Text(message),
         // Flutter keeps a snackbar with an action open until it is tapped.
         persist: false,
-        action: undo == null ? null : SnackBarAction(label: 'Undo', onPressed: undo),
+        action: undo == null ? null : SnackBarAction(label: context.l10n.undo, onPressed: undo),
       ),
     );
   }
@@ -44,7 +45,7 @@ class NoteActions {
     final updated = note.copyWith(archived: !note.archived, pinned: false);
     await _save(updated);
     if (showUndo) {
-      _snack(updated.archived ? 'Note archived' : 'Note unarchived', undo: () => _save(note));
+      _snack(updated.archived ? currentL10n.noteArchived : currentL10n.noteUnarchived, undo: () => _save(note));
     }
     return updated;
   }
@@ -53,13 +54,13 @@ class NoteActions {
     final repository = ref.read(notesRepositoryProvider);
     if (repository == null) return null;
     final trashed = await repository.moveToTrash(note);
-    _snack('Note moved to Trash', undo: () => _save(note));
+    _snack(currentL10n.noteTrashed, undo: () => _save(note));
     return trashed;
   }
 
   Future<Note?> restore(Note note) async {
     final restored = await ref.read(notesRepositoryProvider)?.restoreFromTrash(note);
-    _snack('Note restored');
+    _snack(currentL10n.noteRestored);
     return restored;
   }
 
@@ -67,22 +68,22 @@ class NoteActions {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete forever?'),
-        content: const Text('This note will be deleted on every device. This can\'t be undone.'),
+        title: Text(context.l10n.deleteForeverQ),
+        content: Text(context.l10n.deleteForeverBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Delete'),
+            child: Text(context.l10n.delete),
           ),
         ],
       ),
     );
     if (confirmed != true) return false;
-    await ref.read(notesRepositoryProvider)?.deleteNote(note.id);
+    await ref.read(notesRepositoryProvider)?.deleteNote(note);
     return true;
   }
 
@@ -122,24 +123,24 @@ class NoteActions {
               mainAxisSize: MainAxisSize.min,
               children: note.isTrashed
                   ? [
-                      item('restore', Icons.restore_from_trash_outlined, 'Restore'),
-                      item('delete', Icons.delete_forever_outlined, 'Delete forever'),
+                      item('restore', Icons.restore_from_trash_outlined, context.l10n.restore),
+                      item('delete', Icons.delete_forever_outlined, context.l10n.deleteForever),
                     ]
                   : [
                       item(
                         'pin',
                         note.pinned ? Icons.push_pin : Icons.push_pin_outlined,
-                        note.pinned ? 'Unpin' : 'Pin',
+                        note.pinned ? context.l10n.unpin : context.l10n.pin,
                       ),
                       item(
                         'archive',
                         note.archived ? Icons.unarchive_outlined : Icons.archive_outlined,
-                        note.archived ? 'Unarchive' : 'Archive',
+                        note.archived ? context.l10n.unarchive : context.l10n.archive,
                       ),
-                      item('color', Icons.palette_outlined, 'Colour'),
-                      item('reminder', Icons.notifications_none, 'Remind me'),
-                      item('send', Icons.share_outlined, 'Send'),
-                      item('trash', Icons.delete_outline, 'Move to Trash'),
+                      item('color', Icons.palette_outlined, context.l10n.colour),
+                      item('reminder', Icons.notifications_none, context.l10n.remindMe),
+                      item('send', Icons.share_outlined, context.l10n.send),
+                      item('trash', Icons.delete_outline, context.l10n.moveToTrash),
                     ],
             ),
           ),
@@ -165,7 +166,7 @@ class NoteActions {
         if (note.locked &&
             !await ref
                 .read(noteLockAuthenticatorProvider)
-                .confirm(context, ref, reason: 'Send your locked note')) {
+                .confirm(context, ref, reason: context.l10n.reasonSendLocked)) {
           return;
         }
         if (!context.mounted) return;
@@ -194,7 +195,7 @@ Future<NoteColor?> showNoteColorPicker(BuildContext context, NoteColor current) 
                 Semantics(
                   button: true,
                   selected: color == current,
-                  label: color.label,
+                  label: color.displayName,
                   child: InkResponse(
                     onTap: () => Navigator.of(sheetContext).pop(color),
                     child: Container(
@@ -248,31 +249,31 @@ Future<ReminderChoice?> showReminderPicker(
           if (laterToday.isAfter(now.add(const Duration(minutes: 30))))
             ListTile(
               leading: const Icon(Icons.schedule),
-              title: const Text('Later today'),
+              title: Text(context.l10n.laterToday),
               trailing: Text(DateFormat.Hm().format(laterToday)),
               onTap: () => Navigator.of(sheetContext).pop(laterToday),
             ),
           ListTile(
             leading: const Icon(Icons.wb_sunny_outlined),
-            title: const Text('Tomorrow morning'),
+            title: Text(context.l10n.tomorrowMorning),
             trailing: Text(format.format(tomorrow)),
             onTap: () => Navigator.of(sheetContext).pop(tomorrow),
           ),
           ListTile(
             leading: const Icon(Icons.date_range_outlined),
-            title: const Text('Next week'),
+            title: Text(context.l10n.nextWeek),
             trailing: Text(format.format(nextWeek)),
             onTap: () => Navigator.of(sheetContext).pop(nextWeek),
           ),
           ListTile(
             leading: const Icon(Icons.edit_calendar_outlined),
-            title: const Text('Pick date and time'),
+            title: Text(context.l10n.pickDateTime),
             onTap: () => Navigator.of(sheetContext).pop('pick'),
           ),
           if (current != null)
             ListTile(
               leading: const Icon(Icons.notifications_off_outlined),
-              title: const Text('Remove reminder'),
+              title: Text(context.l10n.removeReminder),
               onTap: () => Navigator.of(sheetContext).pop('remove'),
             ),
         ],
@@ -303,7 +304,7 @@ Future<ReminderChoice?> showReminderPicker(
     if (!at.isAfter(DateTime.now())) {
       ScaffoldMessenger.maybeOf(
         context,
-      )?.showSnackBar(const SnackBar(content: Text('Pick a time in the future.')));
+      )?.showSnackBar(SnackBar(content: Text(context.l10n.pickFutureTime)));
       return null;
     }
   }
@@ -313,9 +314,9 @@ Future<ReminderChoice?> showReminderPicker(
       .whileShowingSystemUi(() => ref.read(reminderSchedulerProvider).requestPermission());
   if (!granted && context.mounted) {
     ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Text(
-          'Reminder saved, but notifications are off for Notes. Turn them on in system settings.',
+          context.l10n.reminderNotifsOff,
         ),
       ),
     );
@@ -330,9 +331,9 @@ String formatReminder(DateTime at) {
   final today = DateTime(now.year, now.month, now.day);
   final day = DateTime(local.year, local.month, local.day);
   final diff = day.difference(today).inDays;
-  if (diff == 0) return 'Today, $time';
-  if (diff == 1) return 'Tomorrow, $time';
-  if (diff == -1) return 'Yesterday, $time';
+  if (diff == 0) return currentL10n.todayAt(time);
+  if (diff == 1) return currentL10n.tomorrowAt(time);
+  if (diff == -1) return currentL10n.yesterdayAt(time);
   if (local.year == now.year) return '${DateFormat('d MMM').format(local)}, $time';
   return '${DateFormat('d MMM y').format(local)}, $time';
 }

@@ -3,11 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zero_trust_core/zero_trust_core.dart';
+import 'package:zt_places/zt_places.dart';
 
 import '../features/export/application/export_temp_file_registry.dart';
 import '../features/notes/application/notes_providers.dart';
+import '../features/notes/domain/note.dart';
 import '../features/notes/presentation/note_editor_page.dart';
 import '../features/notes/presentation/notes_list_page.dart';
+import '../features/places/place_providers.dart';
 import '../features/reminders/reminder_scheduler.dart';
 import '../features/sharing/note_sharing.dart';
 import '../features/sharing/share_intent_listener.dart';
@@ -17,6 +20,7 @@ import '../features/widgets/application/widget_launch_listener.dart';
 import '../features/widgets/domain/pending_widget_action.dart';
 import '../features/widgets/presentation/note_picker_page.dart';
 import 'auth_providers.dart';
+import 'package:zerotrust_notes/l10n/l10n.dart';
 
 /// Routes between the shared account screens and the notes list.
 ///
@@ -38,6 +42,7 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
   late final WidgetLaunchListener _widgetLaunchListener;
   late final ShareIntentListener _shareIntentListener;
   StreamSubscription<String>? _reminderTaps;
+  StreamSubscription<ZtPlaceEvent>? _placeEvents;
 
   @override
   void initState() {
@@ -58,11 +63,26 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
           (noteId) => ref.read(pendingWidgetActionProvider.notifier).set(OpenNote(noteId)),
           onError: (Object _) {},
         );
+    // Place reminders: a tap opens the note; one that went off (or was
+    // marked done) is dropped from its note once the notes are open.
+    final places = ref.read(placeRemindersProvider);
+    _placeEvents = places.events.listen((event) {
+      switch (event.type) {
+        case ZtPlaceEventType.tap:
+          if (event.payload.isNotEmpty) {
+            ref.read(pendingWidgetActionProvider.notifier).set(OpenNote(event.payload));
+          }
+        case ZtPlaceEventType.fired || ZtPlaceEventType.done:
+          ref.read(firedPlaceRemindersProvider.notifier).add(event.reminderId);
+      }
+    }, onError: (Object _) {});
+    unawaited(places.collect().catchError((Object _) {}));
   }
 
   @override
   void dispose() {
     _reminderTaps?.cancel();
+    _placeEvents?.cancel();
     _widgetLaunchListener.dispose();
     _shareIntentListener.dispose();
     WidgetsBinding.instance.removeObserver(this);
@@ -90,6 +110,8 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
     // decrypted for it.
     if (state == AppLifecycleState.resumed) {
       unawaited(ref.read(outgoingShareFilesProvider).clear());
+      // Place reminders that went off while Notes was in the background.
+      unawaited(ref.read(placeRemindersProvider).collect().catchError((Object _) {}));
     }
   }
 
@@ -126,6 +148,7 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
         unawaited(const HomeWidgetSyncService().clearAllPlaintext());
         // Signed out: this account's reminders shouldn't fire on this phone.
         unawaited(ref.read(reminderSchedulerProvider).cancelAll().catchError((Object _) {}));
+        unawaited(ref.read(placeRemindersProvider).clear().catchError((Object _) {}));
         setState(() => _signingIn = true);
       }
     });
@@ -208,6 +231,16 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
       _syncWidgetPreviews();
       _maybeConsumePendingWidgetAction();
     }, fireImmediately: true);
+    // Previews carry translated placeholders ("Untitled", locked note):
+    // rewrite them once the newly picked language has loaded.
+    ref.listenManual(ztLanguageProvider, (_, _) {
+      Timer(const Duration(milliseconds: 400), () {
+        if (!mounted) return;
+        _syncWidgetPreviews();
+        // Place notifications carry translated text too.
+        _syncPlaceReminders(ref.read(allNotesProvider).value);
+      });
+    });
     ref.listenManual(pendingWidgetActionProvider, (_, next) {
       if (next != null) _maybeConsumePendingWidgetAction();
     });
@@ -221,7 +254,46 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
             .sync(ScheduledReminder.fromNotes(notes, DateTime.now()))
             .catchError((Object _) {}),
       );
+      _syncPlaceReminders(notes);
+      _clearFiredPlaceReminders();
     }, fireImmediately: true);
+    ref.listenManual(firedPlaceRemindersProvider, (_, _) => _clearFiredPlaceReminders());
+    // A tap on a shared note, or a shared note's reminder, waited for the
+    // shared notes: try again now that they are in.
+    ref.listenManual(allNotesLoadedProvider, (_, loaded) {
+      if (!loaded) return;
+      _maybeConsumePendingWidgetAction();
+      _clearFiredPlaceReminders();
+    });
+  }
+
+  /// Hands this account's place reminders to the phone.
+  void _syncPlaceReminders(List<Note>? notes) {
+    if (notes == null) return;
+    unawaited(
+      ref
+          .read(placeRemindersProvider)
+          .sync(placeRemindersFor(notes), style: placeNotificationStyle())
+          .catchError((Object _) => 0),
+    );
+  }
+
+  Future<void> _clearFiredPlaceReminders() async {
+    final fired = ref.read(firedPlaceRemindersProvider);
+    final notes = ref.read(allNotesProvider).value;
+    final repository = ref.read(notesRepositoryProvider);
+    if (fired.isEmpty || notes == null || repository == null) return;
+    try {
+      final handled = await clearFiredPlaceReminders(
+        repository.updateNote,
+        notes,
+        fired,
+        allLoaded: ref.read(allNotesLoadedProvider),
+      );
+      ref.read(firedPlaceRemindersProvider.notifier).removeAll(handled);
+    } on Object {
+      // Locked meanwhile: tried again on the next change.
+    }
   }
 
   @override
@@ -250,6 +322,12 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
     if (notes == null) return;
     final action = ref.read(pendingWidgetActionProvider);
     if (action == null) return;
+    // Shared notes arrive a moment after the account's own: a note that
+    // isn't here yet may be one of them, so keep the tap until they are in.
+    if (action case OpenNote(:final noteId)
+        when !ref.read(allNotesLoadedProvider) && !notes.any((n) => n.id == noteId)) {
+      return;
+    }
     ref.read(pendingWidgetActionProvider.notifier).clear();
 
     // Not while a listener is notifying: navigation rebuilds widgets.
@@ -261,11 +339,9 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
         case OpenNote(:final noteId):
           final matches = notes.where((note) => note.id == noteId);
           if (matches.isEmpty) {
-            ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-              const SnackBar(
-                content: Text('That note could not be found — it may have been deleted.'),
-              ),
-            );
+            ScaffoldMessenger.maybeOf(
+              context,
+            )?.showSnackBar(SnackBar(content: Text(context.l10n.noteNotFound)));
           } else {
             Navigator.of(
               context,
@@ -294,11 +370,11 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('Couldn\'t open your notes on this device.'),
+                Text(context.l10n.cantOpenNotes),
                 const SizedBox(height: 16),
                 FilledButton(
                   onPressed: () => ref.invalidate(notesStoreProvider),
-                  child: const Text('Try again'),
+                  child: Text(context.l10n.tryAgain),
                 ),
               ],
             ),

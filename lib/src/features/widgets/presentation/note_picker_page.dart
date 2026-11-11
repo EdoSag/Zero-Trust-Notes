@@ -7,6 +7,7 @@ import '../../notes/application/notes_providers.dart';
 import '../../notes/domain/note.dart';
 import '../application/home_widget_sync_service.dart';
 import '../application/widget_details_controller.dart';
+import 'package:zerotrust_notes/l10n/l10n.dart';
 
 /// Reached only once the vault is confirmed unlocked (see `AppGate`), in
 /// response to the OS
@@ -24,16 +25,13 @@ class NotePickerPage extends ConsumerWidget {
       final show = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Show note text on the home screen?'),
-          content: const Text(
-            'This turns on "Show details on the home screen" for every note '
-            'widget, including ones you already placed. Their titles and the '
-            'start of their text will be stored unencrypted on this phone so '
-            'the widgets can show them. You can turn this off in Settings.',
+          title: Text(context.l10n.showTextQ),
+          content: Text(
+            context.l10n.showTextBody,
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Keep hidden')),
-            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Show on all widgets')),
+            TextButton(onPressed: () => Navigator.pop(context, false), child: Text(context.l10n.keepHidden)),
+            FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(context.l10n.showOnAll)),
           ],
         ),
       );
@@ -49,11 +47,11 @@ class NotePickerPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final notesAsync = ref.watch(notesListProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Choose a note to pin')),
+      appBar: AppBar(title: Text(context.l10n.chooseNoteToPin)),
       body: notesAsync.when(
         data: (notes) {
           if (notes.isEmpty) {
-            return const Center(child: Text('No notes yet. Create one first.'));
+            return Center(child: Text(context.l10n.noNotesCreateFirst));
           }
           return ListView.builder(
             itemCount: notes.length,
@@ -63,7 +61,7 @@ class NotePickerPage extends ConsumerWidget {
               return ListTile(
                 title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
                 subtitle: Text(
-                  note.locked ? 'Locked note' : stripMarkdownForSnippet(note.body),
+                  note.locked ? context.l10n.lockedNote : stripMarkdownForSnippet(note.body),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -73,7 +71,7 @@ class NotePickerPage extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('Failed to load notes: $error')),
+        error: (error, _) => Center(child: Text(context.l10n.failedNotes('$error'))),
       ),
     );
   }

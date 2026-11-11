@@ -18,7 +18,7 @@ samples, guidance on mobile development, and a full API reference.
 
 ## License
 
-Copyright (C) 2026 EdoSag (https://zerotrust.bz)
+Copyright (C) 2026 Edo Sagron (https://zerotrust.bz)
 
 Zero-Trust is open source under the [GNU Affero General Public License v3.0](LICENSE)
 (AGPL-3.0-only), the same licence Signal uses.

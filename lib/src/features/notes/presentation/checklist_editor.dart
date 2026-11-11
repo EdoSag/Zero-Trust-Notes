@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../shared/text_direction.dart';
 import '../domain/checklist_item.dart';
+import 'package:zerotrust_notes/l10n/l10n.dart';
 
 /// Edits a checklist: tick boxes, ticked items drop below the rest, Enter
 /// adds the next item.
@@ -110,7 +111,7 @@ class _ChecklistEditorState extends State<ChecklistEditor> {
             key: const Key('checklist_add_item'),
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.add),
-            title: const Text('List item'),
+            title: Text(context.l10n.listItem),
             onTap: () => _addAfter(null),
           ),
         if (ticked.isNotEmpty) ...[
@@ -118,7 +119,7 @@ class _ChecklistEditorState extends State<ChecklistEditor> {
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: Icon(_showTicked ? Icons.expand_less : Icons.expand_more),
-            title: Text('${ticked.length} ticked ${ticked.length == 1 ? 'item' : 'items'}'),
+            title: Text(context.l10n.tickedItems(ticked.length)),
             onTap: () => setState(() => _showTicked = !_showTicked),
           ),
           if (_showTicked) for (final item in ticked) _row(item),
@@ -134,7 +135,7 @@ class _ChecklistEditorState extends State<ChecklistEditor> {
       children: [
         Checkbox(
           value: item.checked,
-          semanticLabel: item.text.isEmpty ? 'List item' : item.text,
+          semanticLabel: item.text.isEmpty ? context.l10n.listItem : item.text,
           onChanged: widget.readOnly ? null : (value) => _toggle(item, value ?? false),
         ),
         Expanded(
@@ -156,7 +157,7 @@ class _ChecklistEditorState extends State<ChecklistEditor> {
         ),
         if (!widget.readOnly)
           IconButton(
-            tooltip: 'Remove item',
+            tooltip: context.l10n.removeItem,
             icon: const Icon(Icons.close, size: 20),
             onPressed: () => _remove(item),
           ),

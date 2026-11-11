@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 0.4.5+16
+version: 0.5.0+17
 
 environment:
   sdk: ^3.12.2
@@ -37,6 +37,8 @@ hooks:
 # versions available, run `flutter pub outdated`.
 dependencies:
   flutter:
+    sdk: flutter
+  flutter_localizations:
     sdk: flutter
 
   # The following adds the Cupertino Icons font to your application.
@@ -64,7 +66,24 @@ dependencies:
     git:
       url: https://github.com/EdoSag/Zero-Trust-Core.git
       path: packages/zero_trust_core
-      ref: v0.8.1
+      # Core Dev with the shared spaces trust chain fix (Core PR #35) and
+      # invite links per app (Core PR #37). Every app that shares must be on
+      # this commit or later: older ones cannot read the new member records.
+      # zt_sharing_ui and zt_places stay on the same commit. Switch all three
+      # to the next tag once it is pushed.
+      ref: cb397d13efd868e34a34d465251a7f705b49f9e1
+  zt_sharing_ui:
+    git:
+      url: https://github.com/EdoSag/Zero-Trust-Core.git
+      path: packages/zt_sharing_ui
+      ref: cb397d13efd868e34a34d465251a7f705b49f9e1
+  # On-device place reminders (N16), shared with Tasks. Android's own
+  # LocationManager, no Google Play services.
+  zt_places:
+    git:
+      url: https://github.com/EdoSag/Zero-Trust-Core.git
+      path: packages/zt_places
+      ref: cb397d13efd868e34a34d465251a7f705b49f9e1
   url_launcher: ^6.3.3
   flutter_local_notifications: ^23.0.0
   timezone: ^0.11.2
@@ -73,6 +92,11 @@ dependencies:
   image_picker: ^1.2.4
   speech_to_text: ^7.5.0
   local_auth: ^3.0.2
+  # Text from images (N14): Tesseract runs on the phone, with English and
+  # Hebrew models bundled (tessdata_fast, same files as ZT Contacts).
+  # Patched copy (Gradle 9 / AGP 9 build fix), see packages/flutter_tesseract_ocr.
+  flutter_tesseract_ocr:
+    path: packages/flutter_tesseract_ocr
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -94,6 +118,7 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  generate: true
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
@@ -103,6 +128,8 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/images/
+    - assets/tessdata_config.json
+    - assets/tessdata/
     - .env
 
   # An image asset can refer to one or more resolution-specific "variants", see

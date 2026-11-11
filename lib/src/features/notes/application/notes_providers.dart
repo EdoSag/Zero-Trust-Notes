@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zero_trust_core/zero_trust_core.dart';
 
 import '../../legacy_import/previous_store_migration.dart';
+import '../../sharing/shared_notebooks.dart';
 import '../data/notes_repository.dart';
 import '../domain/note.dart';
 
@@ -65,14 +66,37 @@ final notesRepositoryProvider = Provider<NotesRepository?>((ref) {
     store: store,
     sync: syncForWrites(ref),
     attachments: () => ref.read(ztAttachmentsProvider.future),
+    shared: () {
+      final shared = ref.read(sharedNotesProvider.notifier);
+      return ref.read(sharedNotesProvider).available ? shared : null;
+    },
   );
 });
 
-/// Every note in the store, including archived and trashed ones.
-final allNotesProvider = StreamProvider<List<Note>>((ref) {
+/// Every note in the account's own store, including archived and trashed
+/// ones.
+final ownNotesProvider = StreamProvider<List<Note>>((ref) {
   final repository = ref.watch(notesRepositoryProvider);
   if (repository == null) return const Stream.empty();
   return repository.watchAll();
+});
+
+/// Every note, the account's own and shared ones, including archived and
+/// trashed ones, newest first.
+final allNotesProvider = Provider<AsyncValue<List<Note>>>((ref) {
+  final shared = ref.watch(sharedNotesProvider.select((s) => s.notes));
+  return ref.watch(ownNotesProvider).whenData((own) {
+    if (shared.isEmpty) return own;
+    return [...own, ...shared]..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+  });
+});
+
+/// Whether every note is in [allNotesProvider]: shared notes are read after
+/// the account's own, so right after an unlock the list can be short. A
+/// note that isn't found then may still arrive.
+final allNotesLoadedProvider = Provider<bool>((ref) {
+  return ref.watch(allNotesProvider).hasValue &&
+      ref.watch(sharedNotesProvider.select((s) => s.ready));
 });
 
 /// Notes outside Trash (archived ones included), newest first. Widgets,

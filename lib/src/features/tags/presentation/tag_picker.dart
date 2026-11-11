@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/theme/app_spacing.dart';
 import '../application/tags_controller.dart';
 import '../domain/tag.dart';
+import 'package:zerotrust_notes/l10n/l10n.dart';
 
 Color? _parseColor(String? hex) {
   if (hex == null || hex.isEmpty) return null;
@@ -44,7 +45,7 @@ class TagField extends ConsumerWidget {
         ),
         ActionChip(
           avatar: const Icon(Icons.sell_outlined, size: 18),
-          label: const Text('Add tag'),
+          label: Text(context.l10n.addTag),
           onPressed: () => showModalBottomSheet<void>(
             context: context,
             isScrollControlled: true,
@@ -112,7 +113,7 @@ class _TagManagerSheetState extends ConsumerState<_TagManagerSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Semantics(header: true, child: const Text('Tags', style: TextStyle(fontWeight: FontWeight.bold))),
+            Semantics(header: true, child: Text(context.l10n.tags, style: TextStyle(fontWeight: FontWeight.bold))),
             const SizedBox(height: AppSpacing.sm),
             Flexible(
               child: allTagsAsync.when(
@@ -127,7 +128,7 @@ class _TagManagerSheetState extends ConsumerState<_TagManagerSheet> {
                       onChanged: (value) => _toggle(tag, value ?? false),
                       title: Text(tag.name),
                       secondary: IconButton(
-                        tooltip: 'Delete tag',
+                        tooltip: context.l10n.deleteTag,
                         icon: const Icon(Icons.delete_outline),
                         onPressed: () => _delete(tag),
                       ),
@@ -135,7 +136,7 @@ class _TagManagerSheetState extends ConsumerState<_TagManagerSheet> {
                   },
                 ),
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, _) => Text('Failed to load tags: $error'),
+                error: (error, _) => Text(context.l10n.failedTags('$error')),
               ),
             ),
             const Divider(),
@@ -144,13 +145,13 @@ class _TagManagerSheetState extends ConsumerState<_TagManagerSheet> {
                 Expanded(
                   child: TextField(
                     controller: _newTagController,
-                    decoration: const InputDecoration(hintText: 'New tag name'),
+                    decoration: InputDecoration(hintText: context.l10n.newTagName),
                     onSubmitted: (_) => _createTag(),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 IconButton(
-                  tooltip: 'Create tag',
+                  tooltip: context.l10n.createTag,
                   icon: const Icon(Icons.add_circle_outline),
                   onPressed: _createTag,
                 ),

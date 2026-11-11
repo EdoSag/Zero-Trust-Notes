@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zero_trust_core/zero_trust_core.dart' show ZtTheme;
+import 'package:zero_trust_core/zero_trust_core.dart' show ZtLanguages, ZtTheme;
+import 'package:zerotrust_notes/l10n/l10n.dart';
 import 'package:zerotrust_notes/src/features/export/presentation/export_sheet.dart';
 import 'package:zerotrust_notes/src/features/notes/application/note_lock.dart';
 import 'package:zerotrust_notes/src/features/notes/application/notes_providers.dart';
@@ -94,7 +95,7 @@ void main() {
         container: phone.container,
         // The real app theme: its full-width buttons vanish inside a Row,
         // which the default theme would hide from these tests.
-        child: MaterialApp(theme: ZtTheme.light(), home: home),
+        child: MaterialApp(theme: ZtTheme.light(), localizationsDelegates: const [AppL10n.delegate, ...ZtLanguages.delegates], home: home),
       ),
     );
     await settle(tester);

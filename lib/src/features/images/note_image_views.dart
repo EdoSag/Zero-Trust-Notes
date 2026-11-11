@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zero_trust_core/zero_trust_core.dart';
 
 import '../notes/application/notes_providers.dart';
+import 'package:zerotrust_notes/l10n/l10n.dart';
 
 /// One decrypted note image, cropped to fill its box. Shows a spinner while
 /// it decrypts (or downloads), and a plain placeholder when it can't be
@@ -76,8 +77,8 @@ class NoteImageStrip extends StatelessWidget {
         separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, index) => Semantics(
           button: true,
-          label: 'Image ${index + 1} of ${images.length}',
-          hint: 'Opens the image',
+          label: context.l10n.imageNofM(index + 1, images.length),
+          hint: context.l10n.opensImage,
           excludeSemantics: true,
           child: ClipRRect(
             key: ValueKey('note_image_${images[index].id}'),
@@ -110,12 +111,22 @@ class NoteImageViewer extends StatefulWidget {
     this.initialIndex = 0,
     this.onRemove,
     this.onShare,
+    this.onGrabText,
+    this.onEditDrawing,
+    this.isDrawing,
   });
 
   final List<ZtAttachmentRef> images;
   final int initialIndex;
   final Future<void> Function(ZtAttachmentRef image)? onRemove;
   final Future<void> Function(ZtAttachmentRef image)? onShare;
+
+  /// Reads the text in the shown image (the viewer closes first).
+  final void Function(ZtAttachmentRef image)? onGrabText;
+
+  /// Opens the shown drawing for editing (the viewer closes first).
+  final void Function(ZtAttachmentRef image)? onEditDrawing;
+  final bool Function(ZtAttachmentRef image)? isDrawing;
 
   @override
   State<NoteImageViewer> createState() => _NoteImageViewerState();
@@ -136,16 +147,16 @@ class _NoteImageViewerState extends State<NoteImageViewer> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Remove this image?'),
-        content: const Text('It will be removed from this note on every device.'),
+        title: Text(context.l10n.removeImageQ),
+        content: Text(context.l10n.removeImageBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Remove'),
+            child: Text(context.l10n.remove),
           ),
         ],
       ),
@@ -170,17 +181,41 @@ class _NoteImageViewerState extends State<NoteImageViewer> {
         backgroundColor: Colors.black,
         appBar: AppBar(
           backgroundColor: Colors.black,
-          title: Text(_images.length > 1 ? '${_index + 1} of ${_images.length}' : 'Image'),
+          title: Text(_images.length > 1 ? context.l10n.nOfM(_index + 1, _images.length) : context.l10n.image),
           actions: [
+            if (widget.onEditDrawing != null &&
+                _images.isNotEmpty &&
+                (widget.isDrawing?.call(_images[_index]) ?? false))
+              IconButton(
+                key: const Key('image_viewer_edit_drawing'),
+                tooltip: context.l10n.editDrawing,
+                icon: const Icon(Icons.draw_outlined),
+                onPressed: () {
+                  final image = _images[_index];
+                  Navigator.of(context).pop();
+                  widget.onEditDrawing!(image);
+                },
+              ),
+            if (widget.onGrabText != null && _images.isNotEmpty)
+              IconButton(
+                key: const Key('image_viewer_grab_text'),
+                tooltip: context.l10n.grabImageText,
+                icon: const Icon(Icons.document_scanner_outlined),
+                onPressed: () {
+                  final image = _images[_index];
+                  Navigator.of(context).pop();
+                  widget.onGrabText!(image);
+                },
+              ),
             if (widget.onShare != null && _images.isNotEmpty)
               IconButton(
-                tooltip: 'Send image',
+                tooltip: context.l10n.sendImage,
                 icon: const Icon(Icons.share_outlined),
                 onPressed: () => widget.onShare!(_images[_index]),
               ),
             if (widget.onRemove != null && _images.isNotEmpty)
               IconButton(
-                tooltip: 'Remove image',
+                tooltip: context.l10n.removeImage,
                 icon: const Icon(Icons.delete_outline),
                 onPressed: _remove,
               ),
@@ -195,7 +230,7 @@ class _NoteImageViewerState extends State<NoteImageViewer> {
             child: Center(
               child: Semantics(
                 image: true,
-                label: 'Image ${index + 1} of ${_images.length}',
+                label: context.l10n.imageNofM(index + 1, _images.length),
                 child: NoteImage(image: _images[index], fit: BoxFit.contain),
               ),
             ),

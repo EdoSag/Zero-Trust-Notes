@@ -6,15 +6,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 import 'package:zero_trust_core/zero_trust_core.dart';
+import 'package:zt_places/zt_places.dart';
+import 'package:zt_sharing_ui/zt_sharing_ui.dart';
 
 import '../../../shared/theme/app_spacing.dart';
 import '../../../shared/widgets/accessible_touch_target.dart';
 import '../../export/presentation/export_sheet.dart';
+import '../../drawing/drawing.dart';
+import '../../drawing/drawing_page.dart';
+import '../../image_text/image_text_sheet.dart';
 import '../../images/note_image_picker.dart';
 import '../../images/note_image_views.dart';
+import '../../notebooks/domain/notebook.dart';
 import '../../notebooks/presentation/notebook_picker.dart';
+import '../../places/note_place_reminder.dart';
+import '../../places/place_providers.dart';
 import '../../sharing/note_sharing.dart';
+import '../../sharing/sharing_flows.dart';
 import '../../tags/presentation/tag_picker.dart';
 import '../../voice/voice_note_sheet.dart';
 import '../../../shared/text_direction.dart';
@@ -27,6 +37,7 @@ import '../domain/note.dart';
 import '../domain/note_color.dart';
 import 'checklist_editor.dart';
 import 'note_actions.dart';
+import 'package:zerotrust_notes/l10n/l10n.dart';
 
 enum _SaveStatus { idle, saving, saved, failed }
 
@@ -80,7 +91,9 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   NoteColor _color = NoteColor.none;
   List<ChecklistItem>? _checklist;
   DateTime? _reminderAt;
+  NotePlaceReminder? _placeReminder;
   List<ZtAttachmentRef> _images = const [];
+  Map<String, ZtAttachmentRef> _drawings = const {};
   bool _locked = false;
 
   /// A locked note stays hidden until the phone's lock confirms it's the
@@ -100,6 +113,13 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   Future<bool> _saving = Future.value(true);
 
   bool get _isEditing => _note != null;
+
+  /// Kept in a shared space now, or will be once saved (its notebook is
+  /// shared).
+  bool get _inShared => _note?.isShared == true || Notebook.spaceIdOf(_notebookId) != null;
+
+  /// Shared on its own, not as part of a shared notebook.
+  bool get _sharedAlone => _note?.isShared == true && Notebook.spaceIdOf(_notebookId) == null;
   bool get _inTrash => _note?.isTrashed ?? false;
 
   @override
@@ -114,7 +134,13 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     _color = note?.color ?? NoteColor.none;
     _checklist = note?.checklist ?? (widget.startAsChecklist && note == null ? const [] : null);
     _reminderAt = note?.reminderAt;
+    _placeReminder = note?.placeReminder;
+    // A place reminder that goes off while the note is open is done: the
+    // editor lets it go too, so saving doesn't put it back.
+    _dropFiredPlaceReminder(ref.read(firedPlaceRemindersProvider));
+    ref.listenManual(firedPlaceRemindersProvider, (_, fired) => _dropFiredPlaceReminder(fired));
     _images = note?.images ?? const [];
+    _drawings = note?.drawings ?? const {};
     _locked = note?.locked ?? false;
     _lockOpen = !_locked;
     if (!_lockOpen) WidgetsBinding.instance.addPostFrameCallback((_) => _openLock());
@@ -179,19 +205,26 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
           onError: (Object _) {
             if (mounted) {
               setState(() => _status = _SaveStatus.failed);
-              ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Couldn\'t save this note. Your changes are still here; try again.',
-                  ),
-                ),
-              );
+              ScaffoldMessenger.maybeOf(
+                context,
+              )?.showSnackBar(SnackBar(content: Text(context.l10n.saveFailed)));
             }
             return false;
           },
         );
     _saving = result;
     return result;
+  }
+
+  void _dropFiredPlaceReminder(Set<String> fired) {
+    final note = _note;
+    final reminder = _placeReminder;
+    if (note == null || reminder == null || !fired.contains(reminder.idFor(note.id))) return;
+    if (mounted) {
+      setState(() => _placeReminder = null);
+    } else {
+      _placeReminder = null;
+    }
   }
 
   Future<void> _persistNow(NotesRepository? repository) async {
@@ -227,6 +260,8 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         reminderAt: _reminderAt,
         images: _images,
         locked: _locked,
+        placeReminder: _placeReminder,
+        drawings: _drawings,
       );
     } else {
       final updated = _note!.copyWith(
@@ -241,9 +276,10 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         reminderAt: _reminderAt,
         images: _images,
         locked: _locked,
+        placeReminder: _placeReminder,
+        drawings: _drawings,
       );
-      await repository.updateNote(updated);
-      _note = updated;
+      _note = await repository.updateNote(updated);
     }
   }
 
@@ -265,8 +301,8 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
       if (mounted) {
         _snack(
           source == NoteImageSource.camera
-              ? 'Couldn\'t open the camera.'
-              : 'Couldn\'t open your photos.',
+              ? context.l10n.cantOpenCamera
+              : context.l10n.cantOpenPhotos,
         );
       }
       return;
@@ -314,13 +350,9 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
       }
     }
     if (mounted && tooLarge > 0) {
-      _snack(
-        tooLarge == 1
-            ? 'That image is over 20 MB, too large to add.'
-            : '$tooLarge images are over 20 MB, too large to add.',
-      );
+      _snack(context.l10n.imagesTooLarge(tooLarge));
     } else if (mounted && failed > 0) {
-      _snack(failed == 1 ? 'Couldn\'t add an image.' : 'Couldn\'t add $failed images.');
+      _snack(context.l10n.imagesFailed(failed));
     }
     return added;
   }
@@ -347,11 +379,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         },
     ]);
     if (mounted && shared.skipped > 0) {
-      _snack(
-        shared.skipped == 1
-            ? 'One shared item couldn\'t be added (only text and images up to 20 MB can).'
-            : '${shared.skipped} shared items couldn\'t be added (only text and images up to 20 MB can).',
-      );
+      _snack(context.l10n.sharedSkipped(shared.skipped));
     }
   }
 
@@ -364,6 +392,9 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
           initialIndex: index,
           onRemove: _inTrash ? null : _removeImage,
           onShare: sharing.shareImage,
+          onGrabText: _inTrash ? null : _grabImageText,
+          onEditDrawing: _inTrash ? null : _editDrawing,
+          isDrawing: (image) => _drawings.containsKey(image.id),
         ),
       ),
     );
@@ -371,32 +402,180 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
 
   Future<void> _removeImage(ZtAttachmentRef image) async {
     final repository = ref.read(notesRepositoryProvider);
-    setState(
-      () => _images = [
+    final strokes = _drawings[image.id];
+    setState(() {
+      _images = [
         for (final i in _images)
           if (i.id != image.id) i,
-      ],
-    );
+      ];
+      if (strokes != null) _drawings = {..._drawings}..remove(image.id);
+    });
     _changed();
     // Delete the file only once the note no longer points at it.
-    if (await _saving) await repository?.releaseImages([image]);
+    if (await _saving) await repository?.releaseImages([image, ?strokes]);
+  }
+
+  /// Adds [text] read from an image: at the end of the text, or as new
+  /// checklist items.
+  void _appendText(String text) {
+    if (text.trim().isEmpty) return;
+    setState(() {
+      if (_checklist != null) {
+        _checklist = [..._checklist!, ...ChecklistItem.parseLines(text)];
+      } else {
+        final current = _bodyController.text.trimRight();
+        _bodyController.text = current.isEmpty ? text : '$current\n\n$text';
+        _previewMode = false;
+      }
+    });
+    _changed();
+  }
+
+  Future<void> _textFromPhoto() async {
+    final source = await showModalBottomSheet<NoteImageSource>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsetsDirectional.fromSTEB(24, 0, 24, 8),
+              child: Text(sheetContext.l10n.imageTextPrivacy),
+            ),
+            if (_hasCamera)
+              ListTile(
+                leading: const Icon(Icons.photo_camera_outlined),
+                title: Text(sheetContext.l10n.takePhoto),
+                onTap: () => Navigator.of(sheetContext).pop(NoteImageSource.camera),
+              ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: Text(sheetContext.l10n.choosePhoto),
+              onTap: () => Navigator.of(sheetContext).pop(NoteImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null || !mounted) return;
+    final List<PickedImage> picked;
+    try {
+      picked = await ref
+          .read(vaultControllerProvider.notifier)
+          .whileShowingSystemUi(() => ref.read(noteImagePickerProvider).pick(source));
+    } on Object {
+      if (mounted) {
+        _snack(
+          source == NoteImageSource.camera ? context.l10n.cantOpenCamera : context.l10n.cantOpenPhotos,
+        );
+      }
+      return;
+    }
+    if (picked.isEmpty || !mounted) return;
+    final text = await showImageTextSheet(context, picked.first.bytes);
+    if (text != null && mounted) _appendText(text);
+  }
+
+  Future<void> _grabImageText(ZtAttachmentRef image) async {
+    final repository = ref.read(notesRepositoryProvider);
+    if (repository == null) return;
+    final Uint8List bytes;
+    try {
+      bytes = await repository.readImage(image);
+    } on Object {
+      if (mounted) _snack(context.l10n.cantReadImageText);
+      return;
+    }
+    if (!mounted) return;
+    final text = await showImageTextSheet(context, bytes);
+    if (text != null && mounted) _appendText(text);
+  }
+
+  Future<void> _addDrawing() async {
+    final result = await DrawingPage.open(context);
+    if (result == null || !mounted) return;
+    await _storeDrawing(result);
+  }
+
+  Future<void> _editDrawing(ZtAttachmentRef image) async {
+    final repository = ref.read(notesRepositoryProvider);
+    final strokesRef = _drawings[image.id];
+    if (repository == null || strokesRef == null) return;
+    Drawing? drawing;
+    try {
+      drawing = Drawing.decode(await repository.readImage(strokesRef));
+    } on Object {
+      drawing = null;
+    }
+    if (!mounted) return;
+    if (drawing == null) {
+      _snack(context.l10n.cantOpenDrawing);
+      return;
+    }
+    final result = await DrawingPage.open(context, initial: drawing);
+    if (result == null || !mounted) return;
+    await _storeDrawing(result, replacing: image);
+  }
+
+  /// Encrypts and stores a drawing (picture and strokes) and puts it in the
+  /// note: in place of [replacing], or after the other images.
+  Future<void> _storeDrawing(DrawingResult result, {ZtAttachmentRef? replacing}) async {
+    final repository = ref.read(notesRepositoryProvider);
+    if (repository == null) return;
+    setState(() => _addingImages++);
+    try {
+      final picture = await repository.addImage(
+        result.png,
+        mimeType: 'image/png',
+        name: 'drawing.png',
+      );
+      final strokes = await repository.addFile(
+        result.drawing.encode(),
+        mimeType: Drawing.mimeType,
+        name: Drawing.fileName,
+      );
+      if (!mounted) return;
+      final old = replacing == null ? null : _drawings[replacing.id];
+      setState(() {
+        final at = replacing == null ? -1 : _images.indexWhere((i) => i.id == replacing.id);
+        _images = at < 0
+            ? [..._images, picture]
+            : [..._images.sublist(0, at), picture, ..._images.sublist(at + 1)];
+        _drawings = {
+          for (final e in _drawings.entries)
+            if (e.key != replacing?.id) e.key: e.value,
+          picture.id: strokes,
+        };
+      });
+      _changed();
+      if (replacing != null && await _saving) {
+        await repository.releaseImages([replacing, ?old]);
+      }
+    } on AttachmentTooLarge {
+      if (mounted) _snack(context.l10n.imagesTooLarge(1));
+    } on Object {
+      if (mounted) _snack(context.l10n.imagesFailed(1));
+    } finally {
+      if (mounted) setState(() => _addingImages--);
+    }
   }
 
   Future<void> _openLock() async {
     final ok = await ref
         .read(noteLockAuthenticatorProvider)
-        .confirm(context, ref, reason: 'Open your locked note');
+        .confirm(context, ref, reason: context.l10n.reasonOpenLocked);
     if (ok && mounted) setState(() => _lockOpen = true);
   }
 
   void _toggleLock() {
+    if (!_locked && _inShared) {
+      _snack(context.l10n.sharedCantBeLocked);
+      return;
+    }
     setState(() => _locked = !_locked);
     _changed();
-    _snack(
-      _locked
-          ? 'Note locked. Opening it will ask for your fingerprint, face or screen lock.'
-          : 'Note unlocked.',
-    );
+    _snack(_locked ? context.l10n.noteLockedMsg : context.l10n.noteUnlockedMsg);
   }
 
   /// Speaks into the note: the transcript goes after the text (or as a new
@@ -416,7 +595,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   }
 
   Widget _lockedScreen(ThemeData theme) => Scaffold(
-    appBar: AppBar(title: const Text('Locked note')),
+    appBar: AppBar(title: Text(context.l10n.lockedNote)),
     body: Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
@@ -426,21 +605,20 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
             Icon(Icons.lock_outline, size: 56, color: theme.colorScheme.onSurfaceVariant),
             const SizedBox(height: AppSpacing.md),
             Text(
-              widget.note?.title.trim().isNotEmpty ?? false ? widget.note!.title : 'Locked note',
+              widget.note?.title.trim().isNotEmpty ?? false
+                  ? widget.note!.title
+                  : context.l10n.lockedNote,
               textDirection: textDirectionOf(widget.note?.title ?? ''),
               style: theme.textTheme.titleMedium,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.sm),
-            const Text(
-              'Confirm it\'s you to open this note.',
-              textAlign: TextAlign.center,
-            ),
+            Text(context.l10n.confirmToOpen, textAlign: TextAlign.center),
             const SizedBox(height: AppSpacing.md),
             FilledButton.icon(
               onPressed: _openLock,
               icon: const Icon(Icons.fingerprint),
-              label: const Text('Unlock'),
+              label: Text(context.l10n.unlock),
             ),
           ],
         ),
@@ -452,7 +630,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     if (!await _persist() || !mounted) return;
     final note = _note;
     if (note == null) {
-      _snack('This note is empty: there is nothing to send.');
+      _snack(context.l10n.nothingToSend);
       return;
     }
     await NoteSharing(context, ref).shareNote(note);
@@ -462,9 +640,53 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     if (await _persist() && mounted) Navigator.of(context).pop();
   }
 
-  void _setNotebook(String? notebookId) {
+  Future<void> _setNotebook(String? notebookId) async {
+    final from = Notebook.spaceIdOf(_notebookId);
+    final to = Notebook.spaceIdOf(notebookId);
+    if (to != null && _locked) {
+      _snack(context.l10n.lockedCantBeShared);
+      return;
+    }
+    if (from != null && from != to && _note?.isShared == true) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(context.l10n.moveOutOfSharedQ),
+          content: Text(context.l10n.moveOutOfSharedBody),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(context.l10n.cancel)),
+            TextButton(
+              key: const Key('move_out_of_shared'),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(context.l10n.moveAction),
+            ),
+          ],
+        ),
+      );
+      if (ok != true || !mounted) return;
+    }
     setState(() => _notebookId = notebookId);
     _changed();
+  }
+
+  /// Shares the note on its own, or shows who it is shared with.
+  Future<void> _share() async {
+    if (_note == null || _dirty) {
+      if (!await _persist() || !mounted) return;
+    }
+    final note = _note;
+    if (note == null) return;
+    if (Notebook.spaceIdOf(_notebookId) case final spaceId?) {
+      await openSharedSpace(context, ref, spaceId);
+      return;
+    }
+    final shared = await shareNoteFlow(context, ref, note);
+    if (shared != null && mounted) {
+      setState(() {
+        _note = shared;
+        _notebookId = null;
+      });
+    }
   }
 
   void _setTags(List<String> tagIds) {
@@ -489,9 +711,11 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     await _saving;
     if (!mounted) return;
     final wasArchived = _archived;
-    ScaffoldMessenger.maybeOf(
-      context,
-    )?.showSnackBar(SnackBar(content: Text(wasArchived ? 'Note archived' : 'Note unarchived')));
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+      SnackBar(
+        content: Text(wasArchived ? context.l10n.noteArchived : context.l10n.noteUnarchived),
+      ),
+    );
     if (wasArchived) Navigator.of(context).pop();
   }
 
@@ -506,6 +730,43 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     final choice = await showReminderPicker(context, ref, _reminderAt);
     if (choice == null) return;
     setState(() => _reminderAt = choice.at);
+    _changed();
+  }
+
+  Future<void> _pickPlace() async {
+    final places = ref.read(placeRemindersProvider);
+    // Wait for the saved places the first time, so the list isn't empty
+    // just because it was still loading.
+    var saved = const <ZtPlace>[];
+    final listening = ref.listenManual(savedPlacesProvider, (_, _) {});
+    try {
+      saved = await ref.read(savedPlacesProvider.future).timeout(const Duration(seconds: 3));
+    } on Object {
+      saved = ref.read(savedPlacesProvider).value ?? const <ZtPlace>[];
+    } finally {
+      listening.close();
+    }
+    if (!mounted) return;
+    final repository = ref.read(savedPlacesRepositoryProvider);
+    final choice = await ZtPlacePickerPage.show(
+      context,
+      reminders: places,
+      savedPlaces: saved,
+      initialPlace: _placeReminder?.place,
+      initialTrigger: _placeReminder?.trigger ?? ZtPlaceTrigger.arrive,
+      onRemovePlace: repository == null ? null : (place) => repository.delete(place.id),
+      newId: () => const Uuid().v4(),
+    );
+    if (choice == null || !mounted) return;
+    if (choice.saveToPlaces) await repository?.save(choice.place);
+    if (!mounted) return;
+    setState(
+      () => _placeReminder = NotePlaceReminder(
+        place: choice.place,
+        trigger: choice.trigger,
+        setAt: DateTime.now().toUtc(),
+      ),
+    );
     _changed();
   }
 
@@ -569,9 +830,9 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
 
   String get _statusLabel => switch (_status) {
     _SaveStatus.idle => '',
-    _SaveStatus.saving => 'Saving…',
-    _SaveStatus.saved => 'Saved',
-    _SaveStatus.failed => 'Not saved',
+    _SaveStatus.saving => context.l10n.saving,
+    _SaveStatus.saved => context.l10n.saved,
+    _SaveStatus.failed => context.l10n.notSaved,
   };
 
   @override
@@ -599,7 +860,11 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
               backgroundColor: background,
               title: Semantics(
                 header: true,
-                child: Text(_inTrash ? 'In Trash' : (_isEditing ? 'Edit note' : 'New note')),
+                child: Text(
+                  _inTrash
+                      ? context.l10n.inTrash
+                      : (_isEditing ? context.l10n.editNote : context.l10n.newNote),
+                ),
               ),
               actions: _inTrash ? _trashActions() : _editActions(isChecklist),
             ),
@@ -611,21 +876,18 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
                   if (_inTrash)
                     Padding(
                       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                      child: Text(
-                        'Notes in Trash can\'t be edited. Restore it to make changes.',
-                        style: theme.textTheme.bodySmall,
-                      ),
+                      child: Text(context.l10n.trashNoEdit, style: theme.textTheme.bodySmall),
                     ),
                   Semantics(
                     textField: true,
-                    label: 'Note title',
+                    label: context.l10n.noteTitle,
                     child: TextField(
                       key: const Key('note_title_field'),
                       controller: _titleController,
                       textDirection: textDirectionOf(_titleController.text),
                       readOnly: _inTrash,
-                      decoration: const InputDecoration(
-                        labelText: 'Title',
+                      decoration: InputDecoration(
+                        labelText: context.l10n.title,
                         border: OutlineInputBorder(),
                       ),
                       textInputAction: TextInputAction.next,
@@ -637,7 +899,15 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
                       spacing: AppSpacing.xs,
                       runSpacing: AppSpacing.xs,
                       children: [
-                        NotebookField(notebookId: _notebookId, onChanged: _setNotebook),
+                        if (_sharedAlone)
+                          ActionChip(
+                            key: const Key('shared_note_chip'),
+                            avatar: const Icon(Icons.people_outline, size: 18),
+                            label: Text(context.l10n.sharedNote),
+                            onPressed: _share,
+                          )
+                        else
+                          NotebookField(notebookId: _notebookId, onChanged: _setNotebook),
                         TagField(tagIds: _tagIds, onChanged: _setTags),
                         if (_reminderAt != null)
                           InputChip(
@@ -648,7 +918,19 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
                               setState(() => _reminderAt = null);
                               _changed();
                             },
-                            deleteButtonTooltipMessage: 'Remove reminder',
+                            deleteButtonTooltipMessage: context.l10n.removeReminder,
+                          ),
+                        if (_placeReminder != null)
+                          InputChip(
+                            key: const Key('note_place_reminder_chip'),
+                            avatar: const Icon(Icons.place_outlined, size: 18),
+                            label: Text(placeReminderLabel(context, _placeReminder!)),
+                            onPressed: _pickPlace,
+                            onDeleted: () {
+                              setState(() => _placeReminder = null);
+                              _changed();
+                            },
+                            deleteButtonTooltipMessage: context.l10n.removePlaceReminder,
                           ),
                       ],
                     ),
@@ -660,7 +942,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
                   if (_addingImages > 0) ...[
                     Semantics(
                       liveRegion: true,
-                      label: 'Adding images',
+                      label: context.l10n.addingImages,
                       child: const LinearProgressIndicator(),
                     ),
                     const SizedBox(height: AppSpacing.sm),
@@ -687,12 +969,12 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
 
   List<Widget> _trashActions() => [
     AccessibleIconButton(
-      label: 'Restore',
+      label: context.l10n.restore,
       icon: Icons.restore_from_trash_outlined,
       onPressed: _restore,
     ),
     AccessibleIconButton(
-      label: 'Delete forever',
+      label: context.l10n.deleteForever,
       icon: Icons.delete_forever_outlined,
       onPressed: _deleteForever,
     ),
@@ -709,28 +991,36 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
       ),
     ),
     AccessibleIconButton(
-      label: _pinned ? 'Unpin note' : 'Pin note',
+      label: _pinned ? context.l10n.unpinNote : context.l10n.pinNote,
       icon: _pinned ? Icons.push_pin : Icons.push_pin_outlined,
       onPressed: _togglePin,
     ),
     AccessibleIconButton(
-      label: _reminderAt == null ? 'Remind me' : 'Change reminder',
+      label: _reminderAt == null ? context.l10n.remindMe : context.l10n.changeReminder,
       icon: _reminderAt == null ? Icons.add_alert_outlined : Icons.notifications_active_outlined,
       onPressed: _pickReminder,
     ),
     AccessibleIconButton(
-      label: _archived ? 'Unarchive note' : 'Archive note',
+      label: _archived ? context.l10n.unarchiveNote : context.l10n.archiveNote,
       icon: _archived ? Icons.unarchive_outlined : Icons.archive_outlined,
       onPressed: _toggleArchive,
     ),
     PopupMenuButton<String>(
-      tooltip: 'More options',
+      tooltip: context.l10n.moreOptions,
       onSelected: (value) {
         switch (value) {
           case 'voice':
             _dictate();
+          case 'place':
+            _pickPlace();
+          case 'draw':
+            _addDrawing();
+          case 'scanText':
+            _textFromPhoto();
           case 'lock':
             _toggleLock();
+          case 'share':
+            _share();
           case 'camera':
             _pickImages(NoteImageSource.camera);
           case 'gallery':
@@ -752,35 +1042,70 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         }
       },
       itemBuilder: (context) => [
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'voice',
-          child: ListTile(leading: Icon(Icons.mic_none), title: Text('Voice note')),
+          child: ListTile(leading: Icon(Icons.mic_none), title: Text(context.l10n.voiceNote)),
         ),
-        if (_hasCamera)
-          const PopupMenuItem(
-            value: 'camera',
-            child: ListTile(leading: Icon(Icons.photo_camera_outlined), title: Text('Take photo')),
-          ),
-        const PopupMenuItem(
-          value: 'gallery',
+        PopupMenuItem(
+          value: 'place',
           child: ListTile(
-            leading: Icon(Icons.add_photo_alternate_outlined),
-            title: Text('Add image'),
+            leading: Icon(Icons.add_location_alt_outlined),
+            title: Text(context.l10n.remindAtPlace),
           ),
         ),
-        const PopupMenuItem(
-          value: 'send',
-          child: ListTile(leading: Icon(Icons.share_outlined), title: Text('Send')),
+        if (!_inShared)
+          PopupMenuItem(
+            value: 'draw',
+            child: ListTile(leading: Icon(Icons.draw_outlined), title: Text(context.l10n.addDrawing)),
+          ),
+        PopupMenuItem(
+          value: 'scanText',
+          child: ListTile(
+            leading: Icon(Icons.document_scanner_outlined),
+            title: Text(context.l10n.textFromPhoto),
+          ),
         ),
-        const PopupMenuItem(
+        if (_hasCamera && !_inShared)
+          PopupMenuItem(
+            value: 'camera',
+            child: ListTile(
+              leading: Icon(Icons.photo_camera_outlined),
+              title: Text(context.l10n.takePhoto),
+            ),
+          ),
+        if (!_inShared)
+          PopupMenuItem(
+            value: 'gallery',
+            child: ListTile(
+              leading: Icon(Icons.add_photo_alternate_outlined),
+              title: Text(context.l10n.addImage),
+            ),
+          ),
+        if (!_inTrash && !_locked)
+          PopupMenuItem(
+            value: 'share',
+            child: ListTile(
+              leading: const Icon(Icons.group_add_outlined),
+              title: Text(
+                _inShared
+                    ? ZtSharingStrings.of(context).peopleAndSharing
+                    : context.l10n.shareWithPeople,
+              ),
+            ),
+          ),
+        PopupMenuItem(
+          value: 'send',
+          child: ListTile(leading: Icon(Icons.share_outlined), title: Text(context.l10n.send)),
+        ),
+        PopupMenuItem(
           value: 'color',
-          child: ListTile(leading: Icon(Icons.palette_outlined), title: Text('Colour')),
+          child: ListTile(leading: Icon(Icons.palette_outlined), title: Text(context.l10n.colour)),
         ),
         PopupMenuItem(
           value: 'checklist',
           child: ListTile(
             leading: Icon(isChecklist ? Icons.notes : Icons.checklist),
-            title: Text(isChecklist ? 'Hide checkboxes' : 'Show checkboxes'),
+            title: Text(isChecklist ? context.l10n.hideCheckboxes : context.l10n.showCheckboxes),
           ),
         ),
         if (!isChecklist)
@@ -788,29 +1113,33 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
             value: 'preview',
             child: ListTile(
               leading: Icon(_previewMode ? Icons.edit_outlined : Icons.visibility_outlined),
-              title: Text(_previewMode ? 'Edit text' : 'Preview Markdown'),
+              title: Text(_previewMode ? context.l10n.editText : context.l10n.previewMarkdown),
+            ),
+          ),
+        if (!_inShared)
+          PopupMenuItem(
+            value: 'lock',
+            child: ListTile(
+              leading: Icon(_locked ? Icons.lock_open_outlined : Icons.lock_outline),
+              title: Text(_locked ? context.l10n.unlockNote : context.l10n.lockNote),
+            ),
+          ),
+        if (_isEditing)
+          PopupMenuItem(
+            value: 'export',
+            child: ListTile(leading: Icon(Icons.ios_share), title: Text(context.l10n.exportNote)),
+          ),
+        if (_isEditing)
+          PopupMenuItem(
+            value: 'trash',
+            child: ListTile(
+              leading: Icon(Icons.delete_outline),
+              title: Text(context.l10n.moveToTrash),
             ),
           ),
         PopupMenuItem(
-          value: 'lock',
-          child: ListTile(
-            leading: Icon(_locked ? Icons.lock_open_outlined : Icons.lock_outline),
-            title: Text(_locked ? 'Unlock note' : 'Lock note'),
-          ),
-        ),
-        if (_isEditing)
-          const PopupMenuItem(
-            value: 'export',
-            child: ListTile(leading: Icon(Icons.ios_share), title: Text('Export note')),
-          ),
-        if (_isEditing)
-          const PopupMenuItem(
-            value: 'trash',
-            child: ListTile(leading: Icon(Icons.delete_outline), title: Text('Move to Trash')),
-          ),
-        const PopupMenuItem(
           value: 'save',
-          child: ListTile(leading: Icon(Icons.check), title: Text('Save and close')),
+          child: ListTile(leading: Icon(Icons.check), title: Text(context.l10n.saveAndClose)),
         ),
       ],
     ),
@@ -830,7 +1159,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         ),
         child: _bodyController.text.trim().isEmpty
             ? Text(
-                'Nothing to preview yet.',
+                context.l10n.nothingToPreview,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -844,13 +1173,13 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     }
     return Semantics(
       textField: true,
-      label: 'Note body',
+      label: context.l10n.noteBody,
       child: TextField(
         key: const Key('note_body_field'),
         controller: _bodyController,
         textDirection: textDirectionOf(_bodyController.text),
-        decoration: const InputDecoration(
-          labelText: 'Body (Markdown supported)',
+        decoration: InputDecoration(
+          labelText: context.l10n.bodyLabel,
           border: OutlineInputBorder(),
           alignLabelWithHint: true,
         ),
@@ -862,18 +1191,18 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   }
 
   String _footerText() {
-    final words = '$_wordCount word${_wordCount == 1 ? '' : 's'}';
+    final words = context.l10n.wordCount(_wordCount);
     if (_lastSavedAt == null) return words;
-    return '$words · Edited ${_relativeTime(_lastSavedAt!)}';
+    return context.l10n.editedAgo(words, _relativeTime(_lastSavedAt!));
   }
 
   String _relativeTime(DateTime time) {
     final diff = DateTime.now().difference(time);
-    if (diff.inSeconds < 10) return 'just now';
-    if (diff.inMinutes < 1) return '${diff.inSeconds}s ago';
-    if (diff.inHours < 1) return '${diff.inMinutes}m ago';
-    if (diff.inDays < 1) return '${diff.inHours}h ago';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    if (diff.inSeconds < 10) return context.l10n.justNow;
+    if (diff.inMinutes < 1) return context.l10n.secondsAgo(diff.inSeconds);
+    if (diff.inHours < 1) return context.l10n.minutesAgo(diff.inMinutes);
+    if (diff.inDays < 1) return context.l10n.hoursAgo(diff.inHours);
+    if (diff.inDays < 7) return context.l10n.daysAgo(diff.inDays);
     return '${time.year}-${time.month.toString().padLeft(2, '0')}-${time.day.toString().padLeft(2, '0')}';
   }
 }
