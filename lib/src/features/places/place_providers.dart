@@ -153,15 +153,21 @@ final firedPlaceRemindersProvider = NotifierProvider<FiredPlaceReminders, Set<St
 /// Drops the place reminder of each note whose reminder id is in [fired]:
 /// a place reminder is done once it has gone off, like a timed one that
 /// has passed. Returns the ids handled (found or no longer there).
+///
+/// Shared notes are read after the account's own. Until they are in
+/// ([allLoaded] false), a reminder whose note isn't in [notes] is kept
+/// for the next try instead of counted as gone.
 Future<Set<String>> clearFiredPlaceReminders(
   Future<void> Function(Note note) updateNote,
   List<Note> notes,
-  Set<String> fired,
-) async {
+  Set<String> fired, {
+  bool allLoaded = true,
+}) async {
   final handled = <String>{};
   for (final id in fired) {
     final noteId = NotePlaceReminder.noteIdOf(id);
     final note = notes.where((n) => n.id == noteId).firstOrNull;
+    if (note == null && !allLoaded) continue;
     final current = note?.placeReminder;
     if (note != null && current != null && current.idFor(note.id) == id) {
       await updateNote(note.copyWith(placeReminder: null));
