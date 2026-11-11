@@ -30,6 +30,7 @@ class Note {
     this.images = const [],
     this.position,
     this.locked = false,
+    this.drawings = const {},
     this.extra = const {},
     this.spaceId,
   });
@@ -60,6 +61,7 @@ class Note {
       images: imagesFromJson(json['images']),
       position: (json['position'] as num?)?.toDouble(),
       locked: json['locked'] == true,
+      drawings: drawingsFromJson(json['drawings']),
       extra: {
         for (final entry in json.entries)
           if (!_knownKeys.contains(entry.key)) entry.key: entry.value,
@@ -83,6 +85,24 @@ class Note {
     return images;
   }
 
+  /// Image id -> the strokes it was drawn from; entries this build can't
+  /// read are skipped.
+  static Map<String, ZtAttachmentRef> drawingsFromJson(Object? value) {
+    if (value is! Map) return const {};
+    final drawings = <String, ZtAttachmentRef>{};
+    for (final entry in value.entries) {
+      if (entry.key is! String || entry.value is! Map) continue;
+      try {
+        drawings[entry.key as String] = ZtAttachmentRef.fromJson(
+          (entry.value as Map).cast<String, Object?>(),
+        );
+      } on Object {
+        // Malformed or from a newer format: leave it out.
+      }
+    }
+    return drawings;
+  }
+
   static DateTime? _date(Object? value) => switch (value) {
     final String s => DateTime.tryParse(s),
     _ => null,
@@ -103,6 +123,7 @@ class Note {
     'images',
     'position',
     'locked',
+    'drawings',
   };
 
   /// Notebooks and tags share the store with notes and carry a `kind`.
@@ -146,6 +167,11 @@ class Note {
   /// Opening it asks for the device's fingerprint, face or screen lock
   /// again, and the list shows only its title.
   final bool locked;
+
+  /// Drawings among [images]: image id -> the encrypted strokes it was
+  /// drawn from, so it can be edited again. The picture itself is in
+  /// [images] like a photo, so older builds and exports show it.
+  final Map<String, ZtAttachmentRef> drawings;
   final Map<String, Object?> extra;
 
   /// Set for a note kept in a shared space (a shared notebook or a note
@@ -158,6 +184,9 @@ class Note {
   bool get isTrashed => trashedAt != null;
   bool get isChecklist => checklist != null;
   bool get hasImages => images.isNotEmpty;
+
+  /// Every stored file this note uses: images and drawing strokes.
+  List<ZtAttachmentRef> get attachments => [...images, ...drawings.values];
 
   /// Custom order, highest first: a note's dragged [position], or its
   /// last edit for one never moved. New and edited notes come to the top;
@@ -186,7 +215,9 @@ class Note {
     List<ZtAttachmentRef>? images,
     Object? position = _unset,
     bool? locked,
+    Map<String, ZtAttachmentRef>? drawings,
     DateTime? updatedAt,
+    Object? spaceId = _unset,
   }) {
     return Note(
       id: id,
@@ -205,33 +236,17 @@ class Note {
       images: images ?? this.images,
       position: identical(position, _unset) ? this.position : position as double?,
       locked: locked ?? this.locked,
+      drawings: drawings ?? this.drawings,
       extra: extra,
-      spaceId: spaceId,
+      spaceId: identical(spaceId, _unset) ? this.spaceId : spaceId as String?,
     );
   }
 
   /// The same note, as read from shared space [spaceId] (or from the
   /// account's own store when null), filed in [notebookId].
-  Note located(String? spaceId, {required String? notebookId}) => Note(
-    id: id,
-    notebookId: notebookId,
-    title: title,
-    body: body,
-    createdAt: createdAt,
-    updatedAt: updatedAt,
-    tagIds: tagIds,
-    pinned: pinned,
-    color: color,
-    archived: archived,
-    trashedAt: trashedAt,
-    checklist: checklist,
-    reminderAt: reminderAt,
-    images: images,
-    position: position,
-    locked: locked,
-    extra: extra,
-    spaceId: spaceId,
-  );
+  // Through copyWith, so every other field (and any added later) is kept.
+  Note located(String? spaceId, {required String? notebookId}) =>
+      copyWith(notebookId: notebookId, spaceId: spaceId);
 
   /// Turns a text note into a checklist (one item per non-empty line) or a
   /// checklist back into text (one line per item, ticks dropped).
@@ -265,6 +280,7 @@ class Note {
     List<ZtAttachmentRef> images = const [],
     double? position,
     bool locked = false,
+    Map<String, ZtAttachmentRef> drawings = const {},
     Map<String, Object?> extra = const {},
   }) => {
     ...extra,
@@ -284,6 +300,8 @@ class Note {
     if (images.isNotEmpty) 'images': [for (final image in images) image.toJson()],
     'position': ?position,
     if (locked) 'locked': true,
+    if (drawings.isNotEmpty)
+      'drawings': {for (final e in drawings.entries) e.key: e.value.toJson()},
   };
 
   Map<String, Object?> toItemJson() => itemJson(
@@ -301,6 +319,7 @@ class Note {
     images: images,
     position: position,
     locked: locked,
+    drawings: drawings,
     extra: extra,
   );
 }

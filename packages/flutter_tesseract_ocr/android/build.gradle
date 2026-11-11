@@ -1,0 +1,46 @@
+group 'io.paratoner.flutter_tesseract_ocr'
+version '1.0'
+
+// Patched for Zero-Trust Notes: the published 0.4.31 build script asks for
+// jcenter() and AGP 7, which Gradle 9 / AGP 9 no longer accept. The rest
+// mirrors the plugins that already build with AGP 9 (e.g. home_widget).
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.1.2'
+    }
+}
+
+rootProject.allprojects {
+    repositories {
+        flatDir {
+            dirs project(':flutter_tesseract_ocr').file('libs')
+        }
+    }
+}
+
+apply plugin: 'com.android.library'
+
+android {
+    namespace 'io.paratoner.flutter_tesseract_ocr'
+    compileSdk 34
+
+    defaultConfig {
+        minSdkVersion 21
+    }
+    lintOptions {
+        disable 'InvalidPackage'
+    }
+    compileOptions {
+        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    api(name: 'tesseract4android-release', ext: 'aar')
+}

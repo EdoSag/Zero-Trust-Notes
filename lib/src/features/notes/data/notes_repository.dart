@@ -85,6 +85,7 @@ class NotesRepository {
     DateTime? reminderAt,
     List<ZtAttachmentRef> images = const [],
     bool locked = false,
+    Map<String, ZtAttachmentRef> drawings = const {},
     DateTime? createdAt,
   }) async {
     final now = _clock().toUtc();
@@ -103,6 +104,7 @@ class NotesRepository {
       reminderAt: reminderAt,
       images: images,
       locked: locked,
+      drawings: drawings,
     );
     return updateNote(note);
   }
@@ -147,6 +149,10 @@ class NotesRepository {
     return (await attachments()).put(bytes, mimeType: mimeType, name: name);
   }
 
+  /// Encrypts a drawing's strokes for a note, like [addImage].
+  Future<ZtAttachmentRef> addFile(Uint8List bytes, {String? mimeType, String? name}) =>
+      addImage(bytes, mimeType: mimeType, name: name);
+
   /// The decrypted image.
   Future<Uint8List> readImage(ZtAttachmentRef image) async {
     final attachments = _attachments;
@@ -164,7 +170,7 @@ class NotesRepository {
     try {
       final inUse = {
         for (final note in await fetchEverything())
-          for (final image in note.images) image.id,
+          for (final file in note.attachments) file.id,
       };
       final unused = [
         for (final image in images)
@@ -194,7 +200,7 @@ class NotesRepository {
     // Images of shared notes stay: another member's note may show them.
     await releaseImages([
       for (final note in notes)
-        if (!note.isShared) ...note.images,
+        if (!note.isShared) ...note.attachments,
     ]);
   }
 

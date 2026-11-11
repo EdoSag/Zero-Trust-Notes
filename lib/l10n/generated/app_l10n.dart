@@ -1740,6 +1740,186 @@ abstract class AppL10n {
   /// In en, this message translates to:
   /// **'Sharing isn\'t available right now. Check your internet connection.'**
   String get sharingUnavailable;
+
+  /// No description provided for @imageTextTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Text from image'**
+  String get imageTextTitle;
+
+  /// No description provided for @imageTextPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'The text is read on this phone. The image is never uploaded.'**
+  String get imageTextPrivacy;
+
+  /// No description provided for @ocrBoth.
+  ///
+  /// In en, this message translates to:
+  /// **'Both'**
+  String get ocrBoth;
+
+  /// No description provided for @ocrEnglish.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get ocrEnglish;
+
+  /// No description provided for @ocrHebrew.
+  ///
+  /// In en, this message translates to:
+  /// **'Hebrew'**
+  String get ocrHebrew;
+
+  /// No description provided for @readingImageText.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading the text…'**
+  String get readingImageText;
+
+  /// No description provided for @cantReadImageText.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t read the text in this image.'**
+  String get cantReadImageText;
+
+  /// No description provided for @noImageText.
+  ///
+  /// In en, this message translates to:
+  /// **'No text found in this image. Try another language above, or a sharper photo.'**
+  String get noImageText;
+
+  /// No description provided for @copyText.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get copyText;
+
+  /// No description provided for @textCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Text copied'**
+  String get textCopied;
+
+  /// No description provided for @textFromPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Text from a photo'**
+  String get textFromPhoto;
+
+  /// No description provided for @grabImageText.
+  ///
+  /// In en, this message translates to:
+  /// **'Grab image text'**
+  String get grabImageText;
+
+  /// No description provided for @choosePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a photo'**
+  String get choosePhoto;
+
+  /// No description provided for @addDrawing.
+  ///
+  /// In en, this message translates to:
+  /// **'Drawing'**
+  String get addDrawing;
+
+  /// No description provided for @newDrawing.
+  ///
+  /// In en, this message translates to:
+  /// **'New drawing'**
+  String get newDrawing;
+
+  /// No description provided for @editDrawing.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit drawing'**
+  String get editDrawing;
+
+  /// No description provided for @saveDrawing.
+  ///
+  /// In en, this message translates to:
+  /// **'Save drawing'**
+  String get saveDrawing;
+
+  /// No description provided for @drawSomethingFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Draw something first.'**
+  String get drawSomethingFirst;
+
+  /// No description provided for @discardDrawingQ.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard your changes to this drawing?'**
+  String get discardDrawingQ;
+
+  /// No description provided for @keepDrawing.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep drawing'**
+  String get keepDrawing;
+
+  /// No description provided for @discard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get discard;
+
+  /// No description provided for @colorBlack.
+  ///
+  /// In en, this message translates to:
+  /// **'Black'**
+  String get colorBlack;
+
+  /// No description provided for @pen.
+  ///
+  /// In en, this message translates to:
+  /// **'Pen'**
+  String get pen;
+
+  /// No description provided for @highlighter.
+  ///
+  /// In en, this message translates to:
+  /// **'Highlighter'**
+  String get highlighter;
+
+  /// No description provided for @eraser.
+  ///
+  /// In en, this message translates to:
+  /// **'Eraser'**
+  String get eraser;
+
+  /// No description provided for @redo.
+  ///
+  /// In en, this message translates to:
+  /// **'Redo'**
+  String get redo;
+
+  /// No description provided for @clearDrawing.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear page'**
+  String get clearDrawing;
+
+  /// No description provided for @drawingCanvas.
+  ///
+  /// In en, this message translates to:
+  /// **'Drawing area. Draw with a finger or a stylus.'**
+  String get drawingCanvas;
+
+  /// No description provided for @cantOpenDrawing.
+  ///
+  /// In en, this message translates to:
+  /// **'This drawing can\'t be opened for editing here yet. Sync, then try again.'**
+  String get cantOpenDrawing;
+
+  /// No description provided for @thickness.
+  ///
+  /// In en, this message translates to:
+  /// **'Thickness {size}'**
+  String thickness(int size);
 }
 
 class _AppL10nDelegate extends LocalizationsDelegate<AppL10n> {
