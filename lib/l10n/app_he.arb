@@ -256,5 +256,7 @@
   "colorGray": "אפור",
   "widgetTakeANote": "כתיבת פתק…",
   "widgetNote": "פתק",
-  "widgetTapToOpen": "יש להקיש כדי לפתוח ב-ZT Notes"
+  "widgetTapToOpen": "יש להקיש כדי לפתוח ב-ZT Notes",
+  "remindAtPlace": "תזכורת לפי מיקום",
+  "removePlaceReminder": "הסרת התזכורת לפי מיקום"
 }

@@ -548,5 +548,7 @@
   "colorGray": "Gray",
   "widgetTakeANote": "Take a note…",
   "widgetNote": "Note",
-  "widgetTapToOpen": "Tap to open in ZT Notes"
+  "widgetTapToOpen": "Tap to open in ZT Notes",
+  "remindAtPlace": "Remind me at a place",
+  "removePlaceReminder": "Remove place reminder"
 }

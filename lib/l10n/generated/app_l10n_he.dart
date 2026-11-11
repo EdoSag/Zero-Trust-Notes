@@ -953,4 +953,10 @@ class AppL10nHe extends AppL10n {
 
   @override
   String get widgetTapToOpen => 'יש להקיש כדי לפתוח ב-ZT Notes';
+
+  @override
+  String get remindAtPlace => 'תזכורת לפי מיקום';
+
+  @override
+  String get removePlaceReminder => 'הסרת התזכורת לפי מיקום';
 }

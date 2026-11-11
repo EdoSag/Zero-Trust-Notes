@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import 'package:zero_trust_core/zero_trust_core.dart';
 
 import '../../../shared/watch_store.dart';
+import '../../places/note_place_reminder.dart';
 import '../domain/checklist_item.dart';
 import '../domain/note.dart';
 import '../domain/note_color.dart';
@@ -56,6 +57,7 @@ class NotesRepository {
     DateTime? reminderAt,
     List<ZtAttachmentRef> images = const [],
     bool locked = false,
+    NotePlaceReminder? placeReminder,
     DateTime? createdAt,
   }) async {
     final now = _clock().toUtc();
@@ -74,6 +76,7 @@ class NotesRepository {
       reminderAt: reminderAt,
       images: images,
       locked: locked,
+      placeReminder: placeReminder,
     );
     await (await _sync()).save(note.id, note.toItemJson());
     return note;
@@ -85,7 +88,12 @@ class NotesRepository {
   /// Moves [note] to Trash, where it stays for [Note.trashRetention]. Its
   /// pin and reminder are dropped, like Keep does.
   Future<Note> moveToTrash(Note note) async {
-    final trashed = note.copyWith(trashedAt: _clock().toUtc(), pinned: false, reminderAt: null);
+    final trashed = note.copyWith(
+      trashedAt: _clock().toUtc(),
+      pinned: false,
+      reminderAt: null,
+      placeReminder: null,
+    );
     await updateNote(trashed);
     return trashed;
   }

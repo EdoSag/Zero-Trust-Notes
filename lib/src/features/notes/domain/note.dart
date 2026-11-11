@@ -1,5 +1,6 @@
 import 'package:zero_trust_core/zero_trust_core.dart';
 
+import '../../places/note_place_reminder.dart';
 import 'checklist_item.dart';
 import 'note_color.dart';
 
@@ -30,6 +31,7 @@ class Note {
     this.images = const [],
     this.position,
     this.locked = false,
+    this.placeReminder,
     this.extra = const {},
   });
 
@@ -59,6 +61,7 @@ class Note {
       images: imagesFromJson(json['images']),
       position: (json['position'] as num?)?.toDouble(),
       locked: json['locked'] == true,
+      placeReminder: NotePlaceReminder.fromJson(json['placeReminder']),
       extra: {
         for (final entry in json.entries)
           if (!_knownKeys.contains(entry.key)) entry.key: entry.value,
@@ -102,6 +105,7 @@ class Note {
     'images',
     'position',
     'locked',
+    'placeReminder',
   };
 
   /// Notebooks and tags share the store with notes and carry a `kind`.
@@ -145,11 +149,16 @@ class Note {
   /// Opening it asks for the device's fingerprint, face or screen lock
   /// again, and the list shows only its title.
   final bool locked;
+
+  /// "Remind me when I arrive at / leave a place". The phone watches the
+  /// place itself; the location never leaves it.
+  final NotePlaceReminder? placeReminder;
   final Map<String, Object?> extra;
 
   bool get isTrashed => trashedAt != null;
   bool get isChecklist => checklist != null;
   bool get hasImages => images.isNotEmpty;
+  bool get hasAnyReminder => reminderAt != null || placeReminder != null;
 
   /// Custom order, highest first: a note's dragged [position], or its
   /// last edit for one never moved. New and edited notes come to the top;
@@ -162,7 +171,7 @@ class Note {
   static const _unset = Object();
 
   /// Nullable fields ([notebookId], [trashedAt], [checklist], [reminderAt],
-  /// [position])
+  /// [position], [placeReminder])
   /// default to "leave unchanged"; pass `null` explicitly to clear them.
   Note copyWith({
     String? title,
@@ -178,6 +187,7 @@ class Note {
     List<ZtAttachmentRef>? images,
     Object? position = _unset,
     bool? locked,
+    Object? placeReminder = _unset,
     DateTime? updatedAt,
   }) {
     return Note(
@@ -197,6 +207,9 @@ class Note {
       images: images ?? this.images,
       position: identical(position, _unset) ? this.position : position as double?,
       locked: locked ?? this.locked,
+      placeReminder: identical(placeReminder, _unset)
+          ? this.placeReminder
+          : placeReminder as NotePlaceReminder?,
       extra: extra,
     );
   }
@@ -233,6 +246,7 @@ class Note {
     List<ZtAttachmentRef> images = const [],
     double? position,
     bool locked = false,
+    NotePlaceReminder? placeReminder,
     Map<String, Object?> extra = const {},
   }) => {
     ...extra,
@@ -252,6 +266,7 @@ class Note {
     if (images.isNotEmpty) 'images': [for (final image in images) image.toJson()],
     'position': ?position,
     if (locked) 'locked': true,
+    if (placeReminder != null) 'placeReminder': placeReminder.toJson(),
   };
 
   Map<String, Object?> toItemJson() => itemJson(
@@ -269,6 +284,7 @@ class Note {
     images: images,
     position: position,
     locked: locked,
+    placeReminder: placeReminder,
     extra: extra,
   );
 }
