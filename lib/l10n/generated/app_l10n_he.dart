@@ -504,7 +504,7 @@ class AppL10nHe extends AppL10n {
 
   @override
   String get widgetDetailsBody =>
-      'כבוי: הווידג\'ט של הפתק מציג מנעול. מופעל: הכותרת ותחילת כל פתק מוצמד נשמרות בטלפון הזה ללא הצפנה, בשביל מסך הבית. הטקסט של פתקים נעולים אף פעם לא מוצג';
+      'כבוי: הווידג\'טים של הפתקים מציגים מנעול. מופעל: כותרות הפתקים ותחילת הטקסט שלהם נשמרות בטלפון הזה ללא הצפנה, בשביל מסך הבית (הפתק של ווידג\'ט הפתק, והפתקים האחרונים לווידג\'ט רשימת הפתקים). הטקסט של פתקים נעולים אף פעם לא מוצג';
 
   @override
   String get exportFormats => 'Markdown,‏ JSON או PDF';
@@ -1114,4 +1114,29 @@ class AppL10nHe extends AppL10n {
   String thickness(int size) {
     return 'עובי $size';
   }
+
+  @override
+  String get widgetNotes => 'פתקים';
+
+  @override
+  String get widgetPinned => 'מוצמדים';
+
+  @override
+  String get widgetNoNotes => 'אין עדיין פתקים';
+
+  @override
+  String get widgetNoPinned => 'אין פתקים מוצמדים';
+
+  @override
+  String get widgetNotesHidden =>
+      'כדי לראות כאן את הפתקים, יש להפעיל את \"הצגת פרטים במסך הבית\" בהגדרות של ZT Notes';
+
+  @override
+  String get widgetOpenToSeeNotes => 'יש לפתוח את ZT Notes כדי לראות את הפתקים';
+
+  @override
+  String get widgetSwitchView => 'מעבר בין כל הפתקים לפתקים המוצמדים';
+
+  @override
+  String get widgetPhotoNote => 'פתק חדש עם תמונה';
 }

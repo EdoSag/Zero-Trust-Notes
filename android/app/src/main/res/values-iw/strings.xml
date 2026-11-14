@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="quick_add_widget_label">פתק חדש</string>
-    <string name="quick_add_widget_description">הקשה אחת לפתק חדש. אפשר להרחיב לסרגל \"כתיבת פתק\"</string>
+    <string name="quick_add_widget_description">הקשה אחת לפתק חדש. אפשר להרחיב לסרגל \"כתיבת פתק\" עם כפתורים לרשימה, להקלטה ולתמונה</string>
     <string name="single_note_widget_label">פתק</string>
     <string name="single_note_widget_description">פתק אחד במסך הבית. הטקסט שלו מוצג רק כשההגדרה \"הצגת פרטים במסך הבית\" מופעלת</string>
     <string name="widget_new_note">פתק חדש</string>
@@ -9,4 +9,22 @@
     <string name="widget_note">פתק</string>
     <string name="widget_tap_to_open">יש להקיש כדי לפתוח ב-ZT Notes</string>
     <string name="widget_untitled">(ללא כותרת)</string>
+    <string name="notes_list_widget_label">רשימת פתקים</string>
+    <string name="notes_list_widget_description">הפתקים שלך, המוצמדים קודם, ברשימה נגללת. הקשה על הכותרת מציגה רק את המוצמדים. הפתקים מוצגים רק כשההגדרה \"הצגת פרטים במסך הבית\" מופעלת</string>
+    <string name="widget_notes">פתקים</string>
+    <string name="widget_pinned">מוצמדים</string>
+    <string name="widget_no_notes">אין עדיין פתקים</string>
+    <string name="widget_no_pinned">אין פתקים מוצמדים</string>
+    <string name="widget_notes_hidden">כדי לראות כאן את הפתקים, יש להפעיל את \"הצגת פרטים במסך הבית\" בהגדרות של ZT Notes</string>
+    <string name="widget_open_to_see_notes">יש לפתוח את ZT Notes כדי לראות את הפתקים</string>
+    <string name="widget_switch_view">מעבר בין כל הפתקים לפתקים המוצמדים</string>
+    <string name="widget_new_checklist">רשימת משימות חדשה</string>
+    <string name="widget_voice_note">פתק קולי</string>
+    <string name="widget_photo_note">פתק חדש עם תמונה</string>
+    <string name="widget_preview_note_1_title">קניות</string>
+    <string name="widget_preview_note_1_body">☐ חלב\n☐ לחם\n☐ עגבניות</string>
+    <string name="widget_preview_note_2_title">רעיונות למתנות</string>
+    <string name="widget_preview_note_2_body">ספר על ציפורים, מטרייה טובה</string>
+    <string name="widget_preview_note_3_title">Wi-Fi בבקתה</string>
+    <string name="widget_preview_note_3_body">לבקש מהבעלים את הסיסמה החדשה</string>
 </resources>

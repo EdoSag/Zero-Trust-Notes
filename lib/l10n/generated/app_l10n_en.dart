@@ -500,7 +500,7 @@ class AppL10nEn extends AppL10n {
 
   @override
   String get widgetDetailsBody =>
-      'Off: the Note widget shows a lock. On: the title and start of each pinned note are stored unencrypted on this phone for the home screen. Locked notes never show their text';
+      'Off: note widgets show a lock. On: note titles and the start of their text are stored unencrypted on this phone for the home screen (the Note widget\'s note, and the newest notes for the Notes list widget). Locked notes never show their text';
 
   @override
   String get exportFormats => 'Markdown, JSON or PDF';
@@ -1111,4 +1111,29 @@ class AppL10nEn extends AppL10n {
   String thickness(int size) {
     return 'Thickness $size';
   }
+
+  @override
+  String get widgetNotes => 'Notes';
+
+  @override
+  String get widgetPinned => 'Pinned';
+
+  @override
+  String get widgetNoNotes => 'No notes yet';
+
+  @override
+  String get widgetNoPinned => 'No pinned notes';
+
+  @override
+  String get widgetNotesHidden =>
+      'Turn on \"Show details on the home screen\" in ZT Notes settings to see your notes here';
+
+  @override
+  String get widgetOpenToSeeNotes => 'Open ZT Notes to see your notes';
+
+  @override
+  String get widgetSwitchView => 'Switch between all notes and pinned notes';
+
+  @override
+  String get widgetPhotoNote => 'New note with a photo';
 }

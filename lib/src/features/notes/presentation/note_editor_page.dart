@@ -51,12 +51,17 @@ class NoteEditorPage extends ConsumerStatefulWidget {
     this.archived = false,
     this.shared,
     this.startWithVoice = false,
+    this.startWithPhoto = false,
   });
 
   final Note? note;
 
   /// For a new note: open the voice note sheet straight away.
   final bool startWithVoice;
+
+  /// For a new note: open the camera straight away (the photos picker on a
+  /// device without one), from the quick capture widget.
+  final bool startWithPhoto;
 
   /// For a new note made from what another app shared.
   final SharedContent? shared;
@@ -146,6 +151,11 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     if (!_lockOpen) WidgetsBinding.instance.addPostFrameCallback((_) => _openLock());
     if (widget.startWithVoice && note == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _dictate());
+    }
+    if (widget.startWithPhoto && note == null) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _pickImages(_hasCamera ? NoteImageSource.camera : NoteImageSource.gallery),
+      );
     }
     _lastSavedAt = note?.updatedAt;
     _titleController.addListener(_onTextChanged);

@@ -5,8 +5,24 @@ sealed class PendingWidgetAction {
   const PendingWidgetAction();
 }
 
+/// What the quick capture bar's buttons start: a text note, a checklist,
+/// a voice note, or a photo.
+enum NewNoteKind {
+  text,
+  checklist,
+  voice,
+  photo;
+
+  /// From the widget's `zerotrustnotes://new-note?kind=…`; text if missing
+  /// or unknown.
+  static NewNoteKind parse(String? value) =>
+      values.where((kind) => kind.name == value).firstOrNull ?? text;
+}
+
 class OpenNewNote extends PendingWidgetAction {
-  const OpenNewNote();
+  const OpenNewNote([this.kind = NewNoteKind.text]);
+
+  final NewNoteKind kind;
 }
 
 class OpenNote extends PendingWidgetAction {
