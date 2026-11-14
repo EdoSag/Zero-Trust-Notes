@@ -128,11 +128,20 @@ class HomeWidgetSyncService {
 
   Future<List<int>> _installedSingleNoteWidgetIds() => _installedIds(singleNoteProviderQualifiedName);
 
+  /// home_widget reports the provider's short class name (".widgets.X")
+  /// rather than the full one, so compare on the class name itself.
+  static bool sameProvider(String? reported, String qualified) {
+    if (reported == null || reported.isEmpty) return false;
+    if (reported == qualified) return true;
+    if (reported.startsWith('.')) return qualified.endsWith(reported);
+    return reported.split('.').last == qualified.split('.').last;
+  }
+
   Future<List<int>> _installedIds(String provider) async {
     if (!isSupported) return const [];
     final installed = await HomeWidget.getInstalledWidgets();
     return installed
-        .where((info) => info.androidClassName == provider)
+        .where((info) => sameProvider(info.androidClassName, provider))
         .map((info) => info.androidWidgetId)
         .whereType<int>()
         .toList();

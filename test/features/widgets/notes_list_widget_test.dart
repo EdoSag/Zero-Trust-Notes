@@ -105,4 +105,13 @@ void main() {
       expect(action('zerotrustnotes://open'), isNull);
     });
   });
+
+  test('installed widgets match by short class name, as home_widget reports them', () {
+    const list = HomeWidgetSyncService.notesListProviderQualifiedName;
+    const single = HomeWidgetSyncService.singleNoteProviderQualifiedName;
+    expect(HomeWidgetSyncService.sameProvider('.widgets.NotesListWidgetProvider', list), isTrue);
+    expect(HomeWidgetSyncService.sameProvider(list, list), isTrue);
+    expect(HomeWidgetSyncService.sameProvider('.widgets.NotesListWidgetProvider', single), isFalse);
+    expect(HomeWidgetSyncService.sameProvider(null, list), isFalse);
+  });
 }
