@@ -47,3 +47,6 @@ app.*.map.json
 # Secrets
 .env
 .claude
+
+# Written and removed by `dart run zt_release_checks`.
+test/zt_release_checks_test.dart

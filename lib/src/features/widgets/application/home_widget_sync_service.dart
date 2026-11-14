@@ -1,11 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:home_widget/home_widget.dart';
 
 import '../../notes/domain/note.dart';
 import 'package:zerotrust_notes/l10n/l10n.dart';
 
-/// Keeps the native Single Note widget's SharedPreferences-backed render
-/// cache in sync with the vault's lock state.
+/// Keeps the native Note and Notes list widgets' SharedPreferences-backed
+/// render cache in sync with the vault's lock state.
 ///
 /// Security invariant this service exists to enforce: `widget_<id>_title`
 /// and `widget_<id>_body` are written **only** when the user turned on
@@ -14,7 +16,9 @@ import 'package:zerotrust_notes/l10n/l10n.dart';
 /// With the switch off they are removed — not blanked — the instant the
 /// vault locks or the app leaves the foreground ([clearUnlessAllowed]). With
 /// it on they stay for the home screen until it is turned off or the account
-/// signs out ([clearAllPlaintext]), like Tasks' and Calendar's widgets. `widget_<id>_note_id` is the one
+/// signs out ([clearAllPlaintext]), like Tasks' and Calendar's widgets. The
+/// Notes list widget's [notesListKey] follows the same rules.
+/// `widget_<id>_note_id` is the one
 /// exception: it is not secret (same trust tier as the store's own item
 /// ids) and is left in place so the widget remembers which note it's pinned
 /// to across a lock/unlock cycle.
@@ -27,6 +31,16 @@ class HomeWidgetSyncService {
   static bool get isSupported => !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
   static const singleNoteProviderQualifiedName = 'dev.sagron.zerotrustnotes.widgets.SingleNoteWidgetProvider';
+
+  /// The Notes list widget (W4): pinned notes first, then the newest.
+  static const notesListProviderQualifiedName = 'dev.sagron.zerotrustnotes.widgets.NotesListWidgetProvider';
+
+  /// The notes the Notes list widget may show, as JSON: written only while
+  /// "Show details on the home screen" is on and such a widget is placed.
+  static const notesListKey = 'notes_list_widget_json';
+
+  /// At most this many notes go on the home screen; the widget scrolls.
+  static const notesListMax = 40;
 
   static const _bodyPreviewLength = 200;
 
@@ -82,12 +96,24 @@ class HomeWidgetSyncService {
       'note': l.widgetNote,
       'tap_to_open': l.widgetTapToOpen,
       'untitled': l.untitled,
+      'notes': l.widgetNotes,
+      'pinned': l.widgetPinned,
+      'no_notes': l.widgetNoNotes,
+      'no_pinned': l.widgetNoPinned,
+      'details_off': l.widgetNotesHidden,
+      'open_to_see': l.widgetOpenToSeeNotes,
+      'switch_view': l.widgetSwitchView,
+      'new_checklist': l.newChecklist,
+      'voice_note': l.voiceNote,
+      'photo_note': l.widgetPhotoNote,
+      'locked_note': l.lockedNote,
     };
     for (final MapEntry(:key, :value) in texts.entries) {
       await HomeWidget.saveWidgetData<String>('notes_widget_text_$key', value);
     }
     await HomeWidget.updateWidget(qualifiedAndroidName: quickAddProviderQualifiedName);
     await HomeWidget.updateWidget(qualifiedAndroidName: singleNoteProviderQualifiedName);
+    await HomeWidget.updateWidget(qualifiedAndroidName: notesListProviderQualifiedName);
   }
 
   Future<void> clearUnlessAllowed() async {
@@ -100,14 +126,60 @@ class HomeWidgetSyncService {
   String _titleKey(String appWidgetId) => 'widget_${appWidgetId}_title';
   String _bodyKey(String appWidgetId) => 'widget_${appWidgetId}_body';
 
-  Future<List<int>> _installedSingleNoteWidgetIds() async {
+  Future<List<int>> _installedSingleNoteWidgetIds() => _installedIds(singleNoteProviderQualifiedName);
+
+  /// home_widget reports the provider's short class name (".widgets.X")
+  /// rather than the full one, so compare on the class name itself.
+  static bool sameProvider(String? reported, String qualified) {
+    if (reported == null || reported.isEmpty) return false;
+    if (reported == qualified) return true;
+    if (reported.startsWith('.')) return qualified.endsWith(reported);
+    return reported.split('.').last == qualified.split('.').last;
+  }
+
+  Future<List<int>> _installedIds(String provider) async {
     if (!isSupported) return const [];
     final installed = await HomeWidget.getInstalledWidgets();
     return installed
-        .where((info) => info.androidClassName == singleNoteProviderQualifiedName)
+        .where((info) => sameProvider(info.androidClassName, provider))
         .map((info) => info.androidWidgetId)
         .whereType<int>()
         .toList();
+  }
+
+  /// What the Notes list widget shows for [notes]: notes neither archived
+  /// nor in the trash, pinned first, then the most recently edited. `t` is
+  /// the title, `b` the start of the text (a locked note's says it is
+  /// locked; a checklist's lists its open items first), `p` pinned.
+  /// [l] is for tests; the app's language otherwise.
+  static List<Map<String, Object>> notesListItems(List<Note> notes, {AppL10n? l}) {
+    final l10n = l ?? currentL10n;
+    final shown = notes.where((note) => !note.archived && !note.isTrashed).toList()
+      ..sort((a, b) {
+        if (a.pinned != b.pinned) return a.pinned ? -1 : 1;
+        return b.updatedAt.compareTo(a.updatedAt);
+      });
+    String preview(Note note) {
+      if (note.locked) return l10n.lockedNote;
+      final checklist = note.checklist;
+      final text = checklist == null
+          ? note.body.trim()
+          : [
+              for (final item in checklist.where((i) => !i.checked)) '☐ ${item.text}',
+              for (final item in checklist.where((i) => i.checked)) '☑ ${item.text}',
+            ].join('\n');
+      return text.length > _bodyPreviewLength ? '${text.substring(0, _bodyPreviewLength)}…' : text;
+    }
+
+    return [
+      for (final note in shown.take(notesListMax))
+        {
+          'id': note.id,
+          't': note.title.trim(),
+          'b': preview(note),
+          'p': note.pinned,
+        },
+    ];
   }
 
   /// Pins [note] to [appWidgetId] and immediately shows its preview. Called
@@ -134,6 +206,13 @@ class HomeWidgetSyncService {
 
   Future<void> _writeUnlockedPreviews(List<Note> notes, int epoch) async {
     if (epoch != _epoch || !await detailsAllowed()) return;
+    // Only while a Notes list widget is placed: no note text on the phone
+    // for a widget that isn't there.
+    if ((await _installedIds(notesListProviderQualifiedName)).isNotEmpty) {
+      if (epoch != _epoch) return;
+      await HomeWidget.saveWidgetData<String>(notesListKey, jsonEncode(notesListItems(notes)));
+      await HomeWidget.updateWidget(qualifiedAndroidName: notesListProviderQualifiedName);
+    }
     final widgetIds = await _installedSingleNoteWidgetIds();
     if (widgetIds.isEmpty) return;
 
@@ -182,6 +261,9 @@ class HomeWidgetSyncService {
   }
 
   Future<void> _clearAllPlaintext() async {
+    if (!isSupported) return;
+    await HomeWidget.saveWidgetData<String>(notesListKey, null);
+    await HomeWidget.updateWidget(qualifiedAndroidName: notesListProviderQualifiedName);
     final widgetIds = await _installedSingleNoteWidgetIds();
     for (final widgetId in widgetIds) {
       final appWidgetId = widgetId.toString();

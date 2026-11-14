@@ -31,6 +31,14 @@ jobs:
   apk:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    # A throwaway database for the release checks below.
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: postgres }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-retries 10
     steps:
       - uses: actions/checkout@v5
         with:
@@ -123,6 +131,20 @@ jobs:
 
       - run: flutter pub get
 
+      - name: Release checks
+        # Shared by every Zero-Trust app (Zero-Trust-Core,
+        # packages/zt_release_checks): key, sync and sign-in vectors run with
+        # this app's dependencies, app setup, and the database rules of the
+        # pinned core plus every table and function this app calls. A
+        # failure here stops the release.
+        env: { PGHOST: localhost, PGUSER: postgres, PGPASSWORD: postgres }
+        run: dart run zt_release_checks --app notes --database
+
+      - name: Analyze and test
+        run: |
+          flutter analyze
+          flutter test test/
+
       - name: Build the release APK
         run: |
           set -e
@@ -139,6 +161,25 @@ jobs:
             echo "APK=$APK"
           } >> "$GITHUB_ENV"
 
+      - name: Build the Google Play bundle
+        # Google Play takes an .aab, not an .apk. Built for releases (and
+        # manual runs) only, so pull request checks stay fast. It has the same
+        # version code as the APK beside it.
+        if: (github.ref == 'refs/heads/main' && github.event_name == 'push') || github.event_name == 'workflow_dispatch'
+        run: |
+          set -e
+          flutter build appbundle --release --build-number="$BUILD"
+          AAB="$APP_SLUG-$VERSION-build$BUILD.aab"
+          cp build/app/outputs/bundle/release/app-release.aab "$AAB"
+          echo "AAB=$AAB" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        if: env.AAB != ''
+        with:
+          name: ${{ env.AAB }}
+          path: ${{ env.AAB }}
+          retention-days: 14
+
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ env.APK }}
@@ -152,10 +193,12 @@ jobs:
         run: |
           TAG="v$VERSION-build$BUILD"
           SUBJECT=$(git log -1 --pretty=%s)
-          gh release create "$TAG" "$APK" \
+          gh release create "$TAG" "$APK" ${AAB:+"$AAB"} \
             --target "$GITHUB_SHA" \
             --title "$APP_TITLE $VERSION (build $BUILD)" \
             --notes "Latest change: $SUBJECT
 
-          Download **$APK** below and open it on your phone to install or update. Android may ask you to allow installs from this source the first time." \
+          Download **$APK** below and open it on your phone to install or update. Android may ask you to allow installs from this source the first time.
+
+          The .aab file is for uploading to the Google Play Console; phones install the .apk." \
             --latest

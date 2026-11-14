@@ -326,7 +326,7 @@
     }
   },
   "widgetDetails": "Show details on the home screen",
-  "widgetDetailsBody": "Off: the Note widget shows a lock. On: the title and start of each pinned note are stored unencrypted on this phone for the home screen. Locked notes never show their text",
+  "widgetDetailsBody": "Off: note widgets show a lock. On: note titles and the start of their text are stored unencrypted on this phone for the home screen (the Note widget's note, and the newest notes for the Notes list widget). Locked notes never show their text",
   "exportFormats": "Markdown, JSON or PDF",
   "keepSubtitle": "From a Google Takeout file, on this phone",
   "importOldVault": "Import notes from your old vault",
@@ -610,5 +610,13 @@
   "drawingCanvas": "Drawing area. Draw with a finger or a stylus.",
   "cantOpenDrawing": "This drawing can't be opened for editing here yet. Sync, then try again.",
   "thickness": "Thickness {size}",
-  "@thickness": {"placeholders": {"size": {"type": "int"}}}
+  "@thickness": {"placeholders": {"size": {"type": "int"}}},
+  "widgetNotes": "Notes",
+  "widgetPinned": "Pinned",
+  "widgetNoNotes": "No notes yet",
+  "widgetNoPinned": "No pinned notes",
+  "widgetNotesHidden": "Turn on \"Show details on the home screen\" in ZT Notes settings to see your notes here",
+  "widgetOpenToSeeNotes": "Open ZT Notes to see your notes",
+  "widgetSwitchView": "Switch between all notes and pinned notes",
+  "widgetPhotoNote": "New note with a photo"
 }

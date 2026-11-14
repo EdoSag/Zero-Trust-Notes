@@ -334,8 +334,16 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       switch (action) {
-        case OpenNewNote():
-          Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NoteEditorPage()));
+        case OpenNewNote(:final kind):
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => NoteEditorPage(
+                startAsChecklist: kind == NewNoteKind.checklist,
+                startWithVoice: kind == NewNoteKind.voice,
+                startWithPhoto: kind == NewNoteKind.photo,
+              ),
+            ),
+          );
         case OpenNote(:final noteId):
           final matches = notes.where((note) => note.id == noteId);
           if (matches.isEmpty) {

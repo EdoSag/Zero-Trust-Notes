@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 0.5.0+17
+version: 0.6.0+18
 
 environment:
   sdk: ^3.12.2
@@ -98,6 +98,13 @@ dependencies:
   flutter_tesseract_ocr:
     path: packages/flutter_tesseract_ocr
 dev_dependencies:
+  # Release checks every Zero-Trust app runs in CI (keys, sync, sign-in, app
+  # setup, database). Independent of zero_trust_core, so it may be newer.
+  zt_release_checks:
+    git:
+      url: https://github.com/EdoSag/Zero-Trust-Core.git
+      path: packages/zt_release_checks
+      ref: b43fcd045722bc364ef2eaa739db181f9dac144f
   flutter_test:
     sdk: flutter
   integration_test:

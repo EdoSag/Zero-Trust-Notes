@@ -868,7 +868,7 @@ abstract class AppL10n {
   /// No description provided for @widgetDetailsBody.
   ///
   /// In en, this message translates to:
-  /// **'Off: the Note widget shows a lock. On: the title and start of each pinned note are stored unencrypted on this phone for the home screen. Locked notes never show their text'**
+  /// **'Off: note widgets show a lock. On: note titles and the start of their text are stored unencrypted on this phone for the home screen (the Note widget\'s note, and the newest notes for the Notes list widget). Locked notes never show their text'**
   String get widgetDetailsBody;
 
   /// No description provided for @exportFormats.
@@ -1932,6 +1932,54 @@ abstract class AppL10n {
   /// In en, this message translates to:
   /// **'Thickness {size}'**
   String thickness(int size);
+
+  /// No description provided for @widgetNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get widgetNotes;
+
+  /// No description provided for @widgetPinned.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned'**
+  String get widgetPinned;
+
+  /// No description provided for @widgetNoNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'No notes yet'**
+  String get widgetNoNotes;
+
+  /// No description provided for @widgetNoPinned.
+  ///
+  /// In en, this message translates to:
+  /// **'No pinned notes'**
+  String get widgetNoPinned;
+
+  /// No description provided for @widgetNotesHidden.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on \"Show details on the home screen\" in ZT Notes settings to see your notes here'**
+  String get widgetNotesHidden;
+
+  /// No description provided for @widgetOpenToSeeNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Open ZT Notes to see your notes'**
+  String get widgetOpenToSeeNotes;
+
+  /// No description provided for @widgetSwitchView.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch between all notes and pinned notes'**
+  String get widgetSwitchView;
+
+  /// No description provided for @widgetPhotoNote.
+  ///
+  /// In en, this message translates to:
+  /// **'New note with a photo'**
+  String get widgetPhotoNote;
 }
 
 class _AppL10nDelegate extends LocalizationsDelegate<AppL10n> {
