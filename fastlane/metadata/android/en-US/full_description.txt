@@ -1,0 +1,28 @@
+Zero-Trust Notes is a fast, simple notes app for everything you want to remember: ideas, shopping lists, recipes, meeting notes and voice memos. It looks and feels like the notes app you know, except that only you can read what's inside.
+
+WHAT IT DOES
+• Notes and checklists: ticked items drop to the bottom, and a note turns into a list and back.
+• Grid or list view, pin to top, colours, drag to reorder.
+• Notebooks and tags, with search and filters across everything.
+• Images, drawings and handwriting, encrypted like the rest.
+• Copy text from a photo, read on the phone itself.
+• Voice notes with on-device transcription in English and Hebrew. Your voice never leaves the phone.
+• Time and place reminders ("remind me when I get to the supermarket"). The phone watches for the place itself.
+• Lock single notes behind an extra fingerprint check.
+• Share notes with other Zero-Trust users, still end-to-end encrypted.
+• Archive, and a trash that keeps deleted notes for 30 days.
+• Share into Notes from any app, and home-screen widgets.
+• Import from Google Keep (Google Takeout) in one step, and export your notes any time.
+
+WHY ZERO-TRUST
+• End-to-end encrypted: everything is encrypted on your phone before it syncs. We can't read it, and neither can anyone who breaks into the server.
+• One private account for every Zero-Trust app, unlocked with your fingerprint or face.
+• Works offline and syncs across your devices when you're back online.
+• No ads, no trackers, no analytics, no data sold. Ever.
+• Open source (AGPL-3.0), so anyone can check what the app does.
+• English and Hebrew, with full right-to-left support.
+
+Part of the Zero-Trust suite: Notes, Tasks, Calendar, Contacts, Phone, Fitness, Meds, Time and Browser. One account opens them all.
+
+Privacy policy: https://zerotrust.bz/privacy/
+Support: support@zerotrust.bz
