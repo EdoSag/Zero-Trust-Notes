@@ -2,8 +2,9 @@
 <!--
   New note widget, in the shared Zero-Trust widget look
   (Zero-Trust-Core/android-widget-kit). Never shows note content.
-  QuickAddWidgetProvider shows the round + at 1x1 and the "Take a note" bar
-  once the widget is made wider.
+  QuickAddWidgetProvider shows the round + at 1x1, the "Take a note" bar
+  once the widget is made wider, and the quick capture buttons (checklist,
+  voice, photo) in place of the + once there is room for them (W4).
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/quick_add_widget_root"
@@ -46,6 +47,42 @@
             android:layout_marginStart="10dp"
             android:textColor="@color/zt_widget_on_surface_variant"
             android:text="@string/widget_take_a_note"/>
+        <ImageView
+            android:id="@+id/quick_add_checklist"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/zt_widget_tile_circle"
+            android:padding="9dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_zt_widget_checklist"
+            android:tint="@color/zt_widget_on_surface_variant"
+            android:contentDescription="@string/widget_new_checklist"
+            android:visibility="gone"/>
+        <ImageView
+            android:id="@+id/quick_add_voice"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/zt_widget_tile_circle"
+            android:padding="9dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_zt_widget_mic"
+            android:tint="@color/zt_widget_on_surface_variant"
+            android:contentDescription="@string/widget_voice_note"
+            android:visibility="gone"/>
+        <ImageView
+            android:id="@+id/quick_add_photo"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="4dp"
+            android:background="@drawable/zt_widget_tile_circle"
+            android:padding="9dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_zt_widget_image"
+            android:tint="@color/zt_widget_on_surface_variant"
+            android:contentDescription="@string/widget_photo_note"
+            android:visibility="gone"/>
         <ImageView
             android:id="@+id/quick_add_bar_button"
             style="@style/ZtWidget.Action"

@@ -10,7 +10,8 @@ import 'pending_widget_action_controller.dart';
 
 /// Bridges native widget taps into [pendingWidgetActionProvider].
 ///
-/// Tap-to-launch (`zerotrustnotes://new-note`, `zerotrustnotes://note?id=…`)
+/// Tap-to-launch (`zerotrustnotes://new-note`, `zerotrustnotes://note?id=…`,
+/// `zerotrustnotes://open`)
 /// is carried entirely by the `home_widget` plugin's own launch-intent
 /// machinery, which already distinguishes cold start
 /// ([HomeWidget.initiallyLaunchedFromHomeWidget]) from an already-running
@@ -56,14 +57,21 @@ class WidgetLaunchListener {
 
   void _handleUri(Uri? uri) {
     if (uri == null) return;
-    final action = switch (uri.host) {
-      'new-note' => const OpenNewNote(),
-      'note' when uri.queryParameters['id'] != null => OpenNote(uri.queryParameters['id']!),
-      _ => null,
-    };
+    final action = widgetActionFor(uri);
     if (action != null) {
       _ref.read(pendingWidgetActionProvider.notifier).set(action);
     }
+  }
+
+  /// What a widget tap on [uri] asks for: `new-note` (with `kind=checklist`,
+  /// `voice` or `photo` from the quick capture bar), `note?id=…` (the Note
+  /// and Notes list widgets), or nothing for `open` (just the app).
+  static PendingWidgetAction? widgetActionFor(Uri uri) {
+    return switch (uri.host) {
+      'new-note' => OpenNewNote(NewNoteKind.parse(uri.queryParameters['kind'])),
+      'note' when uri.queryParameters['id'] != null => OpenNote(uri.queryParameters['id']!),
+      _ => null,
+    };
   }
 
   void _setConfigure(String appWidgetId) {

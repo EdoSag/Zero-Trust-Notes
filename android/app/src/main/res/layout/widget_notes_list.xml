@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Notes list widget (W4), in the shared Zero-Trust widget look
+  (Zero-Trust-Core/android-widget-kit). The list scrolls; NotesListWidgetProvider
+  fills it only while "Show details on the home screen" is on and shows the
+  lock panel otherwise.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/notes_list_root"
+    style="@style/ZtWidget.Root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+        <ImageView
+            android:id="@+id/notes_list_app_icon"
+            android:layout_width="@dimen/zt_widget_header_icon"
+            android:layout_height="@dimen/zt_widget_header_icon"
+            android:src="@mipmap/ic_launcher"
+            android:importantForAccessibility="no"/>
+        <LinearLayout
+            android:id="@+id/notes_list_switch"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+            <TextView
+                android:id="@+id/notes_list_title"
+                style="@style/ZtWidget.Title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/widget_notes"/>
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_zt_widget_dropdown"
+                android:tint="@color/zt_widget_on_surface_variant"
+                android:importantForAccessibility="no"/>
+        </LinearLayout>
+        <ImageView
+            android:id="@+id/notes_list_add"
+            style="@style/ZtWidget.Action"
+            android:src="@drawable/ic_zt_widget_add"
+            android:contentDescription="@string/widget_new_note"/>
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="8dp">
+        <ListView
+            android:id="@+id/notes_list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:divider="@null"
+            android:dividerHeight="0dp"
+            android:scrollbars="none"/>
+        <TextView
+            android:id="@+id/notes_list_empty"
+            style="@style/ZtWidget.Caption"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:maxLines="2"
+            android:text="@string/widget_no_notes"
+            android:visibility="gone"/>
+        <LinearLayout
+            android:id="@+id/notes_list_locked"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:visibility="gone">
+            <FrameLayout
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="@drawable/zt_widget_tile_circle">
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_zt_widget_lock"
+                    android:tint="@color/zt_widget_on_surface_variant"
+                    android:importantForAccessibility="no"/>
+            </FrameLayout>
+            <TextView
+                android:id="@+id/notes_list_locked_text"
+                style="@style/ZtWidget.Caption"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:maxLines="4"
+                android:text="@string/widget_notes_hidden"/>
+        </LinearLayout>
+    </FrameLayout>
+</LinearLayout>
