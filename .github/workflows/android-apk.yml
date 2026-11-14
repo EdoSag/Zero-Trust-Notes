@@ -161,6 +161,25 @@ jobs:
             echo "APK=$APK"
           } >> "$GITHUB_ENV"
 
+      - name: Build the Google Play bundle
+        # Google Play takes an .aab, not an .apk. Built for releases (and
+        # manual runs) only, so pull request checks stay fast. It has the same
+        # version code as the APK beside it.
+        if: (github.ref == 'refs/heads/main' && github.event_name == 'push') || github.event_name == 'workflow_dispatch'
+        run: |
+          set -e
+          flutter build appbundle --release --build-number="$BUILD"
+          AAB="$APP_SLUG-$VERSION-build$BUILD.aab"
+          cp build/app/outputs/bundle/release/app-release.aab "$AAB"
+          echo "AAB=$AAB" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        if: env.AAB != ''
+        with:
+          name: ${{ env.AAB }}
+          path: ${{ env.AAB }}
+          retention-days: 14
+
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ env.APK }}
@@ -174,10 +193,12 @@ jobs:
         run: |
           TAG="v$VERSION-build$BUILD"
           SUBJECT=$(git log -1 --pretty=%s)
-          gh release create "$TAG" "$APK" \
+          gh release create "$TAG" "$APK" ${AAB:+"$AAB"} \
             --target "$GITHUB_SHA" \
             --title "$APP_TITLE $VERSION (build $BUILD)" \
             --notes "Latest change: $SUBJECT
 
-          Download **$APK** below and open it on your phone to install or update. Android may ask you to allow installs from this source the first time." \
+          Download **$APK** below and open it on your phone to install or update. Android may ask you to allow installs from this source the first time.
+
+          The .aab file is for uploading to the Google Play Console; phones install the .apk." \
             --latest
