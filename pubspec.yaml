@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 0.6.0+18
+version: 0.6.1+19
 
 environment:
   sdk: ^3.12.2
@@ -71,19 +71,19 @@ dependencies:
       # this commit or later: older ones cannot read the new member records.
       # zt_sharing_ui and zt_places stay on the same commit. Switch all three
       # to the next tag once it is pushed.
-      ref: cb397d13efd868e34a34d465251a7f705b49f9e1
+      ref: 08eccf33e5989c0efceba67d351159b979ae0740
   zt_sharing_ui:
     git:
       url: https://github.com/EdoSag/Zero-Trust-Core.git
       path: packages/zt_sharing_ui
-      ref: cb397d13efd868e34a34d465251a7f705b49f9e1
+      ref: 08eccf33e5989c0efceba67d351159b979ae0740
   # On-device place reminders (N16), shared with Tasks. Android's own
   # LocationManager, no Google Play services.
   zt_places:
     git:
       url: https://github.com/EdoSag/Zero-Trust-Core.git
       path: packages/zt_places
-      ref: cb397d13efd868e34a34d465251a7f705b49f9e1
+      ref: 08eccf33e5989c0efceba67d351159b979ae0740
   url_launcher: ^6.3.3
   flutter_local_notifications: ^23.0.0
   timezone: ^0.11.2
