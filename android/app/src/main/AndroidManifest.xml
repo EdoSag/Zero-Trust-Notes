@@ -35,6 +35,13 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Password-reset emails: https://zerotrust.bz/auth/notes/?code=… (see EmailLinks). -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="zerotrust.bz" android:pathPrefix="/auth/notes/"/>
+            </intent-filter>
             <!-- Tap-to-launch from either home-screen widget, via home_widget's
                  HomeWidgetLaunchIntent (data URI distinguishes Quick Add vs. Single
                  Note; see WidgetLaunchListener in Dart). -->
