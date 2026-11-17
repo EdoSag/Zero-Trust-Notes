@@ -35,6 +35,10 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Links are handled by the app's own code (supabase_flutter's app_links, and the
+                 native link handling in MainActivity), not Flutter's router: AppGate has no
+                 route for them. -->
+            <meta-data android:name="flutter_deeplinking_enabled" android:value="false"/>
             <!-- Password-reset emails: https://zerotrust.bz/auth/notes/?code=… (see EmailLinks). -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>
