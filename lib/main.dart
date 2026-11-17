@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +10,7 @@ import 'src/app/app_gate.dart';
 import 'src/features/sharing/shared_notebooks.dart';
 import 'src/features/widgets/application/home_widget_sync_service.dart';
 import 'src/features/widgets/presentation/widget_text_sync.dart';
+import 'src/app/email_links.dart';
 
 const notesAppConfig = ZtAppConfig(
   appId: 'notes',
@@ -23,6 +25,7 @@ Future<void> main() async {
     url: dotenv.env['SUPABASE_URL']!,
     publishableKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
+  unawaited(EmailLinks.listen());
 
   // The vault always cold-starts locked, but if the OS killed the previous
   // process before AppGate could clear them (a task kill rather than a

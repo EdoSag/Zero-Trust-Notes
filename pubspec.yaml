@@ -53,6 +53,8 @@ dependencies:
   uuid: ^4.6.0
   flutter_secure_storage: ^11.2.0
   supabase_flutter: ^2.16.0
+  # Reset links from account emails (EmailLinks).
+  app_links: ">=6.4.0 <8.0.0"
   flutter_dotenv: ^6.0.1
   archive: ^4.0.9
   intl: ^0.20.3
