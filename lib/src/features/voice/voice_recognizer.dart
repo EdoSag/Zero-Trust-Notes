@@ -102,7 +102,9 @@ class OnDeviceVoiceRecognizer implements VoiceRecognizer {
 
   @override
   Future<VoiceAvailability> initialize() async {
-    if (!kIsWeb && Platform.isAndroid) {
+    // A browser's speech recognition runs on its maker's servers.
+    if (kIsWeb) return VoiceAvailability.notOnDevice;
+    if (Platform.isAndroid) {
       bool onDevice;
       try {
         onDevice = await _channel.invokeMethod<bool>('onDeviceAvailable') ?? false;

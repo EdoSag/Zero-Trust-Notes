@@ -5,15 +5,15 @@
 String stripMarkdownForSnippet(String markdown) {
   var text = markdown
       .replaceAll(RegExp(r'```[\s\S]*?```'), ' ')
-      .replaceAll(RegExp(r'`([^`]*)`'), r'$1')
-      .replaceAll(RegExp(r'!\[([^\]]*)\]\([^)]*\)'), r'$1')
-      .replaceAll(RegExp(r'\[([^\]]*)\]\([^)]*\)'), r'$1')
+      .replaceAllMapped(RegExp(r'`([^`]*)`'), (m) => m[1] ?? '')
+      .replaceAllMapped(RegExp(r'!\[([^\]]*)\]\([^)]*\)'), (m) => m[1] ?? '')
+      .replaceAllMapped(RegExp(r'\[([^\]]*)\]\([^)]*\)'), (m) => m[1] ?? '')
       .replaceAll(RegExp(r'^#{1,6}\s+', multiLine: true), '')
       .replaceAll(RegExp(r'^\s*[-*+]\s+', multiLine: true), '')
       .replaceAll(RegExp(r'^\s*\d+\.\s+', multiLine: true), '')
       .replaceAll(RegExp(r'^\s*>\s?', multiLine: true), '')
-      .replaceAll(RegExp(r'(\*\*|__)(.*?)\1'), r'$2')
-      .replaceAll(RegExp(r'(\*|_)(.*?)\1'), r'$2')
-      .replaceAll(RegExp(r'~~(.*?)~~'), r'$1');
+      .replaceAllMapped(RegExp(r'(\*\*|__)(.*?)\1'), (m) => m[2] ?? '')
+      .replaceAllMapped(RegExp(r'(\*|_)(.*?)\1'), (m) => m[2] ?? '')
+      .replaceAllMapped(RegExp(r'~~(.*?)~~'), (m) => m[1] ?? '');
   return text.replaceAll(RegExp(r'\s+'), ' ').trim();
 }

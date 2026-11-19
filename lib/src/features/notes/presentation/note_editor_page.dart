@@ -990,6 +990,8 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     ),
   ];
 
+  ZtCapabilities get _caps => ref.read(ztCapabilitiesProvider);
+
   List<Widget> _editActions(bool isChecklist) => [
     Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
@@ -1052,29 +1054,33 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         }
       },
       itemBuilder: (context) => [
-        PopupMenuItem(
-          value: 'voice',
-          child: ListTile(leading: Icon(Icons.mic_none), title: Text(context.l10n.voiceNote)),
-        ),
-        PopupMenuItem(
-          value: 'place',
-          child: ListTile(
-            leading: Icon(Icons.add_location_alt_outlined),
-            title: Text(context.l10n.remindAtPlace),
+        // Browsers send speech to their maker's servers, so no voice there.
+        if (_caps.onDeviceSpeech)
+          PopupMenuItem(
+            value: 'voice',
+            child: ListTile(leading: Icon(Icons.mic_none), title: Text(context.l10n.voiceNote)),
           ),
-        ),
+        if (_caps.phoneIntegration)
+          PopupMenuItem(
+            value: 'place',
+            child: ListTile(
+              leading: Icon(Icons.add_location_alt_outlined),
+              title: Text(context.l10n.remindAtPlace),
+            ),
+          ),
         if (!_inShared)
           PopupMenuItem(
             value: 'draw',
             child: ListTile(leading: Icon(Icons.draw_outlined), title: Text(context.l10n.addDrawing)),
           ),
-        PopupMenuItem(
-          value: 'scanText',
-          child: ListTile(
-            leading: Icon(Icons.document_scanner_outlined),
-            title: Text(context.l10n.textFromPhoto),
+        if (_caps.onDeviceTextRecognition)
+          PopupMenuItem(
+            value: 'scanText',
+            child: ListTile(
+              leading: Icon(Icons.document_scanner_outlined),
+              title: Text(context.l10n.textFromPhoto),
+            ),
           ),
-        ),
         if (_hasCamera && !_inShared)
           PopupMenuItem(
             value: 'camera',
@@ -1103,10 +1109,11 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
               ),
             ),
           ),
-        PopupMenuItem(
-          value: 'send',
-          child: ListTile(leading: Icon(Icons.share_outlined), title: Text(context.l10n.send)),
-        ),
+        if (_caps.shareSheet)
+          PopupMenuItem(
+            value: 'send',
+            child: ListTile(leading: Icon(Icons.share_outlined), title: Text(context.l10n.send)),
+          ),
         PopupMenuItem(
           value: 'color',
           child: ListTile(leading: Icon(Icons.palette_outlined), title: Text(context.l10n.colour)),

@@ -3,6 +3,8 @@ import 'dart:io' show gzip;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:archive/archive.dart' show GZipDecoder, GZipEncoder;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 enum DrawingTool { pen, highlighter, eraser }
@@ -85,6 +87,14 @@ class Stroke {
   }
 }
 
+// `dart:io` has no gzip in a browser; the archive package writes and reads
+// the same format there.
+List<int> _gzipEncode(List<int> bytes, {required bool portable}) =>
+    portable ? const GZipEncoder().encodeBytes(bytes) : gzip.encode(bytes);
+
+List<int> _gzipDecode(List<int> bytes, {required bool portable}) =>
+    portable ? const GZipDecoder().decodeBytes(bytes) : gzip.decode(bytes);
+
 /// A drawing: its strokes on a canvas of [size]. Kept (gzipped JSON, as an
 /// encrypted attachment) next to the picture made from it, so it can be
 /// edited later.
@@ -100,8 +110,11 @@ class Drawing {
   static const mimeType = 'application/vnd.zerotrust.drawing+json';
   static const fileName = 'drawing.json.gz';
 
-  Uint8List encode() => Uint8List.fromList(
-    gzip.encode(
+  /// [portableGzip] is on in a browser; tests set it to check that both
+  /// ways of packing read each other.
+  Uint8List encode({bool portableGzip = kIsWeb}) => Uint8List.fromList(
+    _gzipEncode(
+      portable: portableGzip,
       utf8.encode(
         jsonEncode({
           'v': 1,
@@ -113,9 +126,9 @@ class Drawing {
     ),
   );
 
-  static Drawing? decode(Uint8List bytes) {
+  static Drawing? decode(Uint8List bytes, {bool portableGzip = kIsWeb}) {
     try {
-      final json = jsonDecode(utf8.decode(gzip.decode(bytes)));
+      final json = jsonDecode(utf8.decode(_gzipDecode(bytes, portable: portableGzip)));
       if (json is! Map) return null;
       final strokes = json['s'];
       return Drawing(
