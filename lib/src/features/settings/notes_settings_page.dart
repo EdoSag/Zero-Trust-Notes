@@ -22,6 +22,9 @@ class NotesSettingsPage extends ConsumerWidget {
       onSignedOut: () =>
           Navigator.of(context).popUntil((route) => route.isFirst),
       showSyncStatus: true,
+      privacyPolicyUrl: Uri.parse('https://zerotrust.bz/privacy/'),
+      termsUrl: Uri.parse('https://zerotrust.bz/terms/'),
+      supportUrl: Uri.parse('https://zerotrust.bz/support/'),
       onOpenUrl: (url) => launchUrl(url, mode: LaunchMode.externalApplication),
       appSection: [
         if (HomeWidgetSyncService.isSupported)

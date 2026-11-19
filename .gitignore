@@ -50,3 +50,6 @@ app.*.map.json
 
 # Written and removed by `dart run zt_release_checks`.
 test/zt_release_checks_test.dart
+
+# Fetched at build time by the web kit (Zero-Trust-Core tool/apply_web_kit.sh).
+/web/sqlite3mc.wasm

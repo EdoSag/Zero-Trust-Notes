@@ -21,6 +21,7 @@ import '../features/widgets/domain/pending_widget_action.dart';
 import '../features/widgets/presentation/note_picker_page.dart';
 import 'auth_providers.dart';
 import 'package:zerotrust_notes/l10n/l10n.dart';
+import 'email_links.dart';
 
 /// Routes between the shared account screens and the notes list.
 ///
@@ -129,7 +130,7 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
 
   void _forgotPassword() => Navigator.of(
     context,
-  ).push(MaterialPageRoute<void>(builder: (_) => const ZtForgotPasswordScreen()));
+  ).push(MaterialPageRoute<void>(builder: (_) => ZtForgotPasswordScreen(redirectTo: EmailLinks.passwordReset)));
 
   @override
   Widget build(BuildContext context) {
@@ -177,7 +178,7 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
 
     final user = ref.watch(currentUserProvider);
     if (user == null || _signingIn) {
-      return ZtSignInScreen(onUnlocked: _onUnlocked, onForgotPassword: _forgotPassword);
+      return ZtSignInScreen(emailRedirectTo: EmailLinks.confirmed, onUnlocked: _onUnlocked, onForgotPassword: _forgotPassword);
     }
 
     if (ref.watch(vaultControllerProvider) is VaultLocked) {
