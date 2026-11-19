@@ -49,6 +49,28 @@ void main() {
     await settle(tester);
   }
 
+  testWidgets('in a browser there is no voice note button', timeout: timeout, (tester) async {
+    await pumpList(
+      tester,
+      overrides: [
+        ztCapabilitiesProvider.overrideWithValue(const ZtCapabilities(ZtPlatformKind.web)),
+      ],
+    );
+    expect(find.byTooltip('Create new note'), findsOneWidget);
+    expect(find.byTooltip('New voice note'), findsNothing);
+    await finish(tester, phone);
+  });
+
+  testWidgets('on a phone the voice note button sits above the new note button', timeout: timeout, (
+    tester,
+  ) async {
+    await pumpList(tester);
+    final voice = tester.getCenter(find.byTooltip('New voice note'));
+    final note = tester.getCenter(find.byTooltip('Create new note'));
+    expect(voice.dy, lessThan(note.dy));
+    await finish(tester, phone);
+  });
+
   testWidgets('pinned notes show under Pinned, and a checklist previews its items', timeout: timeout, (tester) async {
     await pumpList(tester);
     await addNotes(tester, () async {

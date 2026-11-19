@@ -1,0 +1,32 @@
+# Builds Notes for the browser on every pull request, and publishes it to
+# Cloudflare Pages (notes.zerotrust.bz) when main is released.
+name: Web
+
+on:
+  pull_request:
+    branches: [Dev, main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    uses: EdoSag/Zero-Trust-Core/.github/workflows/web-deploy.yml@Dev
+    with:
+      core-ref: Dev
+      app-name: Zero-Trust Notes
+      short-name: ZT Notes
+      description: Private notes, encrypted in your browser.
+      theme-color: '#F59E0B'
+      pages-project: zt-notes
+      deploy: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    secrets:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

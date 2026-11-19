@@ -62,6 +62,20 @@ void main() {
       pressures: [0.2, 0.5, 1],
     );
 
+    test('a drawing made in a browser opens on a phone, and the other way', () {
+      const drawing = Drawing(size: Size(360, 640), strokes: [stroke]);
+      for (final (write, read) in [(true, false), (false, true), (true, true)]) {
+        final back = Drawing.decode(
+          drawing.encode(portableGzip: write),
+          portableGzip: read,
+        )!;
+        expect(back.size, drawing.size);
+        expect(back.strokes.single.points, hasLength(stroke.points.length));
+        expect(back.strokes.single.pressures, [0.2, 0.5, 1]);
+      }
+      expect(Drawing.decode(Uint8List.fromList([1, 2, 3]), portableGzip: true), isNull);
+    });
+
     test('strokes survive encode and decode', () {
       const drawing = Drawing(
         size: Size(360, 640),

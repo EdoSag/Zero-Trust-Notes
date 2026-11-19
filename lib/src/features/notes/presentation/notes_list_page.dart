@@ -363,13 +363,17 @@ class _NotesListPageState extends ConsumerState<NotesListPage> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    FloatingActionButton.small(
-                      heroTag: 'new_voice',
-                      tooltip: context.l10n.newVoiceNote,
-                      onPressed: () => _create(voice: true),
-                      child: const Icon(Icons.mic_none),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
+                    // Browsers send speech to their maker's servers, so
+                    // voice notes are only offered where it stays on-device.
+                    if (ref.watch(ztCapabilitiesProvider).onDeviceSpeech) ...[
+                      FloatingActionButton.small(
+                        heroTag: 'new_voice',
+                        tooltip: context.l10n.newVoiceNote,
+                        onPressed: () => _create(voice: true),
+                        child: const Icon(Icons.mic_none),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                    ],
                     FloatingActionButton.small(
                       heroTag: 'new_list',
                       tooltip: context.l10n.newChecklist,

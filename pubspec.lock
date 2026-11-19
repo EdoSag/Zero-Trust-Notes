@@ -1324,10 +1324,10 @@ packages:
     dependency: "direct main"
     description:
       name: sqlite3
-      sha256: "144132790ec1947fad9f3ddceffd0af2ab80a1f0d1e81a4d094ee6707ec3df0b"
+      sha256: "8765980411f9b6733534efe9d014fad0750fa649590598772c04692deb34886b"
       url: "https://pub.dev"
     source: hosted
-    version: "3.7.1"
+    version: "3.9.1"
   sqlparser:
     dependency: transitive
     description:
@@ -1620,8 +1620,8 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/zero_trust_core"
-      ref: "08eccf33e5989c0efceba67d351159b979ae0740"
-      resolved-ref: "08eccf33e5989c0efceba67d351159b979ae0740"
+      ref: "277df7b098227f8aa49cf3c5e761c517069878e7"
+      resolved-ref: "277df7b098227f8aa49cf3c5e761c517069878e7"
       url: "https://github.com/EdoSag/Zero-Trust-Core.git"
     source: git
     version: "0.12.0"
@@ -1629,8 +1629,8 @@ packages:
     dependency: transitive
     description:
       path: "packages/zt_crypto"
-      ref: "08eccf33e5989c0efceba67d351159b979ae0740"
-      resolved-ref: "08eccf33e5989c0efceba67d351159b979ae0740"
+      ref: "277df7b098227f8aa49cf3c5e761c517069878e7"
+      resolved-ref: "277df7b098227f8aa49cf3c5e761c517069878e7"
       url: "https://github.com/EdoSag/Zero-Trust-Core.git"
     source: git
     version: "0.3.2"
@@ -1638,8 +1638,8 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/zt_places"
-      ref: "08eccf33e5989c0efceba67d351159b979ae0740"
-      resolved-ref: "08eccf33e5989c0efceba67d351159b979ae0740"
+      ref: "277df7b098227f8aa49cf3c5e761c517069878e7"
+      resolved-ref: "277df7b098227f8aa49cf3c5e761c517069878e7"
       url: "https://github.com/EdoSag/Zero-Trust-Core.git"
     source: git
     version: "0.1.1"
@@ -1656,8 +1656,8 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/zt_sharing_ui"
-      ref: "08eccf33e5989c0efceba67d351159b979ae0740"
-      resolved-ref: "08eccf33e5989c0efceba67d351159b979ae0740"
+      ref: "277df7b098227f8aa49cf3c5e761c517069878e7"
+      resolved-ref: "277df7b098227f8aa49cf3c5e761c517069878e7"
       url: "https://github.com/EdoSag/Zero-Trust-Core.git"
     source: git
     version: "0.1.0"
