@@ -2124,6 +2124,42 @@ abstract class AppL10n {
   /// In en, this message translates to:
   /// **'Text and drawing'**
   String get textAndDrawing;
+
+  /// No description provided for @linkToNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Link to a note'**
+  String get linkToNote;
+
+  /// No description provided for @searchNotesToLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Search notes'**
+  String get searchNotesToLink;
+
+  /// No description provided for @noNotesToLink.
+  ///
+  /// In en, this message translates to:
+  /// **'No notes with a title to link to.'**
+  String get noNotesToLink;
+
+  /// No description provided for @createLinkedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Make the note \"{title}\"'**
+  String createLinkedNote(String title);
+
+  /// No description provided for @openLinkedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Open \"{title}\"'**
+  String openLinkedNote(String title);
+
+  /// No description provided for @linksHere.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" links here'**
+  String linksHere(String title);
 }
 
 class _AppL10nDelegate extends LocalizationsDelegate<AppL10n> {
