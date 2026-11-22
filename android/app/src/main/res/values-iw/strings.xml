@@ -40,4 +40,9 @@
     <string name="widget_preview_item_1">חלב</string>
     <string name="widget_preview_item_2">לחם</string>
     <string name="widget_preview_item_3">עגבניות</string>
+    <string name="tile_new_note">פתק חדש</string>
+    <string name="tile_new_note_subtitle">ZT Notes</string>
+    <string name="shortcut_new_note">פתק חדש</string>
+    <string name="shortcut_new_checklist">רשימה חדשה</string>
+    <string name="shortcut_voice_note">פתק קולי</string>
 </resources>

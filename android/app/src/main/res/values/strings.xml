@@ -43,4 +43,9 @@
     <string name="widget_preview_item_1">Milk</string>
     <string name="widget_preview_item_2">Bread</string>
     <string name="widget_preview_item_3">Tomatoes</string>
+    <string name="tile_new_note">New note</string>
+    <string name="tile_new_note_subtitle">ZT Notes</string>
+    <string name="shortcut_new_note">New note</string>
+    <string name="shortcut_new_checklist">New checklist</string>
+    <string name="shortcut_voice_note">Voice note</string>
 </resources>
