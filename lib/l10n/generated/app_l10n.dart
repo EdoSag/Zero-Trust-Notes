@@ -2292,6 +2292,42 @@ abstract class AppL10n {
   /// In en, this message translates to:
   /// **'Most important first\nThen this\nAnd this'**
   String get templateTodoItems;
+
+  /// No description provided for @versionHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Version history'**
+  String get versionHistory;
+
+  /// No description provided for @versionHistoryHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Earlier versions of this note, kept on your devices and encrypted like your notes. A version is kept each time you come back to edit (at most every 10 minutes), up to the last 30.'**
+  String get versionHistoryHelp;
+
+  /// No description provided for @noVersionsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No earlier versions yet. They appear here after the note\'s text changes.'**
+  String get noVersionsYet;
+
+  /// No description provided for @cantLoadVersions.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t load the history right now.'**
+  String get cantLoadVersions;
+
+  /// No description provided for @restoreVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get restoreVersion;
+
+  /// No description provided for @versionRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'Earlier version brought back. The text before it is in the history.'**
+  String get versionRestored;
 }
 
 class _AppL10nDelegate extends LocalizationsDelegate<AppL10n> {

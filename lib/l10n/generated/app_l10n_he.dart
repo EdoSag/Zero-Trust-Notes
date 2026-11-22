@@ -1318,4 +1318,25 @@ class AppL10nHe extends AppL10n {
 
   @override
   String get templateTodoItems => 'הכי חשוב קודם\nאחר כך זה\nוגם זה';
+
+  @override
+  String get versionHistory => 'היסטוריית גרסאות';
+
+  @override
+  String get versionHistoryHelp =>
+      'גרסאות קודמות של הפתק, שמורות במכשירים שלך ומוצפנות כמו הפתקים. גרסה נשמרת בכל פעם שחוזרים לערוך (לכל היותר כל 10 דקות), עד 30 האחרונות.';
+
+  @override
+  String get noVersionsYet =>
+      'אין עדיין גרסאות קודמות. הן יופיעו כאן אחרי שהטקסט של הפתק ישתנה.';
+
+  @override
+  String get cantLoadVersions => 'אי אפשר לטעון את ההיסטוריה כרגע.';
+
+  @override
+  String get restoreVersion => 'שחזור';
+
+  @override
+  String get versionRestored =>
+      'הגרסה הקודמת שוחזרה. הטקסט שהיה לפניה שמור בהיסטוריה.';
 }
