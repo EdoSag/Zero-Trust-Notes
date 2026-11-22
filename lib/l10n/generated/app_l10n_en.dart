@@ -1336,4 +1336,56 @@ class AppL10nEn extends AppL10n {
   @override
   String get versionRestored =>
       'Earlier version brought back. The text before it is in the history.';
+
+  @override
+  String get attachFile => 'Attach file';
+
+  @override
+  String get attachedFile => 'File';
+
+  @override
+  String openFile(String name) {
+    return 'Open $name';
+  }
+
+  @override
+  String get openInAnotherApp => 'Open in another app';
+
+  @override
+  String get removeFile => 'Remove file';
+
+  @override
+  String filesTooLarge(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count files are over 20 MB, too large to attach.',
+      one: 'That file is over 20 MB, too large to attach.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String filesFailed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Couldn\'t attach $count files.',
+      one: 'Couldn\'t attach a file.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cantOpenPdf =>
+      'Can\'t show this PDF. Try opening it in another app.';
+
+  @override
+  String pdfPageNofM(int page, int pages) {
+    return 'Page $page of $pages';
+  }
+
+  @override
+  String get exportMarkdownFolder =>
+      'Markdown folder (.zip, with pictures and files)';
 }

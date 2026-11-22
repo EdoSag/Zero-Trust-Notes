@@ -684,5 +684,19 @@
   "noVersionsYet": "No earlier versions yet. They appear here after the note's text changes.",
   "cantLoadVersions": "Can't load the history right now.",
   "restoreVersion": "Restore",
-  "versionRestored": "Earlier version brought back. The text before it is in the history."
+  "versionRestored": "Earlier version brought back. The text before it is in the history.",
+  "attachFile": "Attach file",
+  "attachedFile": "File",
+  "openFile": "Open {name}",
+  "@openFile": {"placeholders": {"name": {"type": "String"}}},
+  "openInAnotherApp": "Open in another app",
+  "removeFile": "Remove file",
+  "filesTooLarge": "{count, plural, =1{That file is over 20 MB, too large to attach.} other{{count} files are over 20 MB, too large to attach.}}",
+  "@filesTooLarge": {"placeholders": {"count": {"type": "int"}}},
+  "filesFailed": "{count, plural, =1{Couldn't attach a file.} other{Couldn't attach {count} files.}}",
+  "@filesFailed": {"placeholders": {"count": {"type": "int"}}},
+  "cantOpenPdf": "Can't show this PDF. Try opening it in another app.",
+  "pdfPageNofM": "Page {page} of {pages}",
+  "@pdfPageNofM": {"placeholders": {"page": {"type": "int"}, "pages": {"type": "int"}}},
+  "exportMarkdownFolder": "Markdown folder (.zip, with pictures and files)"
 }

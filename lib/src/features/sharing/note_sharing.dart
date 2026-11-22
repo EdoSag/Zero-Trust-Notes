@@ -36,7 +36,7 @@ final shareSheetProvider = Provider<ShareSheet>(
 
 final outgoingShareFilesProvider = Provider<OutgoingShareFiles>((ref) => OutgoingShareFiles());
 
-/// Decrypted images handed to another app. They have to exist as plain
+/// Decrypted images and files handed to another app. They have to exist as plain
 /// files while the other app reads them, which can be after the share
 /// sheet closes, so they're deleted when Notes next comes to the front (and
 /// on the next start), not straight away.
@@ -60,7 +60,12 @@ class OutgoingShareFiles {
       'image/gif' => '.gif',
       'image/webp' => '.webp',
       'image/heic' => '.heic',
-      _ => '.jpg',
+      'application/pdf' => '.pdf',
+      'text/plain' => '.txt',
+      // Images from builds that didn't record a type.
+      null => '.jpg',
+      final type when type.startsWith('image/') => '.jpg',
+      _ => '',
     };
   }
 
@@ -82,10 +87,11 @@ class NoteSharing {
   final BuildContext context;
   final WidgetRef ref;
 
-  /// Sends [note] as text, with its images attached when it has any.
+  /// Sends [note] as text, with its images and files attached when it has
+  /// any.
   Future<void> shareNote(Note note) async {
     final text = noteShareText(note);
-    final images = await _imageFiles(note.images);
+    final images = await _imageFiles([...note.images, ...note.files]);
     if (text.isEmpty && images.isEmpty) {
       _snack(currentL10n.nothingToSend);
       return;
@@ -104,6 +110,10 @@ class NoteSharing {
     if (files.isEmpty) return;
     await _share(ShareParams(files: files));
   }
+
+  /// Hands an attached file (a PDF, a document) to another app, to open
+  /// or keep.
+  Future<void> shareFile(ZtAttachmentRef file) => shareImage(file);
 
   Future<List<XFile>> _imageFiles(List<ZtAttachmentRef> images) async {
     if (images.isEmpty || kIsWeb) return const [];

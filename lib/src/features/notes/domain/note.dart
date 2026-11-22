@@ -33,6 +33,7 @@ class Note {
     this.locked = false,
     this.placeReminder,
     this.drawings = const {},
+    this.files = const [],
     this.extra = const {},
     this.spaceId,
   });
@@ -65,6 +66,7 @@ class Note {
       locked: json['locked'] == true,
       placeReminder: NotePlaceReminder.fromJson(json['placeReminder']),
       drawings: drawingsFromJson(json['drawings']),
+      files: imagesFromJson(json['files']),
       extra: {
         for (final entry in json.entries)
           if (!_knownKeys.contains(entry.key)) entry.key: entry.value,
@@ -128,6 +130,7 @@ class Note {
     'locked',
     'placeReminder',
     'drawings',
+    'files',
   };
 
   /// Notebooks and tags share the store with notes and carry a `kind`.
@@ -179,6 +182,11 @@ class Note {
   /// drawn from, so it can be edited again. The picture itself is in
   /// [images] like a photo, so older builds and exports show it.
   final Map<String, ZtAttachmentRef> drawings;
+
+  /// Other encrypted files attached to the note (PDFs and documents), in
+  /// the order they were added. Older builds keep them untouched in
+  /// [extra].
+  final List<ZtAttachmentRef> files;
   final Map<String, Object?> extra;
 
   /// Set for a note kept in a shared space (a shared notebook or a note
@@ -191,10 +199,12 @@ class Note {
   bool get isTrashed => trashedAt != null;
   bool get isChecklist => checklist != null;
   bool get hasImages => images.isNotEmpty;
+  bool get hasFiles => files.isNotEmpty;
   bool get hasAnyReminder => reminderAt != null || placeReminder != null;
 
-  /// Every stored file this note uses: images and drawing strokes.
-  List<ZtAttachmentRef> get attachments => [...images, ...drawings.values];
+  /// Every stored file this note uses: images, drawing strokes and
+  /// attached files.
+  List<ZtAttachmentRef> get attachments => [...images, ...drawings.values, ...files];
 
   /// Custom order, highest first: a note's dragged [position], or its
   /// last edit for one never moved. New and edited notes come to the top;
@@ -225,6 +235,7 @@ class Note {
     bool? locked,
     Object? placeReminder = _unset,
     Map<String, ZtAttachmentRef>? drawings,
+    List<ZtAttachmentRef>? files,
     DateTime? updatedAt,
   }) {
     return Note(
@@ -248,6 +259,7 @@ class Note {
           ? this.placeReminder
           : placeReminder as NotePlaceReminder?,
       drawings: drawings ?? this.drawings,
+      files: files ?? this.files,
       extra: extra,
       spaceId: spaceId,
     );
@@ -274,6 +286,7 @@ class Note {
     locked: locked,
     placeReminder: placeReminder,
     drawings: drawings,
+    files: files,
     extra: extra,
     spaceId: spaceId,
   );
@@ -312,6 +325,7 @@ class Note {
     bool locked = false,
     NotePlaceReminder? placeReminder,
     Map<String, ZtAttachmentRef> drawings = const {},
+    List<ZtAttachmentRef> files = const [],
     Map<String, Object?> extra = const {},
   }) => {
     ...extra,
@@ -334,6 +348,7 @@ class Note {
     if (placeReminder != null) 'placeReminder': placeReminder.toJson(),
     if (drawings.isNotEmpty)
       'drawings': {for (final e in drawings.entries) e.key: e.value.toJson()},
+    if (files.isNotEmpty) 'files': [for (final file in files) file.toJson()],
   };
 
   Map<String, Object?> toItemJson() => itemJson(
@@ -353,6 +368,7 @@ class Note {
     locked: locked,
     placeReminder: placeReminder,
     drawings: drawings,
+    files: files,
     extra: extra,
   );
 }

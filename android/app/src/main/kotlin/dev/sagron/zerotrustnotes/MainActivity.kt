@@ -117,6 +117,11 @@ class MainActivity : FlutterFragmentActivity() {
                 else -> result.notImplemented()
             }
         }
+        // PDFs attached to notes, shown page by page (N-7).
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "dev.sagron.zerotrustnotes/pdf",
+        ).setMethodCallHandler { call, result -> PdfPages.handle(call, result) }
     }
 
     override fun onNewIntent(intent: Intent) {
