@@ -35,9 +35,12 @@ class OpenNote extends PendingWidgetAction {
 /// throughout the Dart layer since it only ever needs to round-trip back to
 /// `home_widget`'s string-keyed storage.
 class ConfigureNoteWidget extends PendingWidgetAction {
-  const ConfigureNoteWidget(this.appWidgetId);
+  const ConfigureNoteWidget(this.appWidgetId, {this.checklist = false});
 
   final String appWidgetId;
+
+  /// A Checklist widget (W5): only checklist notes can be picked.
+  final bool checklist;
 }
 
 /// ZT Keyboard's "Insert from ZT apps" key opened Notes: the user picks a

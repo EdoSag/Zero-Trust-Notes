@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One item of the Checklist widget: a tick circle and the item's text. The
+     whole row is the tap target (48dp high), so it is easy to hit. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/checklist_row"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="44dp"
+    android:paddingStart="4dp"
+    android:paddingEnd="4dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical">
+    <FrameLayout
+        android:layout_width="24dp"
+        android:layout_height="24dp">
+        <ImageView
+            android:id="@+id/checklist_row_ring"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_gravity="center"
+            android:src="@drawable/zt_widget_check_ring"
+            android:importantForAccessibility="no"/>
+        <FrameLayout
+            android:id="@+id/checklist_row_tick"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_gravity="center"
+            android:background="@drawable/zt_widget_accent_circle"
+            android:visibility="gone">
+            <ImageView
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_zt_widget_check"
+                android:tint="@color/zt_widget_on_accent"
+                android:importantForAccessibility="no"/>
+        </FrameLayout>
+    </FrameLayout>
+    <TextView
+        android:id="@+id/checklist_row_text"
+        style="@style/ZtWidget.Body"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="12dp"
+        android:maxLines="2"/>
+</LinearLayout>

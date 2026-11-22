@@ -5,6 +5,8 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.speech.SpeechRecognizer
+import dev.sagron.zerotrustnotes.widgets.ChecklistTicks
+import es.antonborri.home_widget.HomeWidgetPlugin
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -48,7 +50,29 @@ class MainActivity : FlutterFragmentActivity() {
         widgetConfigureChannel = MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
             "dev.sagron.zerotrustnotes/widget_configure",
-        )
+        ).also { channel ->
+            channel.setMethodCallHandler { call, result ->
+                when (call.method) {
+                    // Which widget is being set up: a Note or a Checklist widget.
+                    "providerOf" -> {
+                        val id = call.argument<String>("id")?.toIntOrNull()
+                        val info = id?.let { AppWidgetManager.getInstance(this).getAppWidgetInfo(it) }
+                        result.success(info?.provider?.className)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+        }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "dev.sagron.zerotrustnotes/checklist_widget",
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                // Ticks made on Checklist widgets since the last time (see ChecklistTicks).
+                "takeTicks" -> result.success(ChecklistTicks.take(HomeWidgetPlugin.getData(applicationContext)))
+                else -> result.notImplemented()
+            }
+        }
         shareChannel = MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
             "dev.sagron.zerotrustnotes/share",

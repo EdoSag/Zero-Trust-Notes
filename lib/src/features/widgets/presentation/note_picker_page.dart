@@ -14,9 +14,12 @@ import 'package:zerotrust_notes/l10n/l10n.dart';
 /// launching the app to configure a newly-placed Single Note widget. Lets
 /// the user pick which note that widget instance pins to its home screen.
 class NotePickerPage extends ConsumerWidget {
-  const NotePickerPage({super.key, required this.appWidgetId});
+  const NotePickerPage({super.key, required this.appWidgetId, this.checklist = false});
 
   final String appWidgetId;
+
+  /// For a Checklist widget (W5): only checklist notes are offered.
+  final bool checklist;
 
   Future<void> _pin(BuildContext context, WidgetRef ref, Note note) async {
     // The widget can only show the note if note text may leave the vault:
@@ -39,7 +42,11 @@ class NotePickerPage extends ConsumerWidget {
         await ref.read(widgetDetailsProvider.notifier).set(true);
       }
     }
-    await const HomeWidgetSyncService().pinNote(appWidgetId: appWidgetId, note: note);
+    if (checklist) {
+      await const HomeWidgetSyncService().pinChecklist(appWidgetId: appWidgetId, note: note);
+    } else {
+      await const HomeWidgetSyncService().pinNote(appWidgetId: appWidgetId, note: note);
+    }
     await HomeWidget.finishHomeWidgetConfigure();
   }
 
@@ -47,17 +54,31 @@ class NotePickerPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final notesAsync = ref.watch(notesListProvider);
     return Scaffold(
-      appBar: AppBar(title: Text(context.l10n.chooseNoteToPin)),
+      appBar: AppBar(
+        title: Text(checklist ? context.l10n.chooseChecklistToPin : context.l10n.chooseNoteToPin),
+      ),
       body: notesAsync.when(
-        data: (notes) {
+        data: (all) {
+          final notes = [
+            for (final note in all)
+              if (!checklist || (note.isChecklist && !note.archived)) note,
+          ];
           if (notes.isEmpty) {
-            return Center(child: Text(context.l10n.noNotesCreateFirst));
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  checklist ? context.l10n.noChecklistsCreateFirst : context.l10n.noNotesCreateFirst,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            );
           }
           return ListView.builder(
             itemCount: notes.length,
             itemBuilder: (context, index) {
               final note = notes[index];
-              final title = note.title.isEmpty ? '(untitled)' : note.title;
+              final title = note.title.isEmpty ? context.l10n.untitled : note.title;
               return ListTile(
                 title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
                 subtitle: Text(

@@ -323,5 +323,15 @@
   "insertPickHint": "בוחרים פתק ואז את השורה להקלדה.",
   "insertNoNotes": "אין פתקים מתאימים.",
   "insertWholeNote": "הפתק כולו",
-  "insertLockedHidden": "פתקים נעולים לא מוצעים כאן."
+  "insertLockedHidden": "פתקים נעולים לא מוצעים כאן.",
+  "widgetChecklist": "רשימת משימות",
+  "widgetChecklistEmpty": "אין פריטים ברשימה",
+  "widgetChecklistHidden": "כדי לסמן כאן פריטים, יש להפעיל את \"הצגת פרטים במסך הבית\" בהגדרות של ZT Notes",
+  "widgetOpenToSeeChecklist": "יש לפתוח את ZT Notes כדי לראות את הרשימה",
+  "widgetPickChecklist": "יש להקיש כדי לבחור רשימה",
+  "widgetOpenChecklist": "פתיחת הרשימה ב-ZT Notes",
+  "widgetTick": "סימון",
+  "widgetUntick": "ביטול סימון",
+  "chooseChecklistToPin": "בחירת רשימה לווידג'ט",
+  "noChecklistsCreateFirst": "אין עדיין רשימות. יש ליצור קודם פתק רשימה, ואז להוסיף שוב את הווידג'ט."
 }

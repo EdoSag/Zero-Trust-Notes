@@ -16,6 +16,7 @@ import '../features/places/place_providers.dart';
 import '../features/reminders/reminder_scheduler.dart';
 import '../features/sharing/note_sharing.dart';
 import '../features/sharing/share_intent_listener.dart';
+import '../features/widgets/application/checklist_widget_ticks.dart';
 import '../features/widgets/application/home_widget_sync_service.dart';
 import '../features/widgets/application/pending_widget_action_controller.dart';
 import '../features/widgets/application/widget_launch_listener.dart';
@@ -267,6 +268,7 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
     // shared notes: try again now that they are in.
     ref.listenManual(allNotesLoadedProvider, (_, loaded) {
       if (!loaded) return;
+      _syncWidgetPreviews();
       _maybeConsumePendingWidgetAction();
       _clearFiredPlaceReminders();
     });
@@ -307,16 +309,43 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
     super.dispose();
   }
 
-  /// Pushes a fresh widget preview. Clearing on lock and on pause is
-  /// [AppGate]'s job.
-  void _syncWidgetPreviews() {
+  /// Pushes a fresh widget preview, after saving ticks made on Checklist
+  /// widgets meanwhile. Clearing on lock and on pause is [AppGate]'s job.
+  Future<void> _syncWidgetPreviews() async {
     // Only while on screen: a sync arriving in the background must not
     // write plaintext back after AppGate cleared it on pause.
     if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) return;
     if (ref.read(vaultControllerProvider) is! VaultUnlocked) return;
+    if (await _applyChecklistWidgetTicks()) return; // The saved notes sync the previews.
+    if (!mounted) return;
     final notes = ref.read(notesListProvider).value;
     if (notes == null) return;
     unawaited(const HomeWidgetSyncService().writeUnlockedPreviews(notes));
+  }
+
+  bool _applyingTicks = false;
+
+  /// Saves the ticks made on Checklist widgets while Notes was closed or
+  /// locked. Waits until shared notes are in too, so a shared list's ticks
+  /// aren't dropped. True when a note was saved.
+  Future<bool> _applyChecklistWidgetTicks() async {
+    if (_applyingTicks || !ref.read(allNotesLoadedProvider)) return false;
+    final notes = ref.read(allNotesProvider).value;
+    final repository = ref.read(notesRepositoryProvider);
+    if (notes == null || repository == null) return false;
+    _applyingTicks = true;
+    try {
+      final ticks = await const ChecklistWidgetTicks().take();
+      final changed = ChecklistWidgetTick.apply(notes, ticks);
+      for (final note in changed) {
+        await repository.updateNote(note);
+      }
+      return changed.isNotEmpty;
+    } on Object {
+      return false;
+    } finally {
+      _applyingTicks = false;
+    }
   }
 
   /// Performs the navigation a widget tap asked for, once the notes are
@@ -368,10 +397,12 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
           Navigator.of(context)
               .push<String>(MaterialPageRoute(builder: (_) => const PickForKeyboardPage()))
               .then(KeyboardPickListener.finish);
-        case ConfigureNoteWidget(:final appWidgetId):
-          Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => NotePickerPage(appWidgetId: appWidgetId)));
+        case ConfigureNoteWidget(:final appWidgetId, :final checklist):
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => NotePickerPage(appWidgetId: appWidgetId, checklist: checklist),
+            ),
+          );
       }
     });
   }
