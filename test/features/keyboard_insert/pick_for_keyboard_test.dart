@@ -57,6 +57,31 @@ void main() {
     expect(pickLinesOf(notes[6]), isEmpty);
   });
 
+  test('identifiers and passwords are typed exactly as written', () {
+    expect(
+      pickLinesOf(
+        note(
+          '8',
+          'api_key_v2 *new*',
+          'user: account_ab_cd\n- pass: a*b*c  __x__\n1. [docs](https://x.io) `tok_en`\n```\n  raw **kept**\n```',
+        ),
+      ),
+      [
+        'api_key_v2 *new*',
+        'user: account_ab_cd',
+        'pass: a*b*c  __x__',
+        'docs tok_en',
+        'raw **kept**',
+      ],
+    );
+    expect(
+      pickLinesOf(
+        note('9', '', '', checklist: const [ChecklistItem(id: 'a', text: 'account_ab_cd  **x**')]),
+      ),
+      ['account_ab_cd  **x**'],
+    );
+  });
+
   test('locked, archived, trashed and empty notes are never offered', () {
     expect(pickableNotes(notes, '').map((n) => n.id), ['1', '3', '6']);
     expect(pickableNotes(notes, 'TULIP').map((n) => n.id), ['1']);

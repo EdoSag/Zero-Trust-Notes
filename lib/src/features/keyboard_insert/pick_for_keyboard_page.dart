@@ -2,30 +2,53 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zerotrust_notes/l10n/l10n.dart';
 
-import '../../shared/markdown_snippet.dart';
 import '../notes/application/notes_providers.dart';
 import '../notes/domain/note.dart';
 
+/// One line of a Markdown note body as the text to type: the marks that
+/// only shape the line are dropped (heading, bullet, number, quote, task
+/// box, `**bold**`, `~~struck~~`, `` `code` ``, links keep their label).
+/// Everything else stays exactly as written, so an identifier such as
+/// `account_ab_cd` or a password with `*` in it is typed unchanged.
+String pickTextOfBodyLine(String line) {
+  return line
+      .replaceFirst(RegExp(r'^\s*#{1,6}\s+'), '')
+      .replaceFirst(RegExp(r'^\s*>\s?'), '')
+      .replaceFirst(RegExp(r'^\s*(?:[-*+]|\d+\.)\s+'), '')
+      .replaceFirst(RegExp(r'^\s*\[( |x|X)\]\s?'), '')
+      .replaceAllMapped(RegExp(r'!?\[([^\]]*)\]\([^)]*\)'), (m) => m[1] ?? '')
+      .replaceAllMapped(RegExp(r'\*\*(.+?)\*\*'), (m) => m[1] ?? '')
+      .replaceAllMapped(RegExp(r'~~(.+?)~~'), (m) => m[1] ?? '')
+      .replaceAllMapped(RegExp(r'`([^`]+)`'), (m) => m[1] ?? '')
+      .trim();
+}
+
 /// The lines of [note] that ZT Keyboard can type: the title, then every
-/// non-empty line of the text or checklist, as plain text (no Markdown
-/// marks), without repeats.
+/// non-empty line of the text or checklist, without repeats. The title and
+/// checklist items are plain text and are typed exactly as written; lines
+/// of the Markdown text go through [pickTextOfBodyLine].
 List<String> pickLinesOf(Note note) {
   final lines = <String>[];
   final seen = <String>{};
-  void add(String raw) {
-    final text = stripMarkdownForSnippet(raw);
+  void add(String text) {
     if (text.isNotEmpty && seen.add(text)) lines.add(text);
   }
 
-  add(note.title);
+  add(note.title.trim());
   final checklist = note.checklist;
   if (checklist != null) {
     for (final item in checklist) {
-      add(item.text);
+      add(item.text.trim());
     }
   } else {
+    var fenced = false;
     for (final line in note.body.split('\n')) {
-      add(line);
+      // Code fences are marks; what is between them is typed as written.
+      if (line.trimLeft().startsWith('```')) {
+        fenced = !fenced;
+        continue;
+      }
+      add(fenced ? line.trim() : pickTextOfBodyLine(line));
     }
   }
   return lines;
@@ -133,7 +156,7 @@ class _PickForKeyboardPageState extends ConsumerState<PickForKeyboardPage> {
                   itemBuilder: (context, index) {
                     final note = notes[index];
                     final lines = pickLinesOf(note);
-                    final hasTitle = stripMarkdownForSnippet(note.title).isNotEmpty;
+                    final hasTitle = note.title.trim().isNotEmpty;
                     final rest = lines.skip(hasTitle ? 1 : 0).join(' ');
                     return ListTile(
                       title: Text(
