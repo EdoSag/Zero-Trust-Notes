@@ -31,9 +31,16 @@ class MainActivity : FlutterFragmentActivity() {
     /** Hands shares from [ShareReceiverActivity] to Dart (see ShareIntentListener). */
     private var shareChannel: MethodChannel? = null
 
+    /** ZT Keyboard is waiting for the user to pick a text here (see [TextPick]). */
+    private var pickingText = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         if (intent?.action != ACTION_SHARED) SharedIntake.clearLeftovers(applicationContext)
         super.onCreate(savedInstanceState)
+        if (TextPick.isPick(intent)) {
+            // Only another Zero-Trust app may ask; anyone else gets nothing.
+            if (TextPick.callerAllowed(this)) pickingText = true else TextPick.answer(this, null)
+        }
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -51,6 +58,23 @@ class MainActivity : FlutterFragmentActivity() {
                     "takeShare" -> result.success(SharedIntake.take())
                     else -> result.notImplemented()
                 }
+            }
+        }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "dev.sagron.zerotrustnotes/text_pick",
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "isPick" -> result.success(pickingText)
+                "finish" -> {
+                    // Answers only the screen the keyboard itself opened.
+                    if (pickingText) {
+                        pickingText = false
+                        TextPick.answer(this, call.argument<String>("text"))
+                    }
+                    result.success(null)
+                }
+                else -> result.notImplemented()
             }
         }
         MethodChannel(
@@ -75,6 +99,9 @@ class MainActivity : FlutterFragmentActivity() {
         // Ensure getIntent() reflects the latest intent — Activity does not
         // do this automatically, and home_widget's own
         // initiallyLaunchedFromHomeWidgetConfigure() reads getIntent().
+        // A pick request is only honoured when it opens its own screen (onCreate), where
+        // Android tells who is asking.
+        if (TextPick.isPick(intent)) return
         setIntent(intent)
         super.onNewIntent(intent)
 

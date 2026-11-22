@@ -1139,4 +1139,19 @@ class AppL10nHe extends AppL10n {
 
   @override
   String get widgetPhotoNote => 'פתק חדש עם תמונה';
+
+  @override
+  String get insertIntoKeyboard => 'הוספה ל-ZT Keyboard';
+
+  @override
+  String get insertPickHint => 'בוחרים פתק ואז את השורה להקלדה.';
+
+  @override
+  String get insertNoNotes => 'אין פתקים מתאימים.';
+
+  @override
+  String get insertWholeNote => 'הפתק כולו';
+
+  @override
+  String get insertLockedHidden => 'פתקים נעולים לא מוצעים כאן.';
 }

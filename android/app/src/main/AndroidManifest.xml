@@ -31,6 +31,13 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+            <!-- ZT Keyboard's "Insert from ZT apps" key: pick a line of a note to type.
+                 MainActivity only answers a caller signed with this app's own key (see
+                 TextPick). -->
+            <intent-filter>
+                <action android:name="bz.zerotrust.action.PICK_TEXT"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>

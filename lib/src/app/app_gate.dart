@@ -6,6 +6,8 @@ import 'package:zero_trust_core/zero_trust_core.dart';
 import 'package:zt_places/zt_places.dart';
 
 import '../features/export/application/export_temp_file_registry.dart';
+import '../features/keyboard_insert/keyboard_pick_listener.dart';
+import '../features/keyboard_insert/pick_for_keyboard_page.dart';
 import '../features/notes/application/notes_providers.dart';
 import '../features/notes/domain/note.dart';
 import '../features/notes/presentation/note_editor_page.dart';
@@ -54,6 +56,8 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
     // Text and images shared from other apps open as a new note.
     _shareIntentListener = ShareIntentListener(ref);
     unawaited(_shareIntentListener.start());
+    // ZT Keyboard's "Insert from ZT apps" key: pick a line of a note to type.
+    unawaited(KeyboardPickListener(ref).start());
     // Images sent from an earlier session are no longer needed.
     unawaited(ref.read(outgoingShareFilesProvider).clear());
     // A tapped reminder opens its note, after unlock if needed.
@@ -360,6 +364,10 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
           Navigator.of(
             context,
           ).push(MaterialPageRoute(builder: (_) => NoteEditorPage(shared: content)));
+        case PickTextForKeyboard():
+          Navigator.of(context)
+              .push<String>(MaterialPageRoute(builder: (_) => const PickForKeyboardPage()))
+              .then(KeyboardPickListener.finish);
         case ConfigureNoteWidget(:final appWidgetId):
           Navigator.of(
             context,

@@ -1136,4 +1136,19 @@ class AppL10nEn extends AppL10n {
 
   @override
   String get widgetPhotoNote => 'New note with a photo';
+
+  @override
+  String get insertIntoKeyboard => 'Insert into ZT Keyboard';
+
+  @override
+  String get insertPickHint => 'Tap a note, then the line to type.';
+
+  @override
+  String get insertNoNotes => 'No notes match.';
+
+  @override
+  String get insertWholeNote => 'Whole note';
+
+  @override
+  String get insertLockedHidden => 'Locked notes are not offered here.';
 }

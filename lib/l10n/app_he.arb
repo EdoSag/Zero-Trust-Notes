@@ -318,5 +318,10 @@
   "widgetNotesHidden": "כדי לראות כאן את הפתקים, יש להפעיל את \"הצגת פרטים במסך הבית\" בהגדרות של ZT Notes",
   "widgetOpenToSeeNotes": "יש לפתוח את ZT Notes כדי לראות את הפתקים",
   "widgetSwitchView": "מעבר בין כל הפתקים לפתקים המוצמדים",
-  "widgetPhotoNote": "פתק חדש עם תמונה"
+  "widgetPhotoNote": "פתק חדש עם תמונה",
+  "insertIntoKeyboard": "הוספה ל-ZT Keyboard",
+  "insertPickHint": "בוחרים פתק ואז את השורה להקלדה.",
+  "insertNoNotes": "אין פתקים מתאימים.",
+  "insertWholeNote": "הפתק כולו",
+  "insertLockedHidden": "פתקים נעולים לא מוצעים כאן."
 }

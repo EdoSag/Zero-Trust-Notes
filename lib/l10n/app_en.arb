@@ -618,5 +618,10 @@
   "widgetNotesHidden": "Turn on \"Show details on the home screen\" in ZT Notes settings to see your notes here",
   "widgetOpenToSeeNotes": "Open ZT Notes to see your notes",
   "widgetSwitchView": "Switch between all notes and pinned notes",
-  "widgetPhotoNote": "New note with a photo"
+  "widgetPhotoNote": "New note with a photo",
+  "insertIntoKeyboard": "Insert into ZT Keyboard",
+  "insertPickHint": "Tap a note, then the line to type.",
+  "insertNoNotes": "No notes match.",
+  "insertWholeNote": "Whole note",
+  "insertLockedHidden": "Locked notes are not offered here."
 }
