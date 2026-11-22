@@ -1237,4 +1237,82 @@ class AppL10nEn extends AppL10n {
   String linksHere(String title) {
     return '\"$title\" links here';
   }
+
+  @override
+  String get templates => 'Templates';
+
+  @override
+  String get templatesSubtitle =>
+      'Notes to start from, and what today\'s note looks like';
+
+  @override
+  String templatesHelp(String tokens) {
+    return 'Start a note from a template with \"New from template\" in the notes list. The one marked here is what \"Today\'s note\" starts from. Use $tokens in a template and they are filled in.';
+  }
+
+  @override
+  String get newFromTemplate => 'New from template';
+
+  @override
+  String get todaysNote => 'Today\'s note';
+
+  @override
+  String get manageTemplates => 'Manage templates';
+
+  @override
+  String get saveAsTemplate => 'Save as template';
+
+  @override
+  String get templateName => 'Template name';
+
+  @override
+  String templateSaved(String name) {
+    return 'Saved the template \"$name\"';
+  }
+
+  @override
+  String get renameTemplate => 'Rename';
+
+  @override
+  String get deleteTemplate => 'Delete template';
+
+  @override
+  String get builtInTemplate => 'Built in';
+
+  @override
+  String get ownTemplate => 'Your template';
+
+  @override
+  String get dailyNoteTemplate => 'Used for today\'s note';
+
+  @override
+  String get templateJournal => 'Daily journal';
+
+  @override
+  String templateJournalBody(String date) {
+    return '## $date\n\n**Today I want to**\n- \n\n**Notes**\n\n\n**Grateful for**\n- ';
+  }
+
+  @override
+  String get templateMeeting => 'Meeting notes';
+
+  @override
+  String templateMeetingTitle(String date) {
+    return 'Meeting $date';
+  }
+
+  @override
+  String get templateMeetingBody =>
+      '**Who:** \n**About:** \n\n## Notes\n\n\n## Decisions\n- \n\n## Next steps\n- [ ] ';
+
+  @override
+  String get templateTodo => 'To-do list';
+
+  @override
+  String templateTodoTitle(String date) {
+    return 'To do $date';
+  }
+
+  @override
+  String get templateTodoItems => 'Most important first\nThen this\nAnd this';
 }

@@ -25,6 +25,11 @@ class OpenNewNote extends PendingWidgetAction {
   final NewNoteKind kind;
 }
 
+/// Today's note (N-5), from the app icon shortcut.
+class OpenDailyNote extends PendingWidgetAction {
+  const OpenDailyNote();
+}
+
 class OpenNote extends PendingWidgetAction {
   const OpenNote(this.noteId);
 

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- N-9: long-press the app icon for these. Each opens Notes (after unlock)
+<!-- N-9 (and N-5 Today's note): long-press the app icon for these. Each opens Notes (after unlock)
      through the same links the widgets use; see WidgetLaunchListener. -->
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
     <shortcut
@@ -13,6 +13,18 @@
             android:targetPackage="dev.sagron.zerotrustnotes"
             android:targetClass="dev.sagron.zerotrustnotes.MainActivity"
             android:data="zerotrustnotes://new-note"/>
+    </shortcut>
+    <shortcut
+        android:shortcutId="daily_note"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_today"
+        android:shortcutShortLabel="@string/shortcut_daily_note"
+        android:shortcutLongLabel="@string/shortcut_daily_note">
+        <intent
+            android:action="es.antonborri.home_widget.action.LAUNCH"
+            android:targetPackage="dev.sagron.zerotrustnotes"
+            android:targetClass="dev.sagron.zerotrustnotes.MainActivity"
+            android:data="zerotrustnotes://daily"/>
     </shortcut>
     <shortcut
         android:shortcutId="new_checklist"
