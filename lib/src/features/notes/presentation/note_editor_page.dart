@@ -505,7 +505,8 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   Future<void> _addDrawing() async {
     final result = await DrawingPage.open(context);
     if (result == null || !mounted) return;
-    await _storeDrawing(result);
+    if (result.text case final text?) _appendText(text);
+    if (result.drawing != null) await _storeDrawing(result);
   }
 
   Future<void> _editDrawing(ZtAttachmentRef image) async {
@@ -525,7 +526,8 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     }
     final result = await DrawingPage.open(context, initial: drawing);
     if (result == null || !mounted) return;
-    await _storeDrawing(result, replacing: image);
+    if (result.text case final text?) _appendText(text);
+    if (result.drawing != null) await _storeDrawing(result, replacing: image);
   }
 
   /// Encrypts and stores a drawing (picture and strokes) and puts it in the
@@ -536,12 +538,12 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     setState(() => _addingImages++);
     try {
       final picture = await repository.addImage(
-        result.png,
+        result.png!,
         mimeType: 'image/png',
         name: 'drawing.png',
       );
       final strokes = await repository.addFile(
-        result.drawing.encode(),
+        result.drawing!.encode(),
         mimeType: Drawing.mimeType,
         name: Drawing.fileName,
       );

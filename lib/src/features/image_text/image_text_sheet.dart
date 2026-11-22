@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zerotrust_notes/l10n/l10n.dart';
 
 import '../../shared/text_direction.dart';
+import '../drawing/drawing.dart';
+import '../handwriting/handwriting_reader.dart';
 import 'image_text_reader.dart';
 
 /// Reads the text in [image] on this phone and shows it, editable, with
@@ -16,10 +18,25 @@ Future<String?> showImageTextSheet(BuildContext context, Uint8List image) =>
       builder: (_) => ImageTextSheet(image: image),
     );
 
-class ImageTextSheet extends ConsumerStatefulWidget {
-  const ImageTextSheet({super.key, required this.image});
+/// Handwriting to text: reads what was written on [drawing] on this phone
+/// and shows it like [showImageTextSheet]. Returns the text to add, or null.
+Future<String?> showHandwritingTextSheet(BuildContext context, Drawing drawing) =>
+    showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => ImageTextSheet(drawing: drawing),
+    );
 
-  final Uint8List image;
+class ImageTextSheet extends ConsumerStatefulWidget {
+  const ImageTextSheet({super.key, this.image, this.drawing})
+    : assert((image == null) != (drawing == null), 'An image or a drawing');
+
+  /// An encoded image to read the text of.
+  final Uint8List? image;
+
+  /// Or handwriting to read, line by line.
+  final Drawing? drawing;
 
   @override
   ConsumerState<ImageTextSheet> createState() => _ImageTextSheetState();
@@ -54,9 +71,12 @@ class _ImageTextSheetState extends ConsumerState<ImageTextSheet> {
     String text;
     var failed = false;
     try {
-      text = await ref
-          .read(imageTextReaderProvider)
-          .read(widget.image, languages: _language.tesseract(hebrewFirst: hebrewFirst));
+      final reader = ref.read(imageTextReaderProvider);
+      final languages = _language.tesseract(hebrewFirst: hebrewFirst);
+      final drawing = widget.drawing;
+      text = drawing != null
+          ? await readHandwriting(drawing, reader, languages: languages)
+          : await reader.read(widget.image!, languages: languages);
     } on Object {
       text = '';
       failed = true;
@@ -98,9 +118,15 @@ class _ImageTextSheetState extends ConsumerState<ImageTextSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(l10n.imageTextTitle, style: theme.textTheme.titleLarge),
+          Text(
+            widget.drawing != null ? l10n.handwritingTextTitle : l10n.imageTextTitle,
+            style: theme.textTheme.titleLarge,
+          ),
           const SizedBox(height: 4),
-          Text(l10n.imageTextPrivacy, style: theme.textTheme.bodySmall),
+          Text(
+            widget.drawing != null ? l10n.handwritingTextPrivacy : l10n.imageTextPrivacy,
+            style: theme.textTheme.bodySmall,
+          ),
           const SizedBox(height: 12),
           SegmentedButton<ImageTextLanguage>(
             key: const Key('image_text_language'),
@@ -128,7 +154,11 @@ class _ImageTextSheetState extends ConsumerState<ImageTextSheet> {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 24),
               child: Text(
-                _failed ? l10n.cantReadImageText : l10n.noImageText,
+                _failed
+                    ? l10n.cantReadImageText
+                    : widget.drawing != null
+                    ? l10n.noHandwritingText
+                    : l10n.noImageText,
                 key: const Key('image_text_none'),
                 textAlign: TextAlign.center,
               ),

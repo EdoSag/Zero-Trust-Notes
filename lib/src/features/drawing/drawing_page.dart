@@ -4,14 +4,22 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:zerotrust_notes/l10n/l10n.dart';
 
+import '../image_text/image_text_sheet.dart';
 import 'drawing.dart';
 
 /// What [DrawingPage] hands back: the strokes (to edit again later) and the
-/// picture made from them.
+/// picture made from them, and/or the text read from the handwriting.
 class DrawingResult {
-  const DrawingResult({required this.drawing, required this.png});
-  final Drawing drawing;
-  final Uint8List png;
+  const DrawingResult({this.drawing, this.png, this.text})
+    : assert((drawing == null) == (png == null)),
+      assert(drawing != null || text != null);
+
+  /// Null when only the text is kept: the note's drawings stay as they were.
+  final Drawing? drawing;
+  final Uint8List? png;
+
+  /// Handwriting to text: to add to the note's text.
+  final String? text;
 }
 
 /// Draw or write by hand: pen (follows a stylus's pressure), highlighter
@@ -199,6 +207,53 @@ class _DrawingPageState extends State<DrawingPage> {
     Navigator.of(context).pop(DrawingResult(drawing: drawing, png: png));
   }
 
+  /// Handwriting to text: reads the writing, then adds the text to the
+  /// note, with or without the drawing.
+  Future<void> _toText() async {
+    final size = widget.initial?.size ?? _size;
+    if (_strokes.isEmpty || size == null) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          content: Text(context.l10n.writeSomethingFirst),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+    final drawing = Drawing(size: size, strokes: _strokes);
+    final text = await showHandwritingTextSheet(context, drawing);
+    if (text == null || text.isEmpty || !mounted) return;
+    final keep = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(context.l10n.keepDrawingTooQ),
+        content: Text(context.l10n.keepDrawingTooBody),
+        actions: [
+          TextButton(
+            key: const Key('handwriting_text_only'),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(context.l10n.textOnly),
+          ),
+          FilledButton(
+            key: const Key('handwriting_text_and_drawing'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(context.l10n.textAndDrawing),
+          ),
+        ],
+      ),
+    );
+    if (keep == null || !mounted) return;
+    if (!keep || (!_changed && widget.initial != null)) {
+      // An unchanged drawing that is already in the note stays as it is.
+      Navigator.of(context).pop(DrawingResult(text: text));
+      return;
+    }
+    setState(() => _saving = true);
+    final png = await drawing.toPng();
+    if (!mounted) return;
+    Navigator.of(context).pop(DrawingResult(drawing: drawing, png: png, text: text));
+  }
+
   Future<bool> _confirmDiscard() async {
     if (!_changed) return true;
     final discard = await showDialog<bool>(
@@ -255,6 +310,12 @@ class _DrawingPageState extends State<DrawingPage> {
               tooltip: l10n.redo,
               icon: const Icon(Icons.redo),
               onPressed: _redo.isEmpty ? null : _redoLast,
+            ),
+            IconButton(
+              key: const Key('drawing_to_text'),
+              tooltip: l10n.handwritingToText,
+              icon: const Icon(Icons.text_fields),
+              onPressed: _strokes.isEmpty || _saving ? null : _toText,
             ),
             IconButton(
               tooltip: l10n.clearDrawing,

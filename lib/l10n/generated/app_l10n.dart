@@ -2070,6 +2070,60 @@ abstract class AppL10n {
   /// In en, this message translates to:
   /// **'No checklists yet. Make a checklist note first, then add the widget again.'**
   String get noChecklistsCreateFirst;
+
+  /// No description provided for @handwritingToText.
+  ///
+  /// In en, this message translates to:
+  /// **'Handwriting to text'**
+  String get handwritingToText;
+
+  /// No description provided for @handwritingTextTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Handwriting to text'**
+  String get handwritingTextTitle;
+
+  /// No description provided for @handwritingTextPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Your writing is read on this phone, line by line. Nothing is uploaded. Clear, printed letters read best.'**
+  String get handwritingTextPrivacy;
+
+  /// No description provided for @noHandwritingText.
+  ///
+  /// In en, this message translates to:
+  /// **'No words found. Try another language above, or write larger and more clearly.'**
+  String get noHandwritingText;
+
+  /// No description provided for @writeSomethingFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Write something first'**
+  String get writeSomethingFirst;
+
+  /// No description provided for @keepDrawingTooQ.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep the drawing too?'**
+  String get keepDrawingTooQ;
+
+  /// No description provided for @keepDrawingTooBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The text goes into the note. You can also keep the handwriting as a drawing.'**
+  String get keepDrawingTooBody;
+
+  /// No description provided for @textOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Text only'**
+  String get textOnly;
+
+  /// No description provided for @textAndDrawing.
+  ///
+  /// In en, this message translates to:
+  /// **'Text and drawing'**
+  String get textAndDrawing;
 }
 
 class _AppL10nDelegate extends LocalizationsDelegate<AppL10n> {

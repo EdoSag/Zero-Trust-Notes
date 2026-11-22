@@ -633,5 +633,14 @@
   "widgetTick": "Tick",
   "widgetUntick": "Untick",
   "chooseChecklistToPin": "Choose a checklist for the widget",
-  "noChecklistsCreateFirst": "No checklists yet. Make a checklist note first, then add the widget again."
+  "noChecklistsCreateFirst": "No checklists yet. Make a checklist note first, then add the widget again.",
+  "handwritingToText": "Handwriting to text",
+  "handwritingTextTitle": "Handwriting to text",
+  "handwritingTextPrivacy": "Your writing is read on this phone, line by line. Nothing is uploaded. Clear, printed letters read best.",
+  "noHandwritingText": "No words found. Try another language above, or write larger and more clearly.",
+  "writeSomethingFirst": "Write something first",
+  "keepDrawingTooQ": "Keep the drawing too?",
+  "keepDrawingTooBody": "The text goes into the note. You can also keep the handwriting as a drawing.",
+  "textOnly": "Text only",
+  "textAndDrawing": "Text and drawing"
 }
