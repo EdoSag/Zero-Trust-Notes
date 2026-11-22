@@ -40,6 +40,12 @@ class ConfigureNoteWidget extends PendingWidgetAction {
   final String appWidgetId;
 }
 
+/// ZT Keyboard's "Insert from ZT apps" key opened Notes: the user picks a
+/// line of a note for the keyboard to type, after unlock.
+class PickTextForKeyboard extends PendingWidgetAction {
+  const PickTextForKeyboard();
+}
+
 /// Text and images shared to Notes from another app: opens a new note with
 /// them, after unlock if needed.
 class CreateNoteFromShare extends PendingWidgetAction {

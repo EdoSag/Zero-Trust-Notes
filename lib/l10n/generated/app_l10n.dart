@@ -1980,6 +1980,36 @@ abstract class AppL10n {
   /// In en, this message translates to:
   /// **'New note with a photo'**
   String get widgetPhotoNote;
+
+  /// No description provided for @insertIntoKeyboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Insert into ZT Keyboard'**
+  String get insertIntoKeyboard;
+
+  /// No description provided for @insertPickHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a note, then the line to type.'**
+  String get insertPickHint;
+
+  /// No description provided for @insertNoNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'No notes match.'**
+  String get insertNoNotes;
+
+  /// No description provided for @insertWholeNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Whole note'**
+  String get insertWholeNote;
+
+  /// No description provided for @insertLockedHidden.
+  ///
+  /// In en, this message translates to:
+  /// **'Locked notes are not offered here.'**
+  String get insertLockedHidden;
 }
 
 class _AppL10nDelegate extends LocalizationsDelegate<AppL10n> {
