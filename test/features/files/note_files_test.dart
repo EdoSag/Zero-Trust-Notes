@@ -72,6 +72,24 @@ final _png = base64Decode(
 void main() {
   const timeout = Timeout(Duration(seconds: 60));
 
+  testWidgets('a PDF closed while it still loads leaves no open copy', (tester) async {
+    final pdf = FakePdf();
+    final load = Completer<Uint8List>();
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: const [AppL10n.delegate, ...ZtLanguages.delegates],
+        home: PdfViewerPage(title: 'doc.pdf', load: () => load.future, source: pdf),
+      ),
+    );
+    await tester.pump();
+    expect(find.text('doc.pdf'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    expect(pdf.closed, isTrue);
+    load.complete(Uint8List.fromList([1, 2, 3]));
+    await tester.pump();
+    expect(pdf.opened, isNull, reason: 'nothing is written once the viewer is gone');
+  });
+
   group('note files', () {
     test('kept in the note JSON, counted as in use; older notes have none', () {
       final pdf = _ref('a', name: 'Lease.pdf', mimeType: 'application/pdf');

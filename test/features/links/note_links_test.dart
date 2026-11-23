@@ -127,6 +127,23 @@ void main() {
       (n) => n.id == from.id,
     );
     expect(plan.body, 'Pack for [[Holiday]] and [[Budget]]');
+
+    // Plan's editor, still open, shows the new link and keeps it when edited.
+    expect(find.byKey(const ValueKey('note_link_out_Holiday')), findsOneWidget);
+    expect(find.byKey(const ValueKey('note_link_out_Trip')), findsNothing);
+    await tester.enterText(
+      find.byKey(const Key('note_title_field')),
+      'Plan for the week',
+    );
+    await settle(tester);
+    await tester.pageBack();
+    await settle(tester);
+    await settle(tester);
+    final edited = (await tester.runAsync(() => phone.repo.fetchAll()))!.firstWhere(
+      (n) => n.id == from.id,
+    );
+    expect(edited.title, 'Plan for the week');
+    expect(edited.body, 'Pack for [[Holiday]] and [[Budget]]');
     await finish(tester, phone);
   });
 }

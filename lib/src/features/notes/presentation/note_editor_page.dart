@@ -176,6 +176,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     _dropFiredPlaceReminder(ref.read(firedPlaceRemindersProvider));
     ref.listenManual(firedPlaceRemindersProvider, (_, fired) => _dropFiredPlaceReminder(fired));
     ref.listenManual(widgetTickedNoteProvider, (_, ticked) => _takeWidgetTicks(ticked));
+    ref.listenManual(renamedLinksProvider, (_, rename) => _takeRenamedLinks(rename));
     _images = note?.images ?? const [];
     _drawings = note?.drawings ?? const {};
     _files = note?.files ?? const [];
@@ -278,6 +279,28 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
             item,
       ];
     });
+  }
+
+  /// Another note was renamed and the links to it rewritten in storage:
+  /// this editor rewrites its own text the same way, so its next save
+  /// keeps the new links.
+  void _takeRenamedLinks(LinkRename? rename) {
+    if (rename == null || !mounted) return;
+    final checklist = _checklist;
+    if (checklist != null) {
+      final items = [
+        for (final item in checklist)
+          item.copyWith(text: NoteLinks.renamed(item.text, rename.from, rename.to)),
+      ];
+      if ([for (final i in items) i.text].join('\n') == [for (final i in checklist) i.text].join('\n')) {
+        return;
+      }
+      setState(() => _checklist = items);
+      _changed();
+      return;
+    }
+    final text = NoteLinks.renamed(_bodyController.text, rename.from, rename.to);
+    if (text != _bodyController.text) _bodyController.text = text;
   }
 
   void _dropFiredPlaceReminder(Set<String> fired) {
@@ -876,8 +899,14 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   /// Links in other notes to this note's old title point to its new one.
   /// Runs as the editor closes, so typing a title doesn't rewrite other
   /// notes letter by letter.
-  static Future<void> _relink(NotesRepository repository, String from, String to) async {
+  static Future<void> _relink(
+    NotesRepository repository,
+    RenamedLinks openEditors,
+    String from,
+    String to,
+  ) async {
     if (from.isEmpty || to.isEmpty || from.toLowerCase() == to.toLowerCase()) return;
+    openEditors.renamed(from, to);
     try {
       for (final note in await repository.fetchEverything()) {
         if (note.isTrashed) continue;
@@ -1197,9 +1226,12 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
           onPopInvokedWithResult: (didPop, _) {
             if (!didPop) return;
             final repository = ref.read(notesRepositoryProvider);
+            final openEditors = ref.read(renamedLinksProvider.notifier);
             final rename = (from: _openedTitle.trim(), to: _titleController.text.trim());
             _persist().then((saved) {
-              if (saved && repository != null) _relink(repository, rename.from, rename.to);
+              if (saved && repository != null) {
+                _relink(repository, openEditors, rename.from, rename.to);
+              }
             });
           },
           child: Scaffold(
