@@ -3,12 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:zero_trust_core/zero_trust_core.dart';
 import 'package:zt_sharing_ui/zt_sharing_ui.dart';
 
 import '../../../shared/theme/app_spacing.dart';
 import '../../../shared/widgets/accessible_touch_target.dart';
+import '../../../shared/widgets/sliver_card_columns.dart';
 import '../../keep_import/keep_import_flow.dart';
 import '../../legacy_import/presentation/legacy_import.dart';
 import '../../notebooks/application/notebooks_controller.dart';
@@ -359,6 +359,18 @@ class _NotesListPageState extends ConsumerState<NotesListPage> {
                     final sections = _filter.pinnedFirst(visible);
                     final tagNames = {for (final tag in tags) tag.id: tag.name};
                     return _NotesBody(
+                      scrollKey: ValueKey((
+                        _filter.view,
+                        _filter.query,
+                        _filter.notebookId,
+                        _filter.unfiledOnly,
+                        _filter.tagId,
+                        _filter.color,
+                        _filter.checklistsOnly,
+                        _filter.withReminderOnly,
+                        _sort,
+                        layout,
+                      )),
                       pinned: sections.pinned,
                       others: sections.others,
                       layout: layout,
@@ -769,7 +781,13 @@ class _NotesBody extends StatelessWidget {
     required this.onLongPress,
     required this.onSwipe,
     this.onReorder,
+    this.scrollKey,
   });
+
+  /// Changes when another list is shown (view, filter, search, order,
+  /// layout), so that one starts at its top; the same list keeps its
+  /// scroll while its notes change.
+  final Key? scrollKey;
 
   final List<Note> pinned;
   final List<Note> others;
@@ -812,9 +830,13 @@ class _NotesBody extends StatelessWidget {
       }
       slivers.add(
         SliverPadding(
+          // Keyed, so each section keeps its own grid when the other one
+          // appears or empties.
+          key: ValueKey(identical(notes, pinned) ? 'section_pinned' : 'section_others'),
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
           sliver: layout == NotesLayout.grid
-              ? SliverMasonryGrid.count(
+              ? SliverCardColumns(
+                  itemIds: [for (final note in notes) note.id],
                   crossAxisCount: MediaQuery.sizeOf(context).width >= 900
                       ? 4
                       : MediaQuery.sizeOf(context).width >= 600
@@ -822,7 +844,6 @@ class _NotesBody extends StatelessWidget {
                       : 2,
                   mainAxisSpacing: AppSpacing.sm,
                   crossAxisSpacing: AppSpacing.sm,
-                  childCount: notes.length,
                   itemBuilder: (context, index) =>
                       _draggable(notes, notes[index], _card(notes[index], compact: false)),
                 )
@@ -840,7 +861,7 @@ class _NotesBody extends StatelessWidget {
     section(showHeadings ? context.l10n.pinned : null, pinned);
     section(showHeadings && others.isNotEmpty ? context.l10n.others : null, others);
     slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 140)));
-    return CustomScrollView(slivers: slivers);
+    return CustomScrollView(key: scrollKey, slivers: slivers);
   }
 
   Widget _draggable(List<Note> section, Note note, Widget child) {
