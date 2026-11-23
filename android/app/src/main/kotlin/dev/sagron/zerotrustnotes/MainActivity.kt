@@ -69,7 +69,11 @@ class MainActivity : FlutterFragmentActivity() {
         ).setMethodCallHandler { call, result ->
             when (call.method) {
                 // Ticks made on Checklist widgets since the last time (see ChecklistTicks).
-                "takeTicks" -> result.success(ChecklistTicks.take(HomeWidgetPlugin.getData(applicationContext)))
+                "peekTicks" -> result.success(ChecklistTicks.peek(HomeWidgetPlugin.getData(applicationContext)))
+                "ackTicks" -> {
+                    ChecklistTicks.ack(HomeWidgetPlugin.getData(applicationContext), call.argument<Int>("count") ?: 0)
+                    result.success(null)
+                }
                 else -> result.notImplemented()
             }
         }
