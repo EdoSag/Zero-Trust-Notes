@@ -1388,4 +1388,54 @@ class AppL10nEn extends AppL10n {
   @override
   String get exportMarkdownFolder =>
       'Markdown folder (.zip, with pictures and files)';
+
+  @override
+  String get importFromOtherApps => 'Import from other apps';
+
+  @override
+  String get otherAppsSubtitle =>
+      'Evernote, Standard Notes, Apple Notes, Markdown';
+
+  @override
+  String get otherAppsExplain =>
+      'Choose the export file (or several, or a .zip):\n\n• Evernote: export notebooks or notes as .enex.\n• Standard Notes: Settings, Backups, download a decrypted backup.\n• Apple Notes: request a copy of your iCloud Notes at privacy.apple.com, or export them as Markdown with an exporter app.\n• Obsidian, Joplin and other Markdown apps: a .zip of the folder, or the .md files.\n\nThe files are read on this phone and your notes are encrypted before they sync. Tags, folders (as notebooks), pictures and files up to 20 MB come along. Notes already imported are skipped.';
+
+  @override
+  String importProgress(int done, int total) {
+    return 'Importing $done of $total…';
+  }
+
+  @override
+  String otherSkippedTrash(int count) {
+    return '$count from the other app\'s trash, skipped.';
+  }
+
+  @override
+  String otherFilesSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count pictures or files weren\'t added (over 20 MB, or unreadable).',
+      one: '1 picture or file wasn\'t added (over 20 MB, or unreadable).',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String otherEncrypted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count notes are in an encrypted backup and can\'t be read. Download a decrypted backup instead.',
+      one:
+          '1 note is in an encrypted backup and can\'t be read. Download a decrypted backup instead.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get otherNoneFound =>
+      'No notes found in that file. Choose an .enex, a Standard Notes backup, or Markdown, text or HTML notes.';
 }

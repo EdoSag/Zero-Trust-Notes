@@ -5,6 +5,7 @@ import 'package:zero_trust_core/zero_trust_core.dart';
 
 import '../export/presentation/export_sheet.dart';
 import '../keep_import/keep_import_flow.dart';
+import '../other_import/other_apps_import_flow.dart';
 import '../legacy_import/presentation/legacy_import.dart';
 import '../templates/templates_views.dart';
 import '../widgets/application/home_widget_sync_service.dart';
@@ -60,6 +61,12 @@ class NotesSettingsPage extends ConsumerWidget {
           title: Text(context.l10n.importFromKeep),
           subtitle: Text(context.l10n.keepSubtitle),
           onTap: () => showKeepImportFlow(context, ref),
+        ),
+        ListTile(
+          leading: const Icon(Icons.drive_folder_upload_outlined),
+          title: Text(context.l10n.importFromOtherApps),
+          subtitle: Text(context.l10n.otherAppsSubtitle),
+          onTap: () => showOtherAppsImportFlow(context, ref),
         ),
         if (importPending)
           ListTile(

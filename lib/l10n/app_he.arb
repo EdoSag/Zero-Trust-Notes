@@ -386,5 +386,13 @@
   "filesFailed": "{count, plural, =1{לא הצלחנו לצרף קובץ.} other{לא הצלחנו לצרף {count} קבצים.}}",
   "cantOpenPdf": "אי אפשר להציג את ה-PDF הזה. אפשר לנסות לפתוח אותו באפליקציה אחרת.",
   "pdfPageNofM": "עמוד {page} מתוך {pages}",
-  "exportMarkdownFolder": "תיקיית Markdown (‏.zip, עם תמונות וקבצים)"
+  "exportMarkdownFolder": "תיקיית Markdown (‏.zip, עם תמונות וקבצים)",
+  "importFromOtherApps": "ייבוא מאפליקציות אחרות",
+  "otherAppsSubtitle": "Evernote, Standard Notes, Apple Notes, Markdown",
+  "otherAppsExplain": "בחרו את קובץ הייצוא (או כמה קבצים, או קובץ ‎.zip):\n\n• Evernote: ייצוא פנקסים או פתקים כקובץ ‎.enex.\n• Standard Notes: הגדרות, גיבויים, הורדת גיבוי לא מוצפן.\n• Apple Notes: בקשו עותק של הפתקים מ-iCloud באתר privacy.apple.com, או ייצאו אותם כ-Markdown באפליקציית ייצוא.\n• Obsidian, Joplin ואפליקציות Markdown אחרות: קובץ ‎.zip של התיקייה, או קובצי ה-‎.md.\n\nהקבצים נקראים בטלפון הזה והפתקים מוצפנים לפני הסנכרון. תגיות, תיקיות (כפנקסים), תמונות וקבצים עד 20MB מגיעים איתם. פתקים שכבר יובאו מדולגים.",
+  "importProgress": "מייבאים {done} מתוך {total}…",
+  "otherSkippedTrash": "{count} מהאשפה של האפליקציה האחרת דולגו.",
+  "otherFilesSkipped": "{count, plural, =1{תמונה או קובץ אחד לא נוספו (מעל 20MB או לא קריאים).} other{{count} תמונות או קבצים לא נוספו (מעל 20MB או לא קריאים).}}",
+  "otherEncrypted": "{count, plural, =1{פתק אחד נמצא בגיבוי מוצפן ואי אפשר לקרוא אותו. הורידו גיבוי לא מוצפן.} other{{count} פתקים נמצאים בגיבוי מוצפן ואי אפשר לקרוא אותם. הורידו גיבוי לא מוצפן.}}",
+  "otherNoneFound": "לא נמצאו פתקים בקובץ הזה. בחרו קובץ ‎.enex, גיבוי של Standard Notes, או פתקי Markdown, טקסט או HTML."
 }

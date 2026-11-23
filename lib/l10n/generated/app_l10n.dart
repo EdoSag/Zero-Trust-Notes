@@ -2388,6 +2388,54 @@ abstract class AppL10n {
   /// In en, this message translates to:
   /// **'Markdown folder (.zip, with pictures and files)'**
   String get exportMarkdownFolder;
+
+  /// No description provided for @importFromOtherApps.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from other apps'**
+  String get importFromOtherApps;
+
+  /// No description provided for @otherAppsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Evernote, Standard Notes, Apple Notes, Markdown'**
+  String get otherAppsSubtitle;
+
+  /// No description provided for @otherAppsExplain.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the export file (or several, or a .zip):\n\n• Evernote: export notebooks or notes as .enex.\n• Standard Notes: Settings, Backups, download a decrypted backup.\n• Apple Notes: request a copy of your iCloud Notes at privacy.apple.com, or export them as Markdown with an exporter app.\n• Obsidian, Joplin and other Markdown apps: a .zip of the folder, or the .md files.\n\nThe files are read on this phone and your notes are encrypted before they sync. Tags, folders (as notebooks), pictures and files up to 20 MB come along. Notes already imported are skipped.'**
+  String get otherAppsExplain;
+
+  /// No description provided for @importProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Importing {done} of {total}…'**
+  String importProgress(int done, int total);
+
+  /// No description provided for @otherSkippedTrash.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} from the other app\'s trash, skipped.'**
+  String otherSkippedTrash(int count);
+
+  /// No description provided for @otherFilesSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 picture or file wasn\'t added (over 20 MB, or unreadable).} other{{count} pictures or files weren\'t added (over 20 MB, or unreadable).}}'**
+  String otherFilesSkipped(int count);
+
+  /// No description provided for @otherEncrypted.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 note is in an encrypted backup and can\'t be read. Download a decrypted backup instead.} other{{count} notes are in an encrypted backup and can\'t be read. Download a decrypted backup instead.}}'**
+  String otherEncrypted(int count);
+
+  /// No description provided for @otherNoneFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No notes found in that file. Choose an .enex, a Standard Notes backup, or Markdown, text or HTML notes.'**
+  String get otherNoneFound;
 }
 
 class _AppL10nDelegate extends LocalizationsDelegate<AppL10n> {

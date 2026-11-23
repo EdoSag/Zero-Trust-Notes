@@ -1391,4 +1391,53 @@ class AppL10nHe extends AppL10n {
   @override
   String get exportMarkdownFolder =>
       'תיקיית Markdown (‏.zip, עם תמונות וקבצים)';
+
+  @override
+  String get importFromOtherApps => 'ייבוא מאפליקציות אחרות';
+
+  @override
+  String get otherAppsSubtitle =>
+      'Evernote, Standard Notes, Apple Notes, Markdown';
+
+  @override
+  String get otherAppsExplain =>
+      'בחרו את קובץ הייצוא (או כמה קבצים, או קובץ ‎.zip):\n\n• Evernote: ייצוא פנקסים או פתקים כקובץ ‎.enex.\n• Standard Notes: הגדרות, גיבויים, הורדת גיבוי לא מוצפן.\n• Apple Notes: בקשו עותק של הפתקים מ-iCloud באתר privacy.apple.com, או ייצאו אותם כ-Markdown באפליקציית ייצוא.\n• Obsidian, Joplin ואפליקציות Markdown אחרות: קובץ ‎.zip של התיקייה, או קובצי ה-‎.md.\n\nהקבצים נקראים בטלפון הזה והפתקים מוצפנים לפני הסנכרון. תגיות, תיקיות (כפנקסים), תמונות וקבצים עד 20MB מגיעים איתם. פתקים שכבר יובאו מדולגים.';
+
+  @override
+  String importProgress(int done, int total) {
+    return 'מייבאים $done מתוך $total…';
+  }
+
+  @override
+  String otherSkippedTrash(int count) {
+    return '$count מהאשפה של האפליקציה האחרת דולגו.';
+  }
+
+  @override
+  String otherFilesSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count תמונות או קבצים לא נוספו (מעל 20MB או לא קריאים).',
+      one: 'תמונה או קובץ אחד לא נוספו (מעל 20MB או לא קריאים).',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String otherEncrypted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count פתקים נמצאים בגיבוי מוצפן ואי אפשר לקרוא אותם. הורידו גיבוי לא מוצפן.',
+      one:
+          'פתק אחד נמצא בגיבוי מוצפן ואי אפשר לקרוא אותו. הורידו גיבוי לא מוצפן.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get otherNoneFound =>
+      'לא נמצאו פתקים בקובץ הזה. בחרו קובץ ‎.enex, גיבוי של Standard Notes, או פתקי Markdown, טקסט או HTML.';
 }
