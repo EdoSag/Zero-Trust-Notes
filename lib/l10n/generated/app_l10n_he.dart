@@ -1339,4 +1339,56 @@ class AppL10nHe extends AppL10n {
   @override
   String get versionRestored =>
       'הגרסה הקודמת שוחזרה. הטקסט שהיה לפניה שמור בהיסטוריה.';
+
+  @override
+  String get attachFile => 'צירוף קובץ';
+
+  @override
+  String get attachedFile => 'קובץ';
+
+  @override
+  String openFile(String name) {
+    return 'פתיחת $name';
+  }
+
+  @override
+  String get openInAnotherApp => 'פתיחה באפליקציה אחרת';
+
+  @override
+  String get removeFile => 'הסרת הקובץ';
+
+  @override
+  String filesTooLarge(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count קבצים גדולים מ-20MB ואי אפשר לצרף אותם.',
+      one: 'הקובץ גדול מ-20MB ואי אפשר לצרף אותו.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String filesFailed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'לא הצלחנו לצרף $count קבצים.',
+      one: 'לא הצלחנו לצרף קובץ.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cantOpenPdf =>
+      'אי אפשר להציג את ה-PDF הזה. אפשר לנסות לפתוח אותו באפליקציה אחרת.';
+
+  @override
+  String pdfPageNofM(int page, int pages) {
+    return 'עמוד $page מתוך $pages';
+  }
+
+  @override
+  String get exportMarkdownFolder =>
+      'תיקיית Markdown (‏.zip, עם תמונות וקבצים)';
 }

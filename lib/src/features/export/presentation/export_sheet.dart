@@ -1,12 +1,17 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../notebooks/application/notebooks_controller.dart';
 import '../../notes/application/note_lock.dart';
 import '../../notes/application/notes_providers.dart';
 import '../../notes/domain/note.dart';
+import '../../tags/application/tags_controller.dart';
 import '../application/export_service.dart';
 import '../application/export_temp_file_registry.dart';
+import '../application/markdown_folder_export.dart';
 import '../data/export_file_writer.dart';
 import '../domain/export_format.dart';
 import 'package:zerotrust_notes/l10n/l10n.dart';
@@ -123,7 +128,9 @@ class _ExportSheetContentState extends ConsumerState<_ExportSheetContent> {
         }
       }
 
-      final bytes = await _exportService.render(notes, format);
+      final bytes = format == ExportFormat.markdownFolder
+          ? await _markdownFolder(notes)
+          : await _exportService.render(notes, format);
       final fileName = _exportService.suggestedFileName(
         format,
         singleNoteTitle: widget.singleNote?.title,
@@ -152,6 +159,28 @@ class _ExportSheetContentState extends ConsumerState<_ExportSheetContent> {
   }
 }
 
+/// The Markdown folder, with notebook and tag names and the notes'
+/// pictures and files.
+extension on _ExportSheetContentState {
+  Future<Uint8List> _markdownFolder(List<Note> notes) async {
+    final notebooks = await ref.read(notebooksRepositoryProvider)?.fetchAll() ?? const [];
+    final tags = await ref.read(tagsRepositoryProvider)?.fetchAll() ?? const [];
+    final repository = ref.read(notesRepositoryProvider)!;
+    final result = await MarkdownFolderExport.build(
+      notes,
+      notebookNames: {for (final notebook in notebooks) notebook.id: notebook.name},
+      tagNames: {for (final tag in tags) tag.id: tag.name},
+      readFile: repository.readImage,
+    );
+    if (result.missing > 0 && mounted) {
+      ScaffoldMessenger.maybeOf(
+        context,
+      )?.showSnackBar(SnackBar(content: Text(context.l10n.imagesNotHere(result.missing))));
+    }
+    return result.zip;
+  }
+}
+
 class _FormatTile extends StatelessWidget {
   const _FormatTile({required this.format, required this.onTap});
 
@@ -161,17 +190,21 @@ class _FormatTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: context.l10n.exportAs(format.label),
+      label: context.l10n.exportAs(_label(context)),
       button: true,
       child: SizedBox(
         height: 48,
-        child: ListTile(leading: Icon(_iconFor(format)), title: Text(format.label), onTap: onTap),
+        child: ListTile(leading: Icon(_iconFor(format)), title: Text(_label(context)), onTap: onTap),
       ),
     );
   }
 
+  String _label(BuildContext context) =>
+      format == ExportFormat.markdownFolder ? context.l10n.exportMarkdownFolder : format.label;
+
   IconData _iconFor(ExportFormat format) => switch (format) {
     ExportFormat.markdown => Icons.description_outlined,
+    ExportFormat.markdownFolder => Icons.folder_zip_outlined,
     ExportFormat.pdf => Icons.picture_as_pdf_outlined,
     ExportFormat.json => Icons.data_object,
   };

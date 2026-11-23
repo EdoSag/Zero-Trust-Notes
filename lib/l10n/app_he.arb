@@ -376,5 +376,15 @@
   "noVersionsYet": "אין עדיין גרסאות קודמות. הן יופיעו כאן אחרי שהטקסט של הפתק ישתנה.",
   "cantLoadVersions": "אי אפשר לטעון את ההיסטוריה כרגע.",
   "restoreVersion": "שחזור",
-  "versionRestored": "הגרסה הקודמת שוחזרה. הטקסט שהיה לפניה שמור בהיסטוריה."
+  "versionRestored": "הגרסה הקודמת שוחזרה. הטקסט שהיה לפניה שמור בהיסטוריה.",
+  "attachFile": "צירוף קובץ",
+  "attachedFile": "קובץ",
+  "openFile": "פתיחת {name}",
+  "openInAnotherApp": "פתיחה באפליקציה אחרת",
+  "removeFile": "הסרת הקובץ",
+  "filesTooLarge": "{count, plural, =1{הקובץ גדול מ-20MB ואי אפשר לצרף אותו.} other{{count} קבצים גדולים מ-20MB ואי אפשר לצרף אותם.}}",
+  "filesFailed": "{count, plural, =1{לא הצלחנו לצרף קובץ.} other{לא הצלחנו לצרף {count} קבצים.}}",
+  "cantOpenPdf": "אי אפשר להציג את ה-PDF הזה. אפשר לנסות לפתוח אותו באפליקציה אחרת.",
+  "pdfPageNofM": "עמוד {page} מתוך {pages}",
+  "exportMarkdownFolder": "תיקיית Markdown (‏.zip, עם תמונות וקבצים)"
 }

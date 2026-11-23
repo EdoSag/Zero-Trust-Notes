@@ -2328,6 +2328,66 @@ abstract class AppL10n {
   /// In en, this message translates to:
   /// **'Earlier version brought back. The text before it is in the history.'**
   String get versionRestored;
+
+  /// No description provided for @attachFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach file'**
+  String get attachFile;
+
+  /// No description provided for @attachedFile.
+  ///
+  /// In en, this message translates to:
+  /// **'File'**
+  String get attachedFile;
+
+  /// No description provided for @openFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Open {name}'**
+  String openFile(String name);
+
+  /// No description provided for @openInAnotherApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Open in another app'**
+  String get openInAnotherApp;
+
+  /// No description provided for @removeFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove file'**
+  String get removeFile;
+
+  /// No description provided for @filesTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{That file is over 20 MB, too large to attach.} other{{count} files are over 20 MB, too large to attach.}}'**
+  String filesTooLarge(int count);
+
+  /// No description provided for @filesFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Couldn\'t attach a file.} other{Couldn\'t attach {count} files.}}'**
+  String filesFailed(int count);
+
+  /// No description provided for @cantOpenPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t show this PDF. Try opening it in another app.'**
+  String get cantOpenPdf;
+
+  /// No description provided for @pdfPageNofM.
+  ///
+  /// In en, this message translates to:
+  /// **'Page {page} of {pages}'**
+  String pdfPageNofM(int page, int pages);
+
+  /// No description provided for @exportMarkdownFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Markdown folder (.zip, with pictures and files)'**
+  String get exportMarkdownFolder;
 }
 
 class _AppL10nDelegate extends LocalizationsDelegate<AppL10n> {

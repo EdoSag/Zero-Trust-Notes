@@ -16,6 +16,9 @@ import '../../../shared/widgets/accessible_touch_target.dart';
 import '../../export/presentation/export_sheet.dart';
 import '../../drawing/drawing.dart';
 import '../../drawing/drawing_page.dart';
+import '../../files/note_file_picker.dart';
+import '../../files/note_files_strip.dart';
+import '../../files/pdf_viewer_page.dart';
 import '../../image_text/image_text_sheet.dart';
 import '../../history/note_history.dart';
 import '../../history/note_history_page.dart';
@@ -123,6 +126,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   NotePlaceReminder? _placeReminder;
   List<ZtAttachmentRef> _images = const [];
   Map<String, ZtAttachmentRef> _drawings = const {};
+  List<ZtAttachmentRef> _files = const [];
   bool _locked = false;
 
   /// A locked note stays hidden until the phone's lock confirms it's the
@@ -175,6 +179,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     ref.listenManual(renamedLinksProvider, (_, rename) => _takeRenamedLinks(rename));
     _images = note?.images ?? const [];
     _drawings = note?.drawings ?? const {};
+    _files = note?.files ?? const [];
     _locked = note?.locked ?? false;
     _lockOpen = !_locked;
     if (!_lockOpen) WidgetsBinding.instance.addPostFrameCallback((_) => _openLock());
@@ -227,6 +232,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
 
   bool get _isBlank =>
       _images.isEmpty &&
+      _files.isEmpty &&
       _titleController.text.trim().isEmpty &&
       _body.trim().isEmpty &&
       (_checklist?.every((item) => item.text.trim().isEmpty) ?? true);
@@ -343,6 +349,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         locked: _locked,
         placeReminder: _placeReminder,
         drawings: _drawings,
+        files: _files,
       );
     } else {
       final updated = _note!.copyWith(
@@ -359,6 +366,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         locked: _locked,
         placeReminder: _placeReminder,
         drawings: _drawings,
+        files: _files,
       );
       // The text before this editing session goes into the history (N-2).
       await history?.beforeSave(updated, previous: _note);
@@ -438,6 +446,158 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
       _snack(context.l10n.imagesFailed(failed));
     }
     return added;
+  }
+
+  /// Attaches files from the system file chooser (N-7). Pictures go with
+  /// the note's images; PDFs and other files into its files.
+  Future<void> _attachFiles() async {
+    final repository = ref.read(notesRepositoryProvider);
+    if (repository == null) return;
+    final List<PickedNoteFile> picked;
+    try {
+      picked = await ref
+          .read(vaultControllerProvider.notifier)
+          .whileShowingSystemUi(ref.read(noteFilePickerProvider));
+    } on Object {
+      if (mounted) _snack(context.l10n.cantOpenFile);
+      return;
+    }
+    await _addFiles([
+      for (final file in picked)
+        () async {
+          if ((file.size ?? 0) > maxNoteFileBytes) {
+            throw AttachmentTooLarge(file.size!, maxNoteFileBytes);
+          }
+          return (bytes: await file.read(), mimeType: fileMimeType(file.name), name: file.name);
+        },
+    ]);
+  }
+
+  /// Encrypts and stores each file, one at a time, like [_addImages].
+  Future<void> _addFiles(
+    List<Future<({Uint8List bytes, String? mimeType, String? name})> Function()> sources,
+  ) async {
+    final repository = ref.read(notesRepositoryProvider);
+    if (repository == null || sources.isEmpty) return;
+    setState(() => _addingImages += sources.length);
+    var tooLarge = 0;
+    var failed = 0;
+    for (final source in sources) {
+      try {
+        final file = await source();
+        final image = file.mimeType?.startsWith('image/') ?? false;
+        final stored = image
+            ? await repository.addImage(file.bytes, mimeType: file.mimeType, name: file.name)
+            : await repository.addFile(file.bytes, mimeType: file.mimeType, name: file.name);
+        if (!mounted) {
+          await repository.releaseImages([stored]);
+          continue;
+        }
+        setState(() {
+          if (image) {
+            _images = [..._images, stored];
+          } else {
+            _files = [..._files, stored];
+          }
+        });
+        _changed();
+      } on AttachmentTooLarge {
+        tooLarge++;
+      } on Object {
+        failed++;
+      } finally {
+        if (mounted) setState(() => _addingImages--);
+      }
+    }
+    if (mounted && tooLarge > 0) {
+      _snack(context.l10n.filesTooLarge(tooLarge));
+    } else if (mounted && failed > 0) {
+      _snack(context.l10n.filesFailed(failed));
+    }
+  }
+
+  /// A PDF opens in Notes; other files open in another app through the
+  /// share sheet.
+  Future<void> _openFile(ZtAttachmentRef file) async {
+    final repository = ref.read(notesRepositoryProvider);
+    if (repository == null) return;
+    final sharing = NoteSharing(context, ref);
+    final name = file.name ?? context.l10n.attachedFile;
+    final pdfSource = ref.read(pdfPageSourceProvider);
+    if (isPdf(file) && pdfSource != null) {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (pageContext) => PdfViewerPage(
+            title: name,
+            load: () => repository.readImage(file),
+            source: pdfSource(),
+            actions: [
+              IconButton(
+                tooltip: pageContext.l10n.openInAnotherApp,
+                icon: const Icon(Icons.open_in_new),
+                onPressed: () => sharing.shareFile(file),
+              ),
+              if (!_inTrash)
+                IconButton(
+                  key: const Key('pdf_remove'),
+                  tooltip: pageContext.l10n.removeFile,
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: () {
+                    Navigator.of(pageContext).pop();
+                    _removeFile(file);
+                  },
+                ),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(fileIcon(file)),
+              title: Text(name),
+              subtitle: Text(fileSize(file.size)),
+            ),
+            ListTile(
+              key: const Key('file_open_elsewhere'),
+              leading: const Icon(Icons.open_in_new),
+              title: Text(sheetContext.l10n.openInAnotherApp),
+              onTap: () => Navigator.of(sheetContext).pop('open'),
+            ),
+            if (!_inTrash)
+              ListTile(
+                key: const Key('file_remove'),
+                leading: const Icon(Icons.delete_outline),
+                title: Text(sheetContext.l10n.removeFile),
+                onTap: () => Navigator.of(sheetContext).pop('remove'),
+              ),
+          ],
+        ),
+      ),
+    );
+    switch (action) {
+      case 'open':
+        await sharing.shareFile(file);
+      case 'remove':
+        await _removeFile(file);
+    }
+  }
+
+  Future<void> _removeFile(ZtAttachmentRef file) async {
+    final repository = ref.read(notesRepositoryProvider);
+    setState(() => _files = [
+      for (final f in _files)
+        if (f.id != file.id) f,
+    ]);
+    _changed();
+    if (await _saving) await repository?.releaseImages([file]);
   }
 
   Future<void> _takeShared(SharedContent shared) async {
@@ -1144,6 +1304,10 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
                     NoteImageStrip(images: _images, onOpen: _openImage),
                     const SizedBox(height: AppSpacing.sm),
                   ],
+                  if (_files.isNotEmpty) ...[
+                    NoteFilesStrip(files: _files, onOpen: _openFile),
+                    const SizedBox(height: AppSpacing.sm),
+                  ],
                   if (_addingImages > 0) ...[
                     Semantics(
                       liveRegion: true,
@@ -1240,6 +1404,8 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
             _pickImages(NoteImageSource.camera);
           case 'gallery':
             _pickImages(NoteImageSource.gallery);
+          case 'file':
+            _attachFiles();
           case 'send':
             _send();
           case 'color':
@@ -1304,6 +1470,14 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
             child: ListTile(
               leading: Icon(Icons.add_photo_alternate_outlined),
               title: Text(context.l10n.addImage),
+            ),
+          ),
+        if (!_inShared)
+          PopupMenuItem(
+            value: 'file',
+            child: ListTile(
+              leading: Icon(Icons.attach_file),
+              title: Text(context.l10n.attachFile),
             ),
           ),
         if (!_inTrash && !_locked)

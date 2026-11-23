@@ -88,6 +88,7 @@ class NotesRepository {
     bool locked = false,
     NotePlaceReminder? placeReminder,
     Map<String, ZtAttachmentRef> drawings = const {},
+    List<ZtAttachmentRef> files = const [],
     DateTime? createdAt,
   }) async {
     final now = _clock().toUtc();
@@ -108,6 +109,7 @@ class NotesRepository {
       locked: locked,
       placeReminder: placeReminder,
       drawings: drawings,
+      files: files,
     );
     return updateNote(note);
   }
@@ -157,7 +159,8 @@ class NotesRepository {
     return (await attachments()).put(bytes, mimeType: mimeType, name: name);
   }
 
-  /// Encrypts a drawing's strokes for a note, like [addImage].
+  /// Encrypts a file for a note (drawing strokes, a PDF, a document), like
+  /// [addImage]. Put the returned ref in `drawings` or `files`.
   Future<ZtAttachmentRef> addFile(Uint8List bytes, {String? mimeType, String? name}) =>
       addImage(bytes, mimeType: mimeType, name: name);
 

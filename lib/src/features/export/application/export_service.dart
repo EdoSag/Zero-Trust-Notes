@@ -5,6 +5,7 @@ import 'package:pdf/widgets.dart' as pw;
 
 import '../../notes/domain/note.dart';
 import '../domain/export_format.dart';
+import 'markdown_folder_export.dart';
 
 /// Renders decrypted notes into exportable bytes. Content only exists in
 /// memory here — where those bytes end up (a real temp file on native, an
@@ -15,6 +16,7 @@ class ExportService {
   Future<Uint8List> render(List<Note> notes, ExportFormat format) {
     return switch (format) {
       ExportFormat.markdown => _renderMarkdown(notes),
+      ExportFormat.markdownFolder => MarkdownFolderExport.build(notes).then((r) => r.zip),
       ExportFormat.json => _renderJson(notes),
       ExportFormat.pdf => _renderPdf(notes),
     };
@@ -30,6 +32,7 @@ class ExportService {
 
   String mimeTypeFor(ExportFormat format) => switch (format) {
         ExportFormat.markdown => 'text/markdown',
+        ExportFormat.markdownFolder => 'application/zip',
         ExportFormat.json => 'application/json',
         ExportFormat.pdf => 'application/pdf',
       };
