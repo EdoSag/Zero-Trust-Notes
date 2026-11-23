@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- N-9: long-press the app icon for these. Each opens Notes (after unlock)
+     through the same links the widgets use; see WidgetLaunchListener. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="new_note"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_note"
+        android:shortcutShortLabel="@string/shortcut_new_note"
+        android:shortcutLongLabel="@string/shortcut_new_note">
+        <intent
+            android:action="es.antonborri.home_widget.action.LAUNCH"
+            android:targetPackage="dev.sagron.zerotrustnotes"
+            android:targetClass="dev.sagron.zerotrustnotes.MainActivity"
+            android:data="zerotrustnotes://new-note"/>
+    </shortcut>
+    <shortcut
+        android:shortcutId="new_checklist"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_checklist"
+        android:shortcutShortLabel="@string/shortcut_new_checklist"
+        android:shortcutLongLabel="@string/shortcut_new_checklist">
+        <intent
+            android:action="es.antonborri.home_widget.action.LAUNCH"
+            android:targetPackage="dev.sagron.zerotrustnotes"
+            android:targetClass="dev.sagron.zerotrustnotes.MainActivity"
+            android:data="zerotrustnotes://new-note?kind=checklist"/>
+    </shortcut>
+    <shortcut
+        android:shortcutId="voice_note"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_voice"
+        android:shortcutShortLabel="@string/shortcut_voice_note"
+        android:shortcutLongLabel="@string/shortcut_voice_note">
+        <intent
+            android:action="es.antonborri.home_widget.action.LAUNCH"
+            android:targetPackage="dev.sagron.zerotrustnotes"
+            android:targetClass="dev.sagron.zerotrustnotes.MainActivity"
+            android:data="zerotrustnotes://new-note?kind=voice"/>
+    </shortcut>
+</shortcuts>
