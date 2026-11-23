@@ -1213,4 +1213,28 @@ class AppL10nEn extends AppL10n {
 
   @override
   String get textAndDrawing => 'Text and drawing';
+
+  @override
+  String get linkToNote => 'Link to a note';
+
+  @override
+  String get searchNotesToLink => 'Search notes';
+
+  @override
+  String get noNotesToLink => 'No notes with a title to link to.';
+
+  @override
+  String createLinkedNote(String title) {
+    return 'Make the note \"$title\"';
+  }
+
+  @override
+  String openLinkedNote(String title) {
+    return 'Open \"$title\"';
+  }
+
+  @override
+  String linksHere(String title) {
+    return '\"$title\" links here';
+  }
 }

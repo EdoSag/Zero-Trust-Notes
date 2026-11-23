@@ -1217,4 +1217,28 @@ class AppL10nHe extends AppL10n {
 
   @override
   String get textAndDrawing => 'טקסט וציור';
+
+  @override
+  String get linkToNote => 'קישור לפתק';
+
+  @override
+  String get searchNotesToLink => 'חיפוש פתקים';
+
+  @override
+  String get noNotesToLink => 'אין פתקים עם כותרת שאפשר לקשר אליהם.';
+
+  @override
+  String createLinkedNote(String title) {
+    return 'יצירת הפתק \"$title\"';
+  }
+
+  @override
+  String openLinkedNote(String title) {
+    return 'פתיחת \"$title\"';
+  }
+
+  @override
+  String linksHere(String title) {
+    return '\"$title\" מקשר לכאן';
+  }
 }

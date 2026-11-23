@@ -342,5 +342,11 @@
   "keepDrawingTooQ": "לשמור גם את הציור?",
   "keepDrawingTooBody": "הטקסט נכנס לפתק. אפשר לשמור גם את כתב היד כציור.",
   "textOnly": "רק טקסט",
-  "textAndDrawing": "טקסט וציור"
+  "textAndDrawing": "טקסט וציור",
+  "linkToNote": "קישור לפתק",
+  "searchNotesToLink": "חיפוש פתקים",
+  "noNotesToLink": "אין פתקים עם כותרת שאפשר לקשר אליהם.",
+  "createLinkedNote": "יצירת הפתק \"{title}\"",
+  "openLinkedNote": "פתיחת \"{title}\"",
+  "linksHere": "\"{title}\" מקשר לכאן"
 }

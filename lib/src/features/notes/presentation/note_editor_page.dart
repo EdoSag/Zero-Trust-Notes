@@ -18,6 +18,8 @@ import '../../drawing/drawing.dart';
 import '../../drawing/drawing_page.dart';
 import '../../image_text/image_text_sheet.dart';
 import '../../images/note_image_picker.dart';
+import '../../links/note_links.dart';
+import '../../links/note_links_views.dart';
 import '../../images/note_image_views.dart';
 import '../../notebooks/domain/notebook.dart';
 import '../../notebooks/presentation/notebook_picker.dart';
@@ -53,9 +55,14 @@ class NoteEditorPage extends ConsumerStatefulWidget {
     this.shared,
     this.startWithVoice = false,
     this.startWithPhoto = false,
+    this.initialTitle,
   });
 
   final Note? note;
+
+  /// For a new note: its title, e.g. from a link to a note that doesn't
+  /// exist yet.
+  final String? initialTitle;
 
   /// For a new note: open the voice note sheet straight away.
   final bool startWithVoice;
@@ -83,8 +90,12 @@ class NoteEditorPage extends ConsumerStatefulWidget {
 
 class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   late final TextEditingController _titleController = TextEditingController(
-    text: widget.note?.title ?? widget.shared?.title ?? '',
+    text: widget.note?.title ?? widget.shared?.title ?? widget.initialTitle ?? '',
   );
+
+  /// The title when the editor opened: links to it in other notes follow
+  /// a rename when the editor closes.
+  late final String _openedTitle = widget.note?.title ?? '';
   late final TextEditingController _bodyController = TextEditingController(
     text: widget.note?.isChecklist ?? false ? '' : widget.note?.body ?? widget.shared?.body ?? '',
   );
@@ -146,6 +157,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     _dropFiredPlaceReminder(ref.read(firedPlaceRemindersProvider));
     ref.listenManual(firedPlaceRemindersProvider, (_, fired) => _dropFiredPlaceReminder(fired));
     ref.listenManual(widgetTickedNoteProvider, (_, ticked) => _takeWidgetTicks(ticked));
+    ref.listenManual(renamedLinksProvider, (_, rename) => _takeRenamedLinks(rename));
     _images = note?.images ?? const [];
     _drawings = note?.drawings ?? const {};
     _locked = note?.locked ?? false;
@@ -245,6 +257,28 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
             item,
       ];
     });
+  }
+
+  /// Another note was renamed and the links to it rewritten in storage:
+  /// this editor rewrites its own text the same way, so its next save
+  /// keeps the new links.
+  void _takeRenamedLinks(LinkRename? rename) {
+    if (rename == null || !mounted) return;
+    final checklist = _checklist;
+    if (checklist != null) {
+      final items = [
+        for (final item in checklist)
+          item.copyWith(text: NoteLinks.renamed(item.text, rename.from, rename.to)),
+      ];
+      if ([for (final i in items) i.text].join('\n') == [for (final i in checklist) i.text].join('\n')) {
+        return;
+      }
+      setState(() => _checklist = items);
+      _changed();
+      return;
+    }
+    final text = NoteLinks.renamed(_bodyController.text, rename.from, rename.to);
+    if (text != _bodyController.text) _bodyController.text = text;
   }
 
   void _dropFiredPlaceReminder(Set<String> fired) {
@@ -669,6 +703,74 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     await NoteSharing(context, ref).shareNote(note);
   }
 
+  /// Links in other notes to this note's old title point to its new one.
+  /// Runs as the editor closes, so typing a title doesn't rewrite other
+  /// notes letter by letter.
+  static Future<void> _relink(
+    NotesRepository repository,
+    RenamedLinks openEditors,
+    String from,
+    String to,
+  ) async {
+    if (from.isEmpty || to.isEmpty || from.toLowerCase() == to.toLowerCase()) return;
+    openEditors.renamed(from, to);
+    try {
+      for (final note in await repository.fetchEverything()) {
+        if (note.isTrashed) continue;
+        final updated = NoteLinks.withRenamedLinks(note, from, to);
+        if (updated != null) await repository.updateNote(updated);
+      }
+    } on Object {
+      // Locked meanwhile: the links keep the old title.
+    }
+  }
+
+  /// Puts a `[[link]]` to another note at the cursor (or as a new item of
+  /// a checklist).
+  Future<void> _insertLink() async {
+    final target = await showNoteLinkPicker(context, exceptId: _note?.id);
+    if (target == null || !mounted) return;
+    final link = NoteLinks.linkTo(target.title);
+    if (_checklist != null) {
+      setState(() => _checklist = [..._checklist!, ChecklistItem.create(link)]);
+      _changed();
+      return;
+    }
+    final text = _bodyController.text;
+    final selection = _bodyController.selection;
+    final start = selection.isValid ? selection.start : text.length;
+    final end = selection.isValid ? selection.end : text.length;
+    _bodyController.value = TextEditingValue(
+      text: text.replaceRange(start, end, link),
+      selection: TextSelection.collapsed(offset: start + link.length),
+    );
+    setState(() => _previewMode = false);
+  }
+
+  void _openLinked(Note note) => Navigator.of(
+    context,
+  ).push(MaterialPageRoute<void>(builder: (_) => NoteEditorPage(note: note)));
+
+  /// A link to a note that doesn't exist yet: a new note with that title,
+  /// in this note's notebook.
+  void _createLinked(String title) => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => NoteEditorPage(initialTitle: title, initialNotebookId: _notebookId),
+    ),
+  );
+
+  void _tapPreviewLink(String? href) {
+    final title = NoteLinks.titleOfHref(href);
+    if (title == null) return;
+    final notes = ref.read(allNotesProvider).value ?? const <Note>[];
+    final target = NoteLinks.resolve(title, notes, exceptId: _note?.id);
+    if (target == null) {
+      _createLinked(title);
+    } else {
+      _openLinked(target);
+    }
+  }
+
   Future<void> _saveAndClose() async {
     if (await _persist() && mounted) Navigator.of(context).pop();
   }
@@ -885,7 +987,15 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         autofocus: true,
         child: PopScope(
           onPopInvokedWithResult: (didPop, _) {
-            if (didPop) _persist();
+            if (!didPop) return;
+            final repository = ref.read(notesRepositoryProvider);
+            final openEditors = ref.read(renamedLinksProvider.notifier);
+            final rename = (from: _openedTitle.trim(), to: _titleController.text.trim());
+            _persist().then((saved) {
+              if (saved && repository != null) {
+                _relink(repository, openEditors, rename.from, rename.to);
+              }
+            });
           },
           child: Scaffold(
             backgroundColor: background,
@@ -981,6 +1091,14 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
                     const SizedBox(height: AppSpacing.sm),
                   ],
                   Expanded(child: isChecklist ? _checklistBody() : _textBody(theme)),
+                  if (!_inTrash && _lockOpen)
+                    NoteLinksBar(
+                      noteId: _note?.id,
+                      title: _titleController.text,
+                      body: _body,
+                      onOpen: _openLinked,
+                      onCreate: _createLinked,
+                    ),
                   const SizedBox(height: AppSpacing.xs),
                   Semantics(
                     liveRegion: true,
@@ -1068,6 +1186,8 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
             _toggleChecklist();
           case 'preview':
             setState(() => _previewMode = !_previewMode);
+          case 'link':
+            _insertLink();
           case 'export':
             if (_note != null) showExportSheet(context, singleNote: _note);
           case 'trash':
@@ -1148,6 +1268,14 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
             title: Text(isChecklist ? context.l10n.hideCheckboxes : context.l10n.showCheckboxes),
           ),
         ),
+        if (!_inTrash)
+          PopupMenuItem(
+            value: 'link',
+            child: ListTile(
+              leading: const Icon(Icons.add_link),
+              title: Text(context.l10n.linkToNote),
+            ),
+          ),
         if (!isChecklist)
           PopupMenuItem(
             value: 'preview',
@@ -1205,9 +1333,10 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
                 ),
               )
             : Markdown(
-                data: _bodyController.text,
+                data: NoteLinks.toMarkdown(_bodyController.text),
                 selectable: true,
                 styleSheet: MarkdownStyleSheet.fromTheme(theme),
+                onTapLink: (_, href, _) => _tapPreviewLink(href),
               ),
       );
     }

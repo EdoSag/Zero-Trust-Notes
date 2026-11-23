@@ -642,5 +642,14 @@
   "keepDrawingTooQ": "Keep the drawing too?",
   "keepDrawingTooBody": "The text goes into the note. You can also keep the handwriting as a drawing.",
   "textOnly": "Text only",
-  "textAndDrawing": "Text and drawing"
+  "textAndDrawing": "Text and drawing",
+  "linkToNote": "Link to a note",
+  "searchNotesToLink": "Search notes",
+  "noNotesToLink": "No notes with a title to link to.",
+  "createLinkedNote": "Make the note \"{title}\"",
+  "@createLinkedNote": {"placeholders": {"title": {"type": "String"}}},
+  "openLinkedNote": "Open \"{title}\"",
+  "@openLinkedNote": {"placeholders": {"title": {"type": "String"}}},
+  "linksHere": "\"{title}\" links here",
+  "@linksHere": {"placeholders": {"title": {"type": "String"}}}
 }
