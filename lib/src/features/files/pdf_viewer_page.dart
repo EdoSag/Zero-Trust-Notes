@@ -31,15 +31,22 @@ class AndroidPdfPageSource implements PdfPageSource {
   static bool get supported => !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
   File? _file;
+  bool _closed = false;
 
   @override
   Future<int> open(Uint8List pdf) async {
+    if (_closed) throw StateError('Closed');
     final dir = Directory(p.join((await getTemporaryDirectory()).path, 'pdf_view'));
     await dir.create(recursive: true);
     final name = List.generate(16, (_) => Random.secure().nextInt(16).toRadixString(16)).join();
     final file = File(p.join(dir.path, '$name.pdf'));
-    await file.writeAsBytes(pdf, flush: true);
     _file = file;
+    await file.writeAsBytes(pdf, flush: true);
+    // Closed while writing: close found no file yet, so delete it here.
+    if (_closed) {
+      await _delete(file);
+      throw StateError('Closed');
+    }
     return (await _channel.invokeMethod<int>('pageCount', {'path': file.path})) ?? 0;
   }
 
@@ -58,10 +65,15 @@ class AndroidPdfPageSource implements PdfPageSource {
 
   @override
   Future<void> close() async {
+    _closed = true;
     final file = _file;
     _file = null;
+    if (file != null) await _delete(file);
+  }
+
+  static Future<void> _delete(File file) async {
     try {
-      await file?.delete();
+      await file.delete();
     } on Object {
       // Already gone; the cache folder is cleared with the app's cache.
     }
@@ -103,8 +115,16 @@ class _PdfViewerPageState extends State<PdfViewerPage> {
 
   Future<void> _open() async {
     try {
-      final count = await _source.open(await widget.load());
-      if (mounted) setState(() => _pages = count);
+      final pdf = await widget.load();
+      // Closed while decrypting: no plain copy is written at all.
+      if (!mounted) return;
+      final count = await _source.open(pdf);
+      if (!mounted) {
+        // Closed while it opened: the copy dispose couldn't see goes now.
+        await _source.close();
+        return;
+      }
+      setState(() => _pages = count);
     } on Object {
       if (mounted) setState(() => _failed = true);
     }
