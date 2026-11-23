@@ -11,14 +11,15 @@ import java.io.File
 import java.util.UUID
 
 /**
- * Receives text and images shared from other apps ("Share" → "ZT Notes").
+ * Receives text, images and other files shared from other apps ("Share" →
+ * "ZT Notes"), such as a PDF from ZT Browser's downloads.
  *
  * A separate, invisible activity rather than an intent filter on
  * [MainActivity]: a share would otherwise start a second copy of the app
  * inside the sharing app's task. This one copies what was shared, hands it
  * to the running (or starting) app through [SharedIntake], brings
  * [MainActivity] to the front and closes. The note is made there, after
- * unlock, where the images are encrypted and these plain copies deleted.
+ * unlock, where the files are encrypted and these plain copies deleted.
  */
 class ShareReceiverActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,10 +51,13 @@ class ShareReceiverActivity : Activity() {
 
 /** The latest share, until the Dart side takes it. */
 object SharedIntake {
-    private const val MAX_IMAGES = 20
+    private const val MAX_ITEMS = 20
 
-    /** The core's attachment limit: a larger image couldn't be saved anyway. */
+    /** The core's attachment limit: a larger file couldn't be saved anyway. */
     private const val MAX_BYTES = 20_000_000L
+
+    /** All of one share together, so a big share can't fill the phone. */
+    private const val MAX_TOTAL_BYTES = 100_000_000L
 
     @Volatile
     private var pending: Map<String, Any?>? = null
@@ -79,7 +83,7 @@ object SharedIntake {
 
     fun receive(context: Context, intent: Intent) {
         // Each share gets its own folder: an earlier share may still be
-        // importing its images. Only an earlier share nobody took is dropped.
+        // importing its files. Only an earlier share nobody took is dropped.
         pendingDir?.deleteRecursively()
         pending = null
         pendingDir = null
@@ -97,17 +101,24 @@ object SharedIntake {
         }
 
         val images = mutableListOf<Map<String, Any?>>()
+        val files = mutableListOf<Map<String, Any?>>()
         var skipped = 0
+        var total = 0L
         for (uri in uris) {
-            if (images.size >= MAX_IMAGES) {
+            if (images.size + files.size >= MAX_ITEMS) {
                 skipped++
                 continue
             }
-            val image = copyImage(context, uri, dir)
-            if (image == null) skipped++ else images.add(image)
+            val copy = copyFile(context, uri, dir, intent.type, MAX_TOTAL_BYTES - total)
+            if (copy == null) {
+                skipped++
+                continue
+            }
+            total += copy["size"] as Long
+            if ((copy["mimeType"] as String).startsWith("image/")) images.add(copy) else files.add(copy)
         }
 
-        if (text.isNullOrBlank() && images.isEmpty() && skipped == 0) {
+        if (text.isNullOrBlank() && images.isEmpty() && files.isEmpty() && skipped == 0) {
             dir.deleteRecursively()
             return
         }
@@ -116,22 +127,32 @@ object SharedIntake {
             "text" to text,
             "subject" to subject,
             "images" to images,
+            "files" to files,
             "skipped" to skipped,
         )
     }
 
     /**
-     * Only `content://` images from other apps. A `file://` link, or one to
+     * Only `content://` files from other apps. A `file://` link, or one to
      * this app's own provider, could point at Notes' private files and copy
-     * them into a note, so those are refused.
+     * them into a note, so those are refused. Images go with the note's
+     * pictures; anything else (a PDF, a document) is attached as a file.
      */
-    private fun copyImage(context: Context, uri: Uri, dir: File): Map<String, Any?>? {
+    private fun copyFile(
+        context: Context,
+        uri: Uri,
+        dir: File,
+        sharedType: String?,
+        room: Long,
+    ): Map<String, Any?>? {
         if (uri.scheme != "content") return null
         val authority = uri.authority ?: return null
         if (authority.startsWith(context.packageName)) return null
         val resolver = context.contentResolver
-        val mime = resolver.getType(uri) ?: return null
-        if (!mime.startsWith("image/")) return null
+        val mime = resolver.getType(uri)
+            ?: sharedType?.takeUnless { it.contains('*') }
+            ?: "application/octet-stream"
+        val limit = minOf(MAX_BYTES, room)
 
         var name: String? = null
         try {
@@ -143,17 +164,17 @@ object SharedIntake {
         }
 
         val out = File(dir, UUID.randomUUID().toString())
+        var total = 0L
         try {
             val input = resolver.openInputStream(uri) ?: return null
             input.use { source ->
                 out.outputStream().use { sink ->
                     val buffer = ByteArray(64 * 1024)
-                    var total = 0L
                     while (true) {
                         val read = source.read(buffer)
                         if (read < 0) break
                         total += read
-                        if (total > MAX_BYTES) throw TooLarge()
+                        if (total > limit) throw TooLarge()
                         sink.write(buffer, 0, read)
                     }
                 }
@@ -162,7 +183,7 @@ object SharedIntake {
             out.delete()
             return null
         }
-        return mapOf("path" to out.absolutePath, "mimeType" to mime, "name" to name)
+        return mapOf("path" to out.absolutePath, "mimeType" to mime, "name" to name, "size" to total)
     }
 
     private class TooLarge : Exception()

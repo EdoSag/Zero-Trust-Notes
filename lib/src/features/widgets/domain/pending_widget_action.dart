@@ -54,7 +54,7 @@ class PickTextForKeyboard extends PendingWidgetAction {
   const PickTextForKeyboard();
 }
 
-/// Text and images shared to Notes from another app: opens a new note with
+/// Text, images and files shared to Notes from another app: opens a new note with
 /// them, after unlock if needed.
 class CreateNoteFromShare extends PendingWidgetAction {
   const CreateNoteFromShare(this.content);
@@ -62,31 +62,44 @@ class CreateNoteFromShare extends PendingWidgetAction {
   final SharedContent content;
 }
 
-/// What another app shared. [images] are plain copies on this device until
-/// the new note encrypts them; whoever consumes them deletes them.
+/// What another app shared. [images] and [files] are plain copies on this
+/// device until the new note encrypts them; whoever consumes them deletes
+/// them.
 class SharedContent {
-  const SharedContent({this.text, this.subject, this.images = const [], this.skipped = 0});
+  const SharedContent({
+    this.text,
+    this.subject,
+    this.images = const [],
+    this.files = const [],
+    this.skipped = 0,
+  });
 
   factory SharedContent.fromMap(Map<Object?, Object?> map) => SharedContent(
     text: map['text'] as String?,
     subject: map['subject'] as String?,
-    images: [
-      for (final image in (map['images'] as List?) ?? const [])
-        if (image is Map && image['path'] is String)
-          SharedImageFile(
-            path: image['path'] as String,
-            mimeType: image['mimeType'] as String?,
-            name: image['name'] as String?,
-          ),
-    ],
+    images: _files(map['images']),
+    files: _files(map['files']),
     skipped: (map['skipped'] as int?) ?? 0,
   );
+
+  static List<SharedImageFile> _files(Object? list) => [
+    for (final file in list is List ? list : const [])
+      if (file is Map && file['path'] is String)
+        SharedImageFile(
+          path: file['path'] as String,
+          mimeType: file['mimeType'] as String?,
+          name: file['name'] as String?,
+        ),
+  ];
 
   final String? text;
   final String? subject;
   final List<SharedImageFile> images;
 
-  /// Items that couldn't be taken (not an image, too large, unreadable).
+  /// Anything that isn't a picture: PDFs, documents (N-7).
+  final List<SharedImageFile> files;
+
+  /// Items that couldn't be taken (too large, unreadable, too many).
   final int skipped;
 
   /// The note's title: the subject apps like browsers send with a link,
@@ -99,6 +112,7 @@ class SharedContent {
   String get body => text?.trim() ?? '';
 }
 
+/// A shared image or file, as a plain copy in the app's cache.
 class SharedImageFile {
   const SharedImageFile({required this.path, this.mimeType, this.name});
 

@@ -468,7 +468,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
           if ((file.size ?? 0) > maxNoteFileBytes) {
             throw AttachmentTooLarge(file.size!, maxNoteFileBytes);
           }
-          return (bytes: await file.read(), mimeType: fileMimeType(file.name), name: file.name);
+          return (bytes: await file.read(), mimeType: null, name: file.name);
         },
     ]);
   }
@@ -485,10 +485,14 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     for (final source in sources) {
       try {
         final file = await source();
-        final image = file.mimeType?.startsWith('image/') ?? false;
+        // A type the sender didn't know: guess it from the name.
+        final mimeType = file.mimeType == null || file.mimeType == 'application/octet-stream'
+            ? fileMimeType(file.name ?? '') ?? file.mimeType
+            : file.mimeType;
+        final image = mimeType?.startsWith('image/') ?? false;
         final stored = image
-            ? await repository.addImage(file.bytes, mimeType: file.mimeType, name: file.name)
-            : await repository.addFile(file.bytes, mimeType: file.mimeType, name: file.name);
+            ? await repository.addImage(file.bytes, mimeType: mimeType, name: file.name)
+            : await repository.addFile(file.bytes, mimeType: mimeType, name: file.name);
         if (!mounted) {
           await repository.releaseImages([stored]);
           continue;
@@ -602,25 +606,36 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
 
   Future<void> _takeShared(SharedContent shared) async {
     if (shared.title.isNotEmpty || shared.body.isNotEmpty) _changed();
-    final files = shared.images;
-    await _addImages([
-      for (final file in files)
-        () async {
-          final plain = File(file.path);
-          try {
-            return (bytes: await plain.readAsBytes(), mimeType: file.mimeType, name: file.name);
-          } finally {
-            // Only the encrypted copy stays on the device.
-            try {
-              await plain.delete();
-              // The share's own folder, once its last image is read.
-              await plain.parent.delete();
-            } on Object {
-              // Already gone, or other images still to read.
-            }
-          }
-        },
-    ]);
+    Future<({Uint8List bytes, String? mimeType, String? name})> Function() read(
+      SharedImageFile file,
+    ) => () async {
+      final plain = File(file.path);
+      try {
+        return (bytes: await plain.readAsBytes(), mimeType: file.mimeType, name: file.name);
+      } finally {
+        // Only the encrypted copy stays on the device.
+        try {
+          await plain.delete();
+          // The share's own folder, once its last file is read.
+          await plain.parent.delete();
+        } on Object {
+          // Already gone, or other files still to read.
+        }
+      }
+    };
+    await _addImages([for (final file in shared.images) read(file)]);
+    if (!mounted) {
+      // Closed mid-way: the rest were never encrypted, so don't keep them.
+      for (final file in shared.files) {
+        try {
+          await File(file.path).delete();
+        } on Object {
+          // Already gone.
+        }
+      }
+      return;
+    }
+    await _addFiles([for (final file in shared.files) read(file)]);
     if (mounted && shared.skipped > 0) {
       _snack(context.l10n.sharedSkipped(shared.skipped));
     }

@@ -151,6 +151,43 @@ void main() {
     await finish(tester, phone);
   });
 
+  testWidgets('a PDF and a file of unknown type shared from another app are attached', timeout: timeout, (
+    tester,
+  ) async {
+    final dir = (await real(tester, () => Directory.systemTemp.createTemp('shared_in')));
+    final pdf = File('${dir.path}/a');
+    final other = File('${dir.path}/b');
+    await real(tester, () => pdf.writeAsBytes([37, 80, 68, 70]));
+    await real(tester, () => other.writeAsBytes([1, 2, 3]));
+
+    await pumpEditor(
+      tester,
+      NoteEditorPage(
+        shared: SharedContent.fromMap({
+          'subject': 'Ticket',
+          'images': const <Object?>[],
+          'files': [
+            {'path': pdf.path, 'mimeType': 'application/pdf', 'name': 'Ticket.pdf'},
+            {'path': other.path, 'mimeType': 'application/octet-stream', 'name': 'notes.md'},
+          ],
+          'skipped': 0,
+        }),
+      ),
+    );
+
+    expect(find.text('Ticket'), findsOneWidget);
+    final note = (await real(tester, phone.repo.fetchAll)).single;
+    expect(note.images, isEmpty);
+    expect(note.files.map((f) => (f.name, f.mimeType)), [
+      ('Ticket.pdf', 'application/pdf'),
+      ('notes.md', 'text/markdown'),
+    ]);
+    expect(find.byKey(ValueKey('note_file_${note.files.first.id}')), findsOneWidget);
+    expect(await real(tester, pdf.exists), isFalse, reason: 'the plain copies are deleted');
+    expect(await real(tester, dir.exists), isFalse, reason: 'and their share folder');
+    await finish(tester, phone);
+  });
+
   testWidgets('Send hands the note to the share sheet as text', timeout: timeout, (tester) async {
     final sent = <ShareParams>[];
     await pumpEditor(
