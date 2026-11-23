@@ -95,4 +95,64 @@ void main() {
       );
     });
   });
+
+  group('Saving widget ticks', () {
+    test('ticks leave the queue only once every note is saved', () async {
+      final queue = _FakeQueue(const [
+        ChecklistWidgetTick(noteId: 'n', itemId: 'a', checked: true),
+        ChecklistWidgetTick(noteId: 'm', itemId: 'b', checked: true),
+      ]);
+      final notes = [_list('n', [milk]), _list('m', [bread])];
+
+      // The vault locks after the first save: nothing is dropped.
+      var saves = 0;
+      await expectLater(
+        saveChecklistWidgetTicks(
+          queue: queue,
+          notes: notes,
+          save: (note) async => ++saves == 1 ? note : throw StateError('locked'),
+        ),
+        throwsStateError,
+      );
+      expect(queue.acked, 0);
+
+      // The next unlock applies the same queue again, and then drops it.
+      final saved = <Note>[];
+      final changed = await saveChecklistWidgetTicks(
+        queue: queue,
+        notes: notes,
+        save: (note) async => note,
+        onSaved: saved.add,
+      );
+      expect(changed, 2);
+      expect(queue.acked, 2);
+      expect(saved.map((n) => n.checklist!.single.checked), [true, true]);
+    });
+
+    test('an empty queue saves nothing', () async {
+      final queue = _FakeQueue(const []);
+      expect(
+        await saveChecklistWidgetTicks(
+          queue: queue,
+          notes: const [],
+          save: (_) => throw StateError('no save'),
+        ),
+        0,
+      );
+      expect(queue.acked, 0);
+    });
+  });
+}
+
+class _FakeQueue implements ChecklistWidgetTicks {
+  _FakeQueue(this.ticks);
+
+  final List<ChecklistWidgetTick> ticks;
+  int acked = 0;
+
+  @override
+  Future<List<ChecklistWidgetTick>> peek() async => ticks;
+
+  @override
+  Future<void> ack(int count) async => acked += count;
 }
