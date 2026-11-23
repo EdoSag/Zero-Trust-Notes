@@ -1,3 +1,5 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../notes/domain/note.dart';
 
 /// Links between notes (N-4): `[[Note title]]` anywhere in a note's text,
@@ -84,3 +86,18 @@ abstract final class NoteLinks {
   static String _key(String title) => _clean(title).toLowerCase();
 }
 
+
+/// The last note rename whose links were rewritten, so an editor still
+/// open on a linking note takes the new links instead of saving the old
+/// ones back. [count] tells two renames to the same title apart.
+typedef LinkRename = ({String from, String to, int count});
+
+class RenamedLinks extends Notifier<LinkRename?> {
+  @override
+  LinkRename? build() => null;
+
+  void renamed(String from, String to) =>
+      state = (from: from, to: to, count: (state?.count ?? 0) + 1);
+}
+
+final renamedLinksProvider = NotifierProvider<RenamedLinks, LinkRename?>(RenamedLinks.new);
