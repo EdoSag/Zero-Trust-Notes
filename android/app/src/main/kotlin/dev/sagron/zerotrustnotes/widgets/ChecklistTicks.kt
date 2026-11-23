@@ -72,12 +72,30 @@ object ChecklistTicks {
         ChecklistWidgetProvider.updateAll(context)
     }
 
-    /** The queued ticks, oldest first, removed from the queue (for the app). */
-    fun take(prefs: SharedPreferences): String {
+    /**
+     * The queued ticks, oldest first, for the app. They stay queued until
+     * the app has saved them and calls [ack], so a save that fails (the
+     * vault locking part-way) is tried again on the next unlock.
+     */
+    fun peek(prefs: SharedPreferences): String {
         synchronized(lock) {
-            val pending = prefs.getString(PENDING_KEY, null) ?: "[]"
-            prefs.edit().remove(PENDING_KEY).commit()
-            return pending
+            return prefs.getString(PENDING_KEY, null) ?: "[]"
+        }
+    }
+
+    /** Drops the first [count] queued ticks: the ones the app has saved. */
+    fun ack(prefs: SharedPreferences, count: Int) {
+        synchronized(lock) {
+            val pending = try {
+                JSONArray(prefs.getString(PENDING_KEY, null) ?: "[]")
+            } catch (e: Exception) {
+                JSONArray()
+            }
+            val rest = JSONArray()
+            for (i in count until pending.length()) rest.put(pending.get(i))
+            val editor = prefs.edit()
+            if (rest.length() == 0) editor.remove(PENDING_KEY) else editor.putString(PENDING_KEY, rest.toString())
+            editor.commit()
         }
     }
 

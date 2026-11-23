@@ -69,6 +69,9 @@ class NoteTemplate {
   /// Offered by the app, not stored; can't be renamed or deleted.
   final bool builtIn;
 
+  /// The start of every built-in template's id.
+  static const builtInPrefix = 'builtin:';
+
   bool get isChecklist => checklist != null;
 
   NoteTemplate copyWith({String? name, bool? daily}) => NoteTemplate(
