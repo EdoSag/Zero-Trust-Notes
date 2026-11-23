@@ -1154,4 +1154,37 @@ class AppL10nHe extends AppL10n {
 
   @override
   String get insertLockedHidden => 'פתקים נעולים לא מוצעים כאן.';
+
+  @override
+  String get widgetChecklist => 'רשימת משימות';
+
+  @override
+  String get widgetChecklistEmpty => 'אין פריטים ברשימה';
+
+  @override
+  String get widgetChecklistHidden =>
+      'כדי לסמן כאן פריטים, יש להפעיל את \"הצגת פרטים במסך הבית\" בהגדרות של ZT Notes';
+
+  @override
+  String get widgetOpenToSeeChecklist =>
+      'יש לפתוח את ZT Notes כדי לראות את הרשימה';
+
+  @override
+  String get widgetPickChecklist => 'יש להקיש כדי לבחור רשימה';
+
+  @override
+  String get widgetOpenChecklist => 'פתיחת הרשימה ב-ZT Notes';
+
+  @override
+  String get widgetTick => 'סימון';
+
+  @override
+  String get widgetUntick => 'ביטול סימון';
+
+  @override
+  String get chooseChecklistToPin => 'בחירת רשימה לווידג\'ט';
+
+  @override
+  String get noChecklistsCreateFirst =>
+      'אין עדיין רשימות. יש ליצור קודם פתק רשימה, ואז להוסיף שוב את הווידג\'ט.';
 }

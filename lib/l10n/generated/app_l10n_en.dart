@@ -1151,4 +1151,36 @@ class AppL10nEn extends AppL10n {
 
   @override
   String get insertLockedHidden => 'Locked notes are not offered here.';
+
+  @override
+  String get widgetChecklist => 'Checklist';
+
+  @override
+  String get widgetChecklistEmpty => 'Nothing on this list';
+
+  @override
+  String get widgetChecklistHidden =>
+      'Turn on \"Show details on the home screen\" in ZT Notes settings to tick items here';
+
+  @override
+  String get widgetOpenToSeeChecklist => 'Open ZT Notes to see this list';
+
+  @override
+  String get widgetPickChecklist => 'Tap to pick a checklist';
+
+  @override
+  String get widgetOpenChecklist => 'Open the checklist in ZT Notes';
+
+  @override
+  String get widgetTick => 'Tick';
+
+  @override
+  String get widgetUntick => 'Untick';
+
+  @override
+  String get chooseChecklistToPin => 'Choose a checklist for the widget';
+
+  @override
+  String get noChecklistsCreateFirst =>
+      'No checklists yet. Make a checklist note first, then add the widget again.';
 }

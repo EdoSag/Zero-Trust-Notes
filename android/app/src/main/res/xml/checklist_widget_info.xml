@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Checklist (W5): one checklist note with tick circles, from 2x2 up; the list scrolls. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="110dp"
+    android:minHeight="110dp"
+    android:minResizeWidth="110dp"
+    android:minResizeHeight="110dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="3"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/widget_checklist"
+    android:previewLayout="@layout/widget_checklist_preview"
+    android:description="@string/checklist_widget_description"
+    android:configure="dev.sagron.zerotrustnotes.MainActivity"
+    android:resizeMode="horizontal|vertical"
+    android:widgetFeatures="reconfigurable"
+    android:widgetCategory="home_screen">
+</appwidget-provider>

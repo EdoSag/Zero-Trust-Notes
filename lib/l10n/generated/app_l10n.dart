@@ -2010,6 +2010,66 @@ abstract class AppL10n {
   /// In en, this message translates to:
   /// **'Locked notes are not offered here.'**
   String get insertLockedHidden;
+
+  /// No description provided for @widgetChecklist.
+  ///
+  /// In en, this message translates to:
+  /// **'Checklist'**
+  String get widgetChecklist;
+
+  /// No description provided for @widgetChecklistEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing on this list'**
+  String get widgetChecklistEmpty;
+
+  /// No description provided for @widgetChecklistHidden.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on \"Show details on the home screen\" in ZT Notes settings to tick items here'**
+  String get widgetChecklistHidden;
+
+  /// No description provided for @widgetOpenToSeeChecklist.
+  ///
+  /// In en, this message translates to:
+  /// **'Open ZT Notes to see this list'**
+  String get widgetOpenToSeeChecklist;
+
+  /// No description provided for @widgetPickChecklist.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to pick a checklist'**
+  String get widgetPickChecklist;
+
+  /// No description provided for @widgetOpenChecklist.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the checklist in ZT Notes'**
+  String get widgetOpenChecklist;
+
+  /// No description provided for @widgetTick.
+  ///
+  /// In en, this message translates to:
+  /// **'Tick'**
+  String get widgetTick;
+
+  /// No description provided for @widgetUntick.
+  ///
+  /// In en, this message translates to:
+  /// **'Untick'**
+  String get widgetUntick;
+
+  /// No description provided for @chooseChecklistToPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a checklist for the widget'**
+  String get chooseChecklistToPin;
+
+  /// No description provided for @noChecklistsCreateFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'No checklists yet. Make a checklist note first, then add the widget again.'**
+  String get noChecklistsCreateFirst;
 }
 
 class _AppL10nDelegate extends LocalizationsDelegate<AppL10n> {

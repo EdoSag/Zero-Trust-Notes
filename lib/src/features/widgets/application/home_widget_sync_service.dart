@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:home_widget/home_widget.dart';
 
+import '../../notes/domain/checklist_item.dart';
 import '../../notes/domain/note.dart';
 import 'package:zerotrust_notes/l10n/l10n.dart';
 
@@ -17,7 +18,8 @@ import 'package:zerotrust_notes/l10n/l10n.dart';
 /// vault locks or the app leaves the foreground ([clearUnlessAllowed]). With
 /// it on they stay for the home screen until it is turned off or the account
 /// signs out ([clearAllPlaintext]), like Tasks' and Calendar's widgets. The
-/// Notes list widget's [notesListKey] follows the same rules.
+/// Notes list widget's [notesListKey] and each Checklist widget's
+/// `checklist_widget_<id>_json` follow the same rules.
 /// `widget_<id>_note_id` is the one
 /// exception: it is not secret (same trust tier as the store's own item
 /// ids) and is left in place so the widget remembers which note it's pinned
@@ -38,6 +40,12 @@ class HomeWidgetSyncService {
   /// The notes the Notes list widget may show, as JSON: written only while
   /// "Show details on the home screen" is on and such a widget is placed.
   static const notesListKey = 'notes_list_widget_json';
+
+  /// The Checklist widget (W5): one checklist note with tick circles.
+  static const checklistProviderQualifiedName = 'dev.sagron.zerotrustnotes.widgets.ChecklistWidgetProvider';
+
+  /// At most this many items of a checklist go on the home screen.
+  static const checklistMaxItems = 100;
 
   /// At most this many notes go on the home screen; the widget scrolls.
   static const notesListMax = 40;
@@ -107,6 +115,14 @@ class HomeWidgetSyncService {
       'voice_note': l.voiceNote,
       'photo_note': l.widgetPhotoNote,
       'locked_note': l.lockedNote,
+      'checklist': l.widgetChecklist,
+      'checklist_empty': l.widgetChecklistEmpty,
+      'checklist_hidden': l.widgetChecklistHidden,
+      'open_to_see_checklist': l.widgetOpenToSeeChecklist,
+      'pick_checklist': l.widgetPickChecklist,
+      'open_checklist': l.widgetOpenChecklist,
+      'tick': l.widgetTick,
+      'untick': l.widgetUntick,
     };
     for (final MapEntry(:key, :value) in texts.entries) {
       await HomeWidget.saveWidgetData<String>('notes_widget_text_$key', value);
@@ -114,6 +130,7 @@ class HomeWidgetSyncService {
     await HomeWidget.updateWidget(qualifiedAndroidName: quickAddProviderQualifiedName);
     await HomeWidget.updateWidget(qualifiedAndroidName: singleNoteProviderQualifiedName);
     await HomeWidget.updateWidget(qualifiedAndroidName: notesListProviderQualifiedName);
+    await HomeWidget.updateWidget(qualifiedAndroidName: checklistProviderQualifiedName);
   }
 
   Future<void> clearUnlessAllowed() async {
@@ -125,6 +142,8 @@ class HomeWidgetSyncService {
   String _lockedKey(String appWidgetId) => 'widget_${appWidgetId}_locked';
   String _titleKey(String appWidgetId) => 'widget_${appWidgetId}_title';
   String _bodyKey(String appWidgetId) => 'widget_${appWidgetId}_body';
+  String _checklistNoteIdKey(String appWidgetId) => 'checklist_widget_${appWidgetId}_note_id';
+  String _checklistItemsKey(String appWidgetId) => 'checklist_widget_${appWidgetId}_json';
 
   Future<List<int>> _installedSingleNoteWidgetIds() => _installedIds(singleNoteProviderQualifiedName);
 
@@ -182,6 +201,36 @@ class HomeWidgetSyncService {
     ];
   }
 
+  /// What a Checklist widget shows for [note]: `t` the title, `i` the
+  /// items (`id`, `x` text, `c` ticked), open ones first. A locked note
+  /// or one that is no longer a checklist shows no items, only its title
+  /// ([l] is for tests).
+  static Map<String, Object> checklistItems(Note note, {AppL10n? l}) {
+    final items = note.locked ? null : note.checklist;
+    return {
+      't': note.locked ? (l ?? currentL10n).lockedNote : note.title.trim(),
+      'i': [
+        for (final item in ChecklistItem.ordered(items ?? const []).take(checklistMaxItems))
+          {'id': item.id, 'x': item.text, 'c': item.checked},
+      ],
+    };
+  }
+
+  /// Pins checklist [note] to Checklist widget [appWidgetId] and shows its
+  /// items. Called only from the note picker, reached once unlocked.
+  Future<void> pinChecklist({required String appWidgetId, required Note note}) {
+    final epoch = _epoch;
+    return _serialized(() async {
+      await HomeWidget.saveWidgetData<String>(_checklistNoteIdKey(appWidgetId), note.id);
+      if (epoch != _epoch || !await detailsAllowed()) {
+        await HomeWidget.updateWidget(qualifiedAndroidName: checklistProviderQualifiedName);
+        return;
+      }
+      await HomeWidget.saveWidgetData<String>(_checklistItemsKey(appWidgetId), jsonEncode(checklistItems(note)));
+      await HomeWidget.updateWidget(qualifiedAndroidName: checklistProviderQualifiedName);
+    });
+  }
+
   /// Pins [note] to [appWidgetId] and immediately shows its preview. Called
   /// only from the note picker, which is itself only reachable once the
   /// vault is unlocked.
@@ -213,10 +262,28 @@ class HomeWidgetSyncService {
       await HomeWidget.saveWidgetData<String>(notesListKey, jsonEncode(notesListItems(notes)));
       await HomeWidget.updateWidget(qualifiedAndroidName: notesListProviderQualifiedName);
     }
+    final notesById = {for (final note in notes) note.id: note};
+    final checklistIds = await _installedIds(checklistProviderQualifiedName);
+    for (final widgetId in checklistIds) {
+      final appWidgetId = widgetId.toString();
+      final noteId = await HomeWidget.getWidgetData<String>(_checklistNoteIdKey(appWidgetId));
+      if (noteId == null) continue;
+      if (epoch != _epoch) return;
+      final note = notesById[noteId];
+      await HomeWidget.saveWidgetData<String>(
+        _checklistItemsKey(appWidgetId),
+        jsonEncode(
+          note == null ? {'t': currentL10n.noteDeleted, 'i': const <Object>[]} : checklistItems(note),
+        ),
+      );
+    }
+    if (checklistIds.isNotEmpty) {
+      await HomeWidget.updateWidget(qualifiedAndroidName: checklistProviderQualifiedName);
+    }
+
     final widgetIds = await _installedSingleNoteWidgetIds();
     if (widgetIds.isEmpty) return;
 
-    final notesById = {for (final note in notes) note.id: note};
     for (final widgetId in widgetIds) {
       final appWidgetId = widgetId.toString();
       final noteId = await HomeWidget.getWidgetData<String>(_noteIdKey(appWidgetId));
@@ -264,6 +331,13 @@ class HomeWidgetSyncService {
     if (!isSupported) return;
     await HomeWidget.saveWidgetData<String>(notesListKey, null);
     await HomeWidget.updateWidget(qualifiedAndroidName: notesListProviderQualifiedName);
+    final checklistIds = await _installedIds(checklistProviderQualifiedName);
+    for (final widgetId in checklistIds) {
+      await HomeWidget.saveWidgetData<String>(_checklistItemsKey(widgetId.toString()), null);
+    }
+    if (checklistIds.isNotEmpty) {
+      await HomeWidget.updateWidget(qualifiedAndroidName: checklistProviderQualifiedName);
+    }
     final widgetIds = await _installedSingleNoteWidgetIds();
     for (final widgetId in widgetIds) {
       final appWidgetId = widgetId.toString();

@@ -623,5 +623,15 @@
   "insertPickHint": "Tap a note, then the line to type.",
   "insertNoNotes": "No notes match.",
   "insertWholeNote": "Whole note",
-  "insertLockedHidden": "Locked notes are not offered here."
+  "insertLockedHidden": "Locked notes are not offered here.",
+  "widgetChecklist": "Checklist",
+  "widgetChecklistEmpty": "Nothing on this list",
+  "widgetChecklistHidden": "Turn on \"Show details on the home screen\" in ZT Notes settings to tick items here",
+  "widgetOpenToSeeChecklist": "Open ZT Notes to see this list",
+  "widgetPickChecklist": "Tap to pick a checklist",
+  "widgetOpenChecklist": "Open the checklist in ZT Notes",
+  "widgetTick": "Tick",
+  "widgetUntick": "Untick",
+  "chooseChecklistToPin": "Choose a checklist for the widget",
+  "noChecklistsCreateFirst": "No checklists yet. Make a checklist note first, then add the widget again."
 }
