@@ -1187,4 +1187,34 @@ class AppL10nHe extends AppL10n {
   @override
   String get noChecklistsCreateFirst =>
       'אין עדיין רשימות. יש ליצור קודם פתק רשימה, ואז להוסיף שוב את הווידג\'ט.';
+
+  @override
+  String get handwritingToText => 'כתב יד לטקסט';
+
+  @override
+  String get handwritingTextTitle => 'כתב יד לטקסט';
+
+  @override
+  String get handwritingTextPrivacy =>
+      'הכתב נקרא בטלפון עצמו, שורה אחר שורה. שום דבר לא נשלח. אותיות דפוס ברורות נקראות הכי טוב.';
+
+  @override
+  String get noHandwritingText =>
+      'לא נמצאו מילים. נסו שפה אחרת למעלה, או כתבו גדול וברור יותר.';
+
+  @override
+  String get writeSomethingFirst => 'קודם צריך לכתוב משהו';
+
+  @override
+  String get keepDrawingTooQ => 'לשמור גם את הציור?';
+
+  @override
+  String get keepDrawingTooBody =>
+      'הטקסט נכנס לפתק. אפשר לשמור גם את כתב היד כציור.';
+
+  @override
+  String get textOnly => 'רק טקסט';
+
+  @override
+  String get textAndDrawing => 'טקסט וציור';
 }

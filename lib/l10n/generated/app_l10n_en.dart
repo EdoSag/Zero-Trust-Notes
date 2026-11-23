@@ -1183,4 +1183,34 @@ class AppL10nEn extends AppL10n {
   @override
   String get noChecklistsCreateFirst =>
       'No checklists yet. Make a checklist note first, then add the widget again.';
+
+  @override
+  String get handwritingToText => 'Handwriting to text';
+
+  @override
+  String get handwritingTextTitle => 'Handwriting to text';
+
+  @override
+  String get handwritingTextPrivacy =>
+      'Your writing is read on this phone, line by line. Nothing is uploaded. Clear, printed letters read best.';
+
+  @override
+  String get noHandwritingText =>
+      'No words found. Try another language above, or write larger and more clearly.';
+
+  @override
+  String get writeSomethingFirst => 'Write something first';
+
+  @override
+  String get keepDrawingTooQ => 'Keep the drawing too?';
+
+  @override
+  String get keepDrawingTooBody =>
+      'The text goes into the note. You can also keep the handwriting as a drawing.';
+
+  @override
+  String get textOnly => 'Text only';
+
+  @override
+  String get textAndDrawing => 'Text and drawing';
 }

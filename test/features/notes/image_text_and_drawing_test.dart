@@ -12,6 +12,7 @@ import 'package:zerotrust_notes/src/features/drawing/drawing.dart';
 import 'package:zerotrust_notes/src/features/image_text/image_text_reader.dart';
 import 'package:zerotrust_notes/src/features/images/note_image_picker.dart';
 import 'package:zerotrust_notes/src/features/notes/application/notes_providers.dart';
+import 'package:zerotrust_notes/src/features/handwriting/handwriting_reader.dart';
 import 'package:zerotrust_notes/src/features/notes/domain/note.dart';
 import 'package:zerotrust_notes/src/features/notes/presentation/note_editor_page.dart';
 
@@ -25,14 +26,16 @@ class FakeReader implements ImageTextReader {
   final Map<String, String> byLanguage;
   final asked = <String>[];
   final seen = <Uint8List>[];
+  final singleLine = <bool>[];
 
   @override
   bool get supported => true;
 
   @override
-  Future<String> read(Uint8List bytes, {required String languages}) async {
+  Future<String> read(Uint8List bytes, {required String languages, bool singleLine = false}) async {
     asked.add(languages);
     seen.add(bytes);
+    this.singleLine.add(singleLine);
     return tidyImageText(byLanguage[languages] ?? '');
   }
 }
@@ -373,6 +376,89 @@ void main() {
           .first,
     );
     expect(find.byKey(const Key('image_text_add')).hitTestable(), findsOneWidget);
+    await finish(tester, phone);
+  });
+
+  group('handwriting lines', () {
+    Stroke line(double x, double y, {double w = 30, double h = 20, bool highlighter = false}) =>
+        Stroke(
+          points: [Offset(x, y), Offset(x + w / 2, y + h), Offset(x + w, y)],
+          color: const Color(0xFF000000),
+          width: 3,
+          highlighter: highlighter,
+        );
+
+    test('splits writing into lines, top to bottom, left marks join the nearest line', () {
+      final secondLine = [line(10, 100), line(50, 104), line(90, 98)];
+      final firstLine = [line(10, 10), line(60, 12)];
+      // An i-dot just above the first line, and a highlighter mark.
+      const dot = Stroke(points: [Offset(70, 4)], color: Color(0xFF000000), width: 3);
+      final lines = handwritingLines([
+        ...secondLine,
+        dot,
+        ...firstLine,
+        line(0, 0, w: 200, h: 200, highlighter: true),
+      ]);
+      expect(lines, hasLength(2));
+      expect(lines.first, unorderedEquals([...firstLine, dot]));
+      expect(lines.last, unorderedEquals(secondLine));
+      expect(handwritingLines(const []), isEmpty);
+    });
+
+    test('each line is read on its own, as one line, and joined', () async {
+      final reader = FakeReader({'eng+heb': 'milk'});
+      final text = await readHandwriting(
+        Drawing(size: const Size(300, 300), strokes: [line(10, 10), line(10, 100)]),
+        reader,
+        languages: 'eng+heb',
+      );
+      expect(text, 'milk\nmilk');
+      expect(reader.singleLine, [true, true]);
+      for (final png in reader.seen) {
+        expect(png.sublist(1, 4), 'PNG'.codeUnits);
+      }
+    });
+  });
+
+  testWidgets('handwriting to text: text only goes into the note', timeout: timeout, (
+    tester,
+  ) async {
+    await pumpEditor(
+      tester,
+      overrides: [
+        imageTextReaderProvider.overrideWithValue(FakeReader({'eng+heb': 'Buy milk'})),
+      ],
+    );
+    await menu(tester, 'Drawing');
+    final canvas = tester.getRect(find.byKey(const Key('drawing_canvas')));
+    final gesture = await tester.startGesture(canvas.center, kind: PointerDeviceKind.stylus);
+    for (var i = 1; i <= 10; i++) {
+      await gesture.moveBy(const Offset(8, 4));
+      await tester.pump();
+    }
+    await gesture.up();
+    await tester.pump();
+    await tester.runAsync(() async {
+      await tester.tap(find.byKey(const Key('drawing_to_text')));
+      for (var i = 0; i < 20; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        await tester.pump();
+      }
+    });
+    await settle(tester);
+    expect(find.text('Handwriting to text'), findsWidgets);
+    expect(find.text('Buy milk'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('image_text_add')));
+    await settle(tester);
+    expect(find.text('Keep the drawing too?'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('handwriting_text_only')));
+    await settle(tester);
+    expect(find.text('New drawing'), findsNothing);
+    await tester.pageBack();
+    await settle(tester);
+    final note = (await tester.runAsync(() => phone.repo.fetchAll()))!.single;
+    expect(note.body, 'Buy milk');
+    expect(note.images, isEmpty);
     await finish(tester, phone);
   });
 }

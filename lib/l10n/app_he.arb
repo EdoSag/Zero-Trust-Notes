@@ -333,5 +333,14 @@
   "widgetTick": "סימון",
   "widgetUntick": "ביטול סימון",
   "chooseChecklistToPin": "בחירת רשימה לווידג'ט",
-  "noChecklistsCreateFirst": "אין עדיין רשימות. יש ליצור קודם פתק רשימה, ואז להוסיף שוב את הווידג'ט."
+  "noChecklistsCreateFirst": "אין עדיין רשימות. יש ליצור קודם פתק רשימה, ואז להוסיף שוב את הווידג'ט.",
+  "handwritingToText": "כתב יד לטקסט",
+  "handwritingTextTitle": "כתב יד לטקסט",
+  "handwritingTextPrivacy": "הכתב נקרא בטלפון עצמו, שורה אחר שורה. שום דבר לא נשלח. אותיות דפוס ברורות נקראות הכי טוב.",
+  "noHandwritingText": "לא נמצאו מילים. נסו שפה אחרת למעלה, או כתבו גדול וברור יותר.",
+  "writeSomethingFirst": "קודם צריך לכתוב משהו",
+  "keepDrawingTooQ": "לשמור גם את הציור?",
+  "keepDrawingTooBody": "הטקסט נכנס לפתק. אפשר לשמור גם את כתב היד כציור.",
+  "textOnly": "רק טקסט",
+  "textAndDrawing": "טקסט וציור"
 }

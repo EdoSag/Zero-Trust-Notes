@@ -27,8 +27,9 @@ abstract interface class ImageTextReader {
   bool get supported;
 
   /// The text in [bytes] (an encoded image), tidied: trailing spaces and
-  /// runs of blank lines dropped. Empty when there is none.
-  Future<String> read(Uint8List bytes, {required String languages});
+  /// runs of blank lines dropped. Empty when there is none. [singleLine]
+  /// reads the image as one line of text (handwriting, line by line).
+  Future<String> read(Uint8List bytes, {required String languages, bool singleLine = false});
 }
 
 final imageTextReaderProvider = Provider<ImageTextReader>(
@@ -49,7 +50,7 @@ class TesseractImageTextReader implements ImageTextReader {
           defaultTargetPlatform == TargetPlatform.iOS);
 
   @override
-  Future<String> read(Uint8List bytes, {required String languages}) async {
+  Future<String> read(Uint8List bytes, {required String languages, bool singleLine = false}) async {
     final dir = Directory(p.join((await getTemporaryDirectory()).path, 'image_text'));
     await dir.create(recursive: true);
     final name = List.generate(16, (_) => Random.secure().nextInt(16).toRadixString(16)).join();
@@ -57,11 +58,11 @@ class TesseractImageTextReader implements ImageTextReader {
     try {
       await file.writeAsBytes(bytes, flush: true);
       // 3: find the page layout by itself (paragraphs, columns), which suits
-      // documents, signs and whiteboards.
+      // documents, signs and whiteboards. 7: one line of text.
       final text = await FlutterTesseractOcr.extractText(
         file.path,
         language: languages,
-        args: const {'psm': '3', 'preserve_interword_spaces': '1'},
+        args: {'psm': singleLine ? '7' : '3', 'preserve_interword_spaces': '1'},
       );
       return tidyImageText(text);
     } finally {
