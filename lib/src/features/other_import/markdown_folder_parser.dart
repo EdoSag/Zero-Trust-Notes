@@ -18,13 +18,19 @@ class MarkdownFolderParser {
 
   static bool isNoteFile(String path) => noteExtensions.contains(p.extension(path).toLowerCase());
 
+  /// A note's text, Markdown or HTML file kept as an attachment by Notes'
+  /// own export (in `_attachments`), not a note of its own.
+  static bool _isAttachmentFolder(String path) => path.split('/').contains('_attachments');
+
+  static bool _isNotePath(String path) => isNoteFile(path) && !_isAttachmentFolder(path);
+
   /// [files]: path inside the folder (with `/`) -> contents.
   List<ImportedNote> parse(Map<String, List<int>> files) {
     final paths = [for (final path in files.keys) path.replaceAll('\\', '/')];
     final byPath = {for (final (i, path) in files.keys.indexed) paths[i]: files[path]!};
     final notePaths = [
       for (final path in paths)
-        if (isNoteFile(path)) path,
+        if (_isNotePath(path)) path,
     ]..sort();
     if (notePaths.isEmpty) return const [];
 
@@ -41,12 +47,23 @@ class MarkdownFolderParser {
 
     final byName = <String, List<String>>{};
     for (final path in paths) {
-      if (!isNoteFile(path)) (byName[p.basename(path).toLowerCase()] ??= []).add(path);
+      if (!_isNotePath(path)) (byName[p.basename(path).toLowerCase()] ??= []).add(path);
+    }
+    final notesPerFolder = <String, int>{};
+    for (final path in notePaths) {
+      notesPerFolder.update(p.posix.dirname(path), (n) => n + 1, ifAbsent: () => 1);
     }
 
     return [
       for (final path in notePaths)
-        _note(path, byPath[path]!, root: root, all: byPath, byName: byName),
+        _note(
+          path,
+          byPath[path]!,
+          root: root,
+          all: byPath,
+          byName: byName,
+          aloneInFolder: notesPerFolder[p.posix.dirname(path)] == 1,
+        ),
     ];
   }
 
@@ -56,14 +73,19 @@ class MarkdownFolderParser {
     required int root,
     required Map<String, List<int>> all,
     required Map<String, List<String>> byName,
+    required bool aloneInFolder,
   }) {
     final segments = path.split('/');
     final extension = p.extension(path).toLowerCase();
     final base = p.basenameWithoutExtension(path);
     var folders = segments.sublist(root, segments.length - 1);
-    // Apple Notes' data copy keeps each note in a folder of its own name.
-    final ownFolder = folders.isNotEmpty && folders.last == base;
-    if (ownFolder) folders = folders.sublist(0, folders.length - 1);
+    // Apple Notes' data copy keeps each note in a folder of its own name,
+    // with its files. Read from the whole path: with a single note, that
+    // folder is part of the root left out above.
+    final ownFolder = aloneInFolder && segments.length > 1 && segments[segments.length - 2] == base;
+    if (ownFolder && folders.isNotEmpty && folders.last == base) {
+      folders = folders.sublist(0, folders.length - 1);
+    }
 
     var text = utf8.decode(bytes, allowMalformed: true).replaceAll('\r\n', '\n');
     if (text.startsWith('﻿')) text = text.substring(1);
@@ -120,7 +142,7 @@ class MarkdownFolderParser {
       }
       if (target.isEmpty) return null;
       final joined = p.posix.normalize(p.posix.join(p.posix.dirname(path), target));
-      if (all.containsKey(joined) && !isNoteFile(joined)) return joined;
+      if (all.containsKey(joined) && !_isNotePath(joined)) return joined;
       final named = byName[p.basename(target).toLowerCase()];
       return named != null && named.length == 1 ? named.single : null;
     }
@@ -135,7 +157,7 @@ class MarkdownFolderParser {
     if (ownFolder) {
       final folder = p.posix.dirname(path);
       for (final other in (all.keys.toList()..sort())) {
-        if (p.posix.dirname(other) == folder && !isNoteFile(other)) attach(other);
+        if (p.posix.dirname(other) == folder && !_isNotePath(other)) attach(other);
       }
     }
     text = text.replaceAll(RegExp(r'\n{3,}'), '\n\n').trim();

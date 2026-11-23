@@ -62,7 +62,7 @@ ImportBatch parseOtherAppsFiles(Map<String, List<int>> chosen) {
         encrypted += backup.encrypted;
         continue;
       }
-      if (extension == '.json') continue;
+      // Other JSON stays: a note may link to it as a file.
     }
     rest[name] = bytes;
   }

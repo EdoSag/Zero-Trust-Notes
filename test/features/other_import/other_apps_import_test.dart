@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zero_trust_core/zero_trust_core.dart';
 import 'package:zerotrust_notes/src/features/export/application/markdown_folder_export.dart';
 import 'package:zerotrust_notes/src/features/notebooks/application/notebooks_controller.dart';
 import 'package:zerotrust_notes/src/features/notes/domain/note.dart';
@@ -288,6 +289,44 @@ void main() {
       final plan = notes.firstWhere((n) => n.title == 'Plan');
       expect(plan.notebook, 'Work');
       expect(plan.body, 'Q1\nQ2');
+    });
+
+    test('a single Apple note keeps the files in its own folder', () {
+      final note = parseOtherAppsFiles({
+        'icloud.zip': _zip({
+          'iCloud Notes/Notes/Groceries/Groceries.txt': _utf8('Groceries\nEggs'),
+          'iCloud Notes/Notes/Groceries/receipt.pdf': [3],
+        }),
+      }).notes.single;
+      expect(note.title, 'Groceries');
+      expect(note.files.single.name, 'receipt.pdf');
+    });
+
+    test("text, HTML and JSON files attached in Notes' export stay attachments", () async {
+      final now = DateTime.utc(2026, 11, 22, 9);
+      final key = Uint8List(32);
+      final ref = ZtAttachmentRef(id: 'f1', key: key, name: 'instructions.txt', mimeType: 'text/plain', size: 5);
+      final data = ZtAttachmentRef(id: 'f2', key: key, name: 'data.json', mimeType: 'application/json', size: 8);
+      final exported = await MarkdownFolderExport.build(
+        [
+          Note(
+            id: '1',
+            notebookId: null,
+            title: 'Setup',
+            body: 'Read the files',
+            createdAt: now,
+            updatedAt: now,
+            files: [ref, data],
+          ),
+        ],
+        readFile: (file) async => utf8.encode(file.id == 'f1' ? 'steps' : '{"a": 1}'),
+      );
+      final note = parseOtherAppsFiles({'export.zip': exported.zip}).notes.single;
+      expect(note.title, 'Setup');
+      expect(note.files.map((f) => (f.name, utf8.decode(f.bytes))), [
+        ('instructions.txt', 'steps'),
+        ('data.json', '{"a": 1}'),
+      ]);
     });
 
     test('front matter with quotes and inline lists', () {
