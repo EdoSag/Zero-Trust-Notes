@@ -678,5 +678,11 @@
   "templateTodo": "To-do list",
   "templateTodoTitle": "To do {date}",
   "@templateTodoTitle": {"placeholders": {"date": {"type": "String"}}},
-  "templateTodoItems": "Most important first\nThen this\nAnd this"
+  "templateTodoItems": "Most important first\nThen this\nAnd this",
+  "versionHistory": "Version history",
+  "versionHistoryHelp": "Earlier versions of this note, kept on your devices and encrypted like your notes. A version is kept each time you come back to edit (at most every 10 minutes), up to the last 30.",
+  "noVersionsYet": "No earlier versions yet. They appear here after the note's text changes.",
+  "cantLoadVersions": "Can't load the history right now.",
+  "restoreVersion": "Restore",
+  "versionRestored": "Earlier version brought back. The text before it is in the history."
 }

@@ -17,6 +17,8 @@ import '../../export/presentation/export_sheet.dart';
 import '../../drawing/drawing.dart';
 import '../../drawing/drawing_page.dart';
 import '../../image_text/image_text_sheet.dart';
+import '../../history/note_history.dart';
+import '../../history/note_history_page.dart';
 import '../../images/note_image_picker.dart';
 import '../../links/note_links.dart';
 import '../../links/note_links_views.dart';
@@ -235,8 +237,9 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     _debounce?.cancel();
     // Read now: this also runs as the page pops, after which `ref` is gone.
     final repository = ref.read(notesRepositoryProvider);
+    final history = ref.read(noteHistoryProvider);
     final result = _saving
-        .then((_) => _persistNow(repository))
+        .then((_) => _persistNow(repository, history))
         .then(
           (_) => true,
           onError: (Object _) {
@@ -305,7 +308,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     }
   }
 
-  Future<void> _persistNow(NotesRepository? repository) async {
+  Future<void> _persistNow(NotesRepository? repository, NoteHistory? history) async {
     if (!_dirty || repository == null) return;
     // Don't create an empty note just because the editor was opened.
     if (_note == null && _isBlank) {
@@ -314,7 +317,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     }
     _dirty = false;
     try {
-      await _write(repository);
+      await _write(repository, history);
     } on Object {
       _dirty = true; // Keep the edits for the next save.
       rethrow;
@@ -323,7 +326,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     if (mounted) setState(() => _status = _SaveStatus.saved);
   }
 
-  Future<void> _write(NotesRepository repository) async {
+  Future<void> _write(NotesRepository repository, NoteHistory? history) async {
     final checklist = _checklist == null ? null : ChecklistItem.ordered(_checklist!);
     if (_note == null) {
       _note = await repository.createNote(
@@ -357,6 +360,8 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         placeReminder: _placeReminder,
         drawings: _drawings,
       );
+      // The text before this editing session goes into the history (N-2).
+      await history?.beforeSave(updated, previous: _note);
       _note = await repository.updateNote(updated);
     }
   }
@@ -782,6 +787,35 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     } else {
       _openLinked(target);
     }
+  }
+
+  /// Version history: brings back an earlier text. What the note says now
+  /// is kept as a version first, so a restore can be undone the same way.
+  Future<void> _openHistory() async {
+    if (!await _persist() || !mounted) return;
+    final note = _note;
+    if (note == null) return;
+    final version = await Navigator.of(
+      context,
+    ).push<NoteVersion>(MaterialPageRoute(builder: (_) => NoteHistoryPage(noteId: note.id)));
+    if (version == null || !mounted) return;
+    final current = _note;
+    final history = ref.read(noteHistoryProvider);
+    if (current != null && history != null) await history.keep(current);
+    if (!mounted) return;
+    setState(() {
+      _titleController.text = version.title;
+      if (version.checklist != null) {
+        _checklist = [for (final item in version.checklist!) item];
+        _bodyController.text = '';
+      } else {
+        _checklist = null;
+        _bodyController.text = version.body;
+      }
+      _previewMode = false;
+    });
+    _changed();
+    _snack(context.l10n.versionRestored);
   }
 
   /// Saves what is in the editor now as a template.
@@ -1218,6 +1252,8 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
             _insertLink();
           case 'template':
             _saveAsTemplate();
+          case 'history':
+            _openHistory();
           case 'export':
             if (_note != null) showExportSheet(context, singleNote: _note);
           case 'trash':
@@ -1320,6 +1356,14 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
             child: ListTile(
               leading: Icon(_locked ? Icons.lock_open_outlined : Icons.lock_outline),
               title: Text(_locked ? context.l10n.unlockNote : context.l10n.lockNote),
+            ),
+          ),
+        if (_isEditing && !_inShared)
+          PopupMenuItem(
+            value: 'history',
+            child: ListTile(
+              leading: const Icon(Icons.history),
+              title: Text(context.l10n.versionHistory),
             ),
           ),
         if (!_inTrash && !_locked)

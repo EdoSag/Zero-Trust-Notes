@@ -269,6 +269,7 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
     // shared notes: try again now that they are in.
     ref.listenManual(allNotesLoadedProvider, (_, loaded) {
       if (!loaded) return;
+      _forgetDeletedHistory();
       _syncWidgetPreviews();
       _maybeConsumePendingWidgetAction();
       _clearFiredPlaceReminders();
@@ -322,6 +323,19 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
     final notes = ref.read(notesListProvider).value;
     if (notes == null) return;
     unawaited(const HomeWidgetSyncService().writeUnlockedPreviews(notes));
+  }
+
+  bool _historyChecked = false;
+
+  /// Once per unlock: drops the version history of notes deleted for good
+  /// (on any device).
+  void _forgetDeletedHistory() {
+    if (_historyChecked) return;
+    final history = ref.read(noteHistoryProvider);
+    final notes = ref.read(ownNotesProvider).value;
+    if (history == null || notes == null) return;
+    _historyChecked = true;
+    unawaited(history.forgetDeleted({for (final note in notes) note.id}));
   }
 
   Future<bool>? _ticksInFlight;

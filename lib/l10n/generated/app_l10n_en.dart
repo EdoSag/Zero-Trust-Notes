@@ -1315,4 +1315,25 @@ class AppL10nEn extends AppL10n {
 
   @override
   String get templateTodoItems => 'Most important first\nThen this\nAnd this';
+
+  @override
+  String get versionHistory => 'Version history';
+
+  @override
+  String get versionHistoryHelp =>
+      'Earlier versions of this note, kept on your devices and encrypted like your notes. A version is kept each time you come back to edit (at most every 10 minutes), up to the last 30.';
+
+  @override
+  String get noVersionsYet =>
+      'No earlier versions yet. They appear here after the note\'s text changes.';
+
+  @override
+  String get cantLoadVersions => 'Can\'t load the history right now.';
+
+  @override
+  String get restoreVersion => 'Restore';
+
+  @override
+  String get versionRestored =>
+      'Earlier version brought back. The text before it is in the history.';
 }
