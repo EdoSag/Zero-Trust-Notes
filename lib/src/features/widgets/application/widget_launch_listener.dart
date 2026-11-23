@@ -35,7 +35,7 @@ class WidgetLaunchListener {
     if (!HomeWidgetSyncService.isSupported) return;
     final configureId = await HomeWidget.initiallyLaunchedFromHomeWidgetConfigure();
     if (configureId != null) {
-      _setConfigure(configureId);
+      await _setConfigure(configureId);
       return;
     }
 
@@ -69,12 +69,25 @@ class WidgetLaunchListener {
   static PendingWidgetAction? widgetActionFor(Uri uri) {
     return switch (uri.host) {
       'new-note' => OpenNewNote(NewNoteKind.parse(uri.queryParameters['kind'])),
+      'daily' => const OpenDailyNote(),
       'note' when uri.queryParameters['id'] != null => OpenNote(uri.queryParameters['id']!),
       _ => null,
     };
   }
 
-  void _setConfigure(String appWidgetId) {
-    _ref.read(pendingWidgetActionProvider.notifier).set(ConfigureNoteWidget(appWidgetId));
+  Future<void> _setConfigure(String appWidgetId) async {
+    String? provider;
+    try {
+      provider = await _configureChannel.invokeMethod<String>('providerOf', {'id': appWidgetId});
+    } on Object {
+      provider = null;
+    }
+    final checklist = HomeWidgetSyncService.sameProvider(
+      provider,
+      HomeWidgetSyncService.checklistProviderQualifiedName,
+    );
+    _ref
+        .read(pendingWidgetActionProvider.notifier)
+        .set(ConfigureNoteWidget(appWidgetId, checklist: checklist));
   }
 }

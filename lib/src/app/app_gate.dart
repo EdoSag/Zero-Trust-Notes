@@ -6,6 +6,8 @@ import 'package:zero_trust_core/zero_trust_core.dart';
 import 'package:zt_places/zt_places.dart';
 
 import '../features/export/application/export_temp_file_registry.dart';
+import '../features/keyboard_insert/keyboard_pick_listener.dart';
+import '../features/keyboard_insert/pick_for_keyboard_page.dart';
 import '../features/notes/application/notes_providers.dart';
 import '../features/notes/domain/note.dart';
 import '../features/notes/presentation/note_editor_page.dart';
@@ -14,10 +16,12 @@ import '../features/places/place_providers.dart';
 import '../features/reminders/reminder_scheduler.dart';
 import '../features/sharing/note_sharing.dart';
 import '../features/sharing/share_intent_listener.dart';
+import '../features/widgets/application/checklist_widget_ticks.dart';
 import '../features/widgets/application/home_widget_sync_service.dart';
 import '../features/widgets/application/pending_widget_action_controller.dart';
 import '../features/widgets/application/widget_launch_listener.dart';
 import '../features/widgets/domain/pending_widget_action.dart';
+import '../features/templates/templates_views.dart';
 import '../features/widgets/presentation/note_picker_page.dart';
 import 'auth_providers.dart';
 import 'package:zerotrust_notes/l10n/l10n.dart';
@@ -54,6 +58,8 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
     // Text and images shared from other apps open as a new note.
     _shareIntentListener = ShareIntentListener(ref);
     unawaited(_shareIntentListener.start());
+    // ZT Keyboard's "Insert from ZT apps" key: pick a line of a note to type.
+    unawaited(KeyboardPickListener(ref).start());
     // Images sent from an earlier session are no longer needed.
     unawaited(ref.read(outgoingShareFilesProvider).clear());
     // A tapped reminder opens its note, after unlock if needed.
@@ -263,6 +269,8 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
     // shared notes: try again now that they are in.
     ref.listenManual(allNotesLoadedProvider, (_, loaded) {
       if (!loaded) return;
+      _forgetDeletedHistory();
+      _syncWidgetPreviews();
       _maybeConsumePendingWidgetAction();
       _clearFiredPlaceReminders();
     });
@@ -303,16 +311,85 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
     super.dispose();
   }
 
-  /// Pushes a fresh widget preview. Clearing on lock and on pause is
-  /// [AppGate]'s job.
-  void _syncWidgetPreviews() {
+  /// Pushes a fresh widget preview, after saving ticks made on Checklist
+  /// widgets meanwhile. Clearing on lock and on pause is [AppGate]'s job.
+  Future<void> _syncWidgetPreviews() async {
     // Only while on screen: a sync arriving in the background must not
     // write plaintext back after AppGate cleared it on pause.
     if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) return;
     if (ref.read(vaultControllerProvider) is! VaultUnlocked) return;
+    if (await _applyChecklistWidgetTicks()) return; // The saved notes sync the previews.
+    if (!mounted) return;
     final notes = ref.read(notesListProvider).value;
     if (notes == null) return;
     unawaited(const HomeWidgetSyncService().writeUnlockedPreviews(notes));
+  }
+
+  bool _historyChecked = false;
+
+  /// Once per unlock: drops the version history of notes deleted for good
+  /// (on any device).
+  void _forgetDeletedHistory() {
+    if (_historyChecked) return;
+    final history = ref.read(noteHistoryProvider);
+    final notes = ref.read(ownNotesProvider).value;
+    if (history == null || notes == null) return;
+    _historyChecked = true;
+    unawaited(history.forgetDeleted({for (final note in notes) note.id}));
+  }
+
+  Future<bool>? _ticksInFlight;
+
+  /// Saves the ticks made on Checklist widgets while Notes was closed or
+  /// locked. Waits until shared notes are in too, so a shared list's ticks
+  /// aren't dropped. The ticks leave the widget's queue only once every
+  /// note is saved: if the vault locks part-way, the next unlock tries
+  /// again (a tick sets an item's state, so applying it twice is harmless).
+  /// An open editor of a ticked note takes the ticks. True when a note was
+  /// saved. A run already going is shared, so a widget tap can wait for it.
+  Future<bool> _applyChecklistWidgetTicks() =>
+      _ticksInFlight ??= _applyTicksOnce().whenComplete(() => _ticksInFlight = null);
+
+  Future<bool> _applyTicksOnce() async {
+    if (!ref.read(allNotesLoadedProvider)) return false;
+    final notes = ref.read(allNotesProvider).value;
+    final repository = ref.read(notesRepositoryProvider);
+    if (notes == null || repository == null) return false;
+    try {
+      final changed = await saveChecklistWidgetTicks(
+        queue: ref.read(checklistWidgetTicksProvider),
+        notes: notes,
+        save: repository.updateNote,
+        onSaved: (saved) {
+          if (mounted) ref.read(widgetTickedNoteProvider.notifier).saved(saved);
+        },
+      );
+      return changed > 0;
+    } on Object {
+      return false;
+    }
+  }
+
+  /// Opens [noteId] once ticks made on its widget are saved, so the editor
+  /// starts from them; ticks saved later reach the open editor by
+  /// [widgetTickedNoteProvider].
+  Future<void> _openNoteAfterTicks(String noteId, List<Note> notes) async {
+    final ticks = _ticksInFlight;
+    if (ticks != null) await ticks;
+    if (!mounted) return;
+    final latest = [
+      ...notes.where((note) => note.id == noteId),
+      ...?ref.read(allNotesProvider).value?.where((note) => note.id == noteId),
+      if (ref.read(widgetTickedNoteProvider) case final ticked? when ticked.id == noteId) ticked,
+    ];
+    if (latest.isEmpty) {
+      ScaffoldMessenger.maybeOf(
+        context,
+      )?.showSnackBar(SnackBar(content: Text(context.l10n.noteNotFound)));
+      return;
+    }
+    final note = latest.reduce((a, b) => b.updatedAt.isAfter(a.updatedAt) ? b : a);
+    unawaited(Navigator.of(context).push(MaterialPageRoute(builder: (_) => NoteEditorPage(note: note))));
   }
 
   /// Performs the navigation a widget tap asked for, once the notes are
@@ -345,25 +422,24 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
               ),
             ),
           );
+        case OpenDailyNote():
+          openDailyNote(context, ref);
         case OpenNote(:final noteId):
-          final matches = notes.where((note) => note.id == noteId);
-          if (matches.isEmpty) {
-            ScaffoldMessenger.maybeOf(
-              context,
-            )?.showSnackBar(SnackBar(content: Text(context.l10n.noteNotFound)));
-          } else {
-            Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => NoteEditorPage(note: matches.first)));
-          }
+          unawaited(_openNoteAfterTicks(noteId, notes));
         case CreateNoteFromShare(:final content):
           Navigator.of(
             context,
           ).push(MaterialPageRoute(builder: (_) => NoteEditorPage(shared: content)));
-        case ConfigureNoteWidget(:final appWidgetId):
-          Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => NotePickerPage(appWidgetId: appWidgetId)));
+        case PickTextForKeyboard():
+          Navigator.of(context)
+              .push<String>(MaterialPageRoute(builder: (_) => const PickForKeyboardPage()))
+              .then(KeyboardPickListener.finish);
+        case ConfigureNoteWidget(:final appWidgetId, :final checklist):
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => NotePickerPage(appWidgetId: appWidgetId, checklist: checklist),
+            ),
+          );
       }
     });
   }

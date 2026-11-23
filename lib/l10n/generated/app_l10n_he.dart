@@ -1139,4 +1139,305 @@ class AppL10nHe extends AppL10n {
 
   @override
   String get widgetPhotoNote => 'פתק חדש עם תמונה';
+
+  @override
+  String get insertIntoKeyboard => 'הוספה ל-ZT Keyboard';
+
+  @override
+  String get insertPickHint => 'בוחרים פתק ואז את השורה להקלדה.';
+
+  @override
+  String get insertNoNotes => 'אין פתקים מתאימים.';
+
+  @override
+  String get insertWholeNote => 'הפתק כולו';
+
+  @override
+  String get insertLockedHidden => 'פתקים נעולים לא מוצעים כאן.';
+
+  @override
+  String get widgetChecklist => 'רשימת משימות';
+
+  @override
+  String get widgetChecklistEmpty => 'אין פריטים ברשימה';
+
+  @override
+  String get widgetChecklistHidden =>
+      'כדי לסמן כאן פריטים, יש להפעיל את \"הצגת פרטים במסך הבית\" בהגדרות של ZT Notes';
+
+  @override
+  String get widgetOpenToSeeChecklist =>
+      'יש לפתוח את ZT Notes כדי לראות את הרשימה';
+
+  @override
+  String get widgetPickChecklist => 'יש להקיש כדי לבחור רשימה';
+
+  @override
+  String get widgetOpenChecklist => 'פתיחת הרשימה ב-ZT Notes';
+
+  @override
+  String get widgetTick => 'סימון';
+
+  @override
+  String get widgetUntick => 'ביטול סימון';
+
+  @override
+  String get chooseChecklistToPin => 'בחירת רשימה לווידג\'ט';
+
+  @override
+  String get noChecklistsCreateFirst =>
+      'אין עדיין רשימות. יש ליצור קודם פתק רשימה, ואז להוסיף שוב את הווידג\'ט.';
+
+  @override
+  String get handwritingToText => 'כתב יד לטקסט';
+
+  @override
+  String get handwritingTextTitle => 'כתב יד לטקסט';
+
+  @override
+  String get handwritingTextPrivacy =>
+      'הכתב נקרא בטלפון עצמו, שורה אחר שורה. שום דבר לא נשלח. אותיות דפוס ברורות נקראות הכי טוב.';
+
+  @override
+  String get noHandwritingText =>
+      'לא נמצאו מילים. נסו שפה אחרת למעלה, או כתבו גדול וברור יותר.';
+
+  @override
+  String get writeSomethingFirst => 'קודם צריך לכתוב משהו';
+
+  @override
+  String get keepDrawingTooQ => 'לשמור גם את הציור?';
+
+  @override
+  String get keepDrawingTooBody =>
+      'הטקסט נכנס לפתק. אפשר לשמור גם את כתב היד כציור.';
+
+  @override
+  String get textOnly => 'רק טקסט';
+
+  @override
+  String get textAndDrawing => 'טקסט וציור';
+
+  @override
+  String get linkToNote => 'קישור לפתק';
+
+  @override
+  String get searchNotesToLink => 'חיפוש פתקים';
+
+  @override
+  String get noNotesToLink => 'אין פתקים עם כותרת שאפשר לקשר אליהם.';
+
+  @override
+  String createLinkedNote(String title) {
+    return 'יצירת הפתק \"$title\"';
+  }
+
+  @override
+  String openLinkedNote(String title) {
+    return 'פתיחת \"$title\"';
+  }
+
+  @override
+  String linksHere(String title) {
+    return '\"$title\" מקשר לכאן';
+  }
+
+  @override
+  String get templates => 'תבניות';
+
+  @override
+  String get templatesSubtitle => 'פתקים להתחיל מהם, ואיך נראה הפתק של היום';
+
+  @override
+  String templatesHelp(String tokens) {
+    return 'אפשר להתחיל פתק מתבנית עם \"חדש מתבנית\" ברשימת הפתקים. התבנית שמסומנת כאן היא זו ש\"הפתק של היום\" מתחיל ממנה. אפשר לכתוב בתבנית $tokens, והם יוחלפו בתאריך, ביום או בשעה.';
+  }
+
+  @override
+  String get newFromTemplate => 'חדש מתבנית';
+
+  @override
+  String get todaysNote => 'הפתק של היום';
+
+  @override
+  String get manageTemplates => 'ניהול תבניות';
+
+  @override
+  String get saveAsTemplate => 'שמירה כתבנית';
+
+  @override
+  String get templateName => 'שם התבנית';
+
+  @override
+  String templateSaved(String name) {
+    return 'התבנית \"$name\" נשמרה';
+  }
+
+  @override
+  String get renameTemplate => 'שינוי שם';
+
+  @override
+  String get deleteTemplate => 'מחיקת התבנית';
+
+  @override
+  String get builtInTemplate => 'מובנית';
+
+  @override
+  String get ownTemplate => 'תבנית שלך';
+
+  @override
+  String get dailyNoteTemplate => 'משמשת לפתק של היום';
+
+  @override
+  String get templateJournal => 'יומן יומי';
+
+  @override
+  String templateJournalBody(String date) {
+    return '## $date\n\n**היום אני רוצה**\n- \n\n**הערות**\n\n\n**תודה על**\n- ';
+  }
+
+  @override
+  String get templateMeeting => 'סיכום פגישה';
+
+  @override
+  String templateMeetingTitle(String date) {
+    return 'פגישה $date';
+  }
+
+  @override
+  String get templateMeetingBody =>
+      '**משתתפים:** \n**נושא:** \n\n## הערות\n\n\n## החלטות\n- \n\n## משימות להמשך\n- [ ] ';
+
+  @override
+  String get templateTodo => 'רשימת משימות';
+
+  @override
+  String templateTodoTitle(String date) {
+    return 'לעשות $date';
+  }
+
+  @override
+  String get templateTodoItems => 'הכי חשוב קודם\nאחר כך זה\nוגם זה';
+
+  @override
+  String get versionHistory => 'היסטוריית גרסאות';
+
+  @override
+  String get versionHistoryHelp =>
+      'גרסאות קודמות של הפתק, שמורות במכשירים שלך ומוצפנות כמו הפתקים. גרסה נשמרת בכל פעם שחוזרים לערוך (לכל היותר כל 10 דקות), עד 30 האחרונות.';
+
+  @override
+  String get noVersionsYet =>
+      'אין עדיין גרסאות קודמות. הן יופיעו כאן אחרי שהטקסט של הפתק ישתנה.';
+
+  @override
+  String get cantLoadVersions => 'אי אפשר לטעון את ההיסטוריה כרגע.';
+
+  @override
+  String get restoreVersion => 'שחזור';
+
+  @override
+  String get versionRestored =>
+      'הגרסה הקודמת שוחזרה. הטקסט שהיה לפניה שמור בהיסטוריה.';
+
+  @override
+  String get attachFile => 'צירוף קובץ';
+
+  @override
+  String get attachedFile => 'קובץ';
+
+  @override
+  String openFile(String name) {
+    return 'פתיחת $name';
+  }
+
+  @override
+  String get openInAnotherApp => 'פתיחה באפליקציה אחרת';
+
+  @override
+  String get removeFile => 'הסרת הקובץ';
+
+  @override
+  String filesTooLarge(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count קבצים גדולים מ-20MB ואי אפשר לצרף אותם.',
+      one: 'הקובץ גדול מ-20MB ואי אפשר לצרף אותו.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String filesFailed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'לא הצלחנו לצרף $count קבצים.',
+      one: 'לא הצלחנו לצרף קובץ.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cantOpenPdf =>
+      'אי אפשר להציג את ה-PDF הזה. אפשר לנסות לפתוח אותו באפליקציה אחרת.';
+
+  @override
+  String pdfPageNofM(int page, int pages) {
+    return 'עמוד $page מתוך $pages';
+  }
+
+  @override
+  String get exportMarkdownFolder =>
+      'תיקיית Markdown (‏.zip, עם תמונות וקבצים)';
+
+  @override
+  String get importFromOtherApps => 'ייבוא מאפליקציות אחרות';
+
+  @override
+  String get otherAppsSubtitle =>
+      'Evernote, Standard Notes, Apple Notes, Markdown';
+
+  @override
+  String get otherAppsExplain =>
+      'בחרו את קובץ הייצוא (או כמה קבצים, או קובץ ‎.zip):\n\n• Evernote: ייצוא פנקסים או פתקים כקובץ ‎.enex.\n• Standard Notes: הגדרות, גיבויים, הורדת גיבוי לא מוצפן.\n• Apple Notes: בקשו עותק של הפתקים מ-iCloud באתר privacy.apple.com, או ייצאו אותם כ-Markdown באפליקציית ייצוא.\n• Obsidian, Joplin ואפליקציות Markdown אחרות: קובץ ‎.zip של התיקייה, או קובצי ה-‎.md.\n\nהקבצים נקראים בטלפון הזה והפתקים מוצפנים לפני הסנכרון. תגיות, תיקיות (כפנקסים), תמונות וקבצים עד 20MB מגיעים איתם. פתקים שכבר יובאו מדולגים.';
+
+  @override
+  String importProgress(int done, int total) {
+    return 'מייבאים $done מתוך $total…';
+  }
+
+  @override
+  String otherSkippedTrash(int count) {
+    return '$count מהאשפה של האפליקציה האחרת דולגו.';
+  }
+
+  @override
+  String otherFilesSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count תמונות או קבצים לא נוספו (מעל 20MB או לא קריאים).',
+      one: 'תמונה או קובץ אחד לא נוספו (מעל 20MB או לא קריאים).',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String otherEncrypted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count פתקים נמצאים בגיבוי מוצפן ואי אפשר לקרוא אותם. הורידו גיבוי לא מוצפן.',
+      one:
+          'פתק אחד נמצא בגיבוי מוצפן ואי אפשר לקרוא אותו. הורידו גיבוי לא מוצפן.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get otherNoneFound =>
+      'לא נמצאו פתקים בקובץ הזה. בחרו קובץ ‎.enex, גיבוי של Standard Notes, או פתקי Markdown, טקסט או HTML.';
 }

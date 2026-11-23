@@ -1136,4 +1136,306 @@ class AppL10nEn extends AppL10n {
 
   @override
   String get widgetPhotoNote => 'New note with a photo';
+
+  @override
+  String get insertIntoKeyboard => 'Insert into ZT Keyboard';
+
+  @override
+  String get insertPickHint => 'Tap a note, then the line to type.';
+
+  @override
+  String get insertNoNotes => 'No notes match.';
+
+  @override
+  String get insertWholeNote => 'Whole note';
+
+  @override
+  String get insertLockedHidden => 'Locked notes are not offered here.';
+
+  @override
+  String get widgetChecklist => 'Checklist';
+
+  @override
+  String get widgetChecklistEmpty => 'Nothing on this list';
+
+  @override
+  String get widgetChecklistHidden =>
+      'Turn on \"Show details on the home screen\" in ZT Notes settings to tick items here';
+
+  @override
+  String get widgetOpenToSeeChecklist => 'Open ZT Notes to see this list';
+
+  @override
+  String get widgetPickChecklist => 'Tap to pick a checklist';
+
+  @override
+  String get widgetOpenChecklist => 'Open the checklist in ZT Notes';
+
+  @override
+  String get widgetTick => 'Tick';
+
+  @override
+  String get widgetUntick => 'Untick';
+
+  @override
+  String get chooseChecklistToPin => 'Choose a checklist for the widget';
+
+  @override
+  String get noChecklistsCreateFirst =>
+      'No checklists yet. Make a checklist note first, then add the widget again.';
+
+  @override
+  String get handwritingToText => 'Handwriting to text';
+
+  @override
+  String get handwritingTextTitle => 'Handwriting to text';
+
+  @override
+  String get handwritingTextPrivacy =>
+      'Your writing is read on this phone, line by line. Nothing is uploaded. Clear, printed letters read best.';
+
+  @override
+  String get noHandwritingText =>
+      'No words found. Try another language above, or write larger and more clearly.';
+
+  @override
+  String get writeSomethingFirst => 'Write something first';
+
+  @override
+  String get keepDrawingTooQ => 'Keep the drawing too?';
+
+  @override
+  String get keepDrawingTooBody =>
+      'The text goes into the note. You can also keep the handwriting as a drawing.';
+
+  @override
+  String get textOnly => 'Text only';
+
+  @override
+  String get textAndDrawing => 'Text and drawing';
+
+  @override
+  String get linkToNote => 'Link to a note';
+
+  @override
+  String get searchNotesToLink => 'Search notes';
+
+  @override
+  String get noNotesToLink => 'No notes with a title to link to.';
+
+  @override
+  String createLinkedNote(String title) {
+    return 'Make the note \"$title\"';
+  }
+
+  @override
+  String openLinkedNote(String title) {
+    return 'Open \"$title\"';
+  }
+
+  @override
+  String linksHere(String title) {
+    return '\"$title\" links here';
+  }
+
+  @override
+  String get templates => 'Templates';
+
+  @override
+  String get templatesSubtitle =>
+      'Notes to start from, and what today\'s note looks like';
+
+  @override
+  String templatesHelp(String tokens) {
+    return 'Start a note from a template with \"New from template\" in the notes list. The one marked here is what \"Today\'s note\" starts from. Use $tokens in a template and they are filled in.';
+  }
+
+  @override
+  String get newFromTemplate => 'New from template';
+
+  @override
+  String get todaysNote => 'Today\'s note';
+
+  @override
+  String get manageTemplates => 'Manage templates';
+
+  @override
+  String get saveAsTemplate => 'Save as template';
+
+  @override
+  String get templateName => 'Template name';
+
+  @override
+  String templateSaved(String name) {
+    return 'Saved the template \"$name\"';
+  }
+
+  @override
+  String get renameTemplate => 'Rename';
+
+  @override
+  String get deleteTemplate => 'Delete template';
+
+  @override
+  String get builtInTemplate => 'Built in';
+
+  @override
+  String get ownTemplate => 'Your template';
+
+  @override
+  String get dailyNoteTemplate => 'Used for today\'s note';
+
+  @override
+  String get templateJournal => 'Daily journal';
+
+  @override
+  String templateJournalBody(String date) {
+    return '## $date\n\n**Today I want to**\n- \n\n**Notes**\n\n\n**Grateful for**\n- ';
+  }
+
+  @override
+  String get templateMeeting => 'Meeting notes';
+
+  @override
+  String templateMeetingTitle(String date) {
+    return 'Meeting $date';
+  }
+
+  @override
+  String get templateMeetingBody =>
+      '**Who:** \n**About:** \n\n## Notes\n\n\n## Decisions\n- \n\n## Next steps\n- [ ] ';
+
+  @override
+  String get templateTodo => 'To-do list';
+
+  @override
+  String templateTodoTitle(String date) {
+    return 'To do $date';
+  }
+
+  @override
+  String get templateTodoItems => 'Most important first\nThen this\nAnd this';
+
+  @override
+  String get versionHistory => 'Version history';
+
+  @override
+  String get versionHistoryHelp =>
+      'Earlier versions of this note, kept on your devices and encrypted like your notes. A version is kept each time you come back to edit (at most every 10 minutes), up to the last 30.';
+
+  @override
+  String get noVersionsYet =>
+      'No earlier versions yet. They appear here after the note\'s text changes.';
+
+  @override
+  String get cantLoadVersions => 'Can\'t load the history right now.';
+
+  @override
+  String get restoreVersion => 'Restore';
+
+  @override
+  String get versionRestored =>
+      'Earlier version brought back. The text before it is in the history.';
+
+  @override
+  String get attachFile => 'Attach file';
+
+  @override
+  String get attachedFile => 'File';
+
+  @override
+  String openFile(String name) {
+    return 'Open $name';
+  }
+
+  @override
+  String get openInAnotherApp => 'Open in another app';
+
+  @override
+  String get removeFile => 'Remove file';
+
+  @override
+  String filesTooLarge(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count files are over 20 MB, too large to attach.',
+      one: 'That file is over 20 MB, too large to attach.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String filesFailed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Couldn\'t attach $count files.',
+      one: 'Couldn\'t attach a file.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cantOpenPdf =>
+      'Can\'t show this PDF. Try opening it in another app.';
+
+  @override
+  String pdfPageNofM(int page, int pages) {
+    return 'Page $page of $pages';
+  }
+
+  @override
+  String get exportMarkdownFolder =>
+      'Markdown folder (.zip, with pictures and files)';
+
+  @override
+  String get importFromOtherApps => 'Import from other apps';
+
+  @override
+  String get otherAppsSubtitle =>
+      'Evernote, Standard Notes, Apple Notes, Markdown';
+
+  @override
+  String get otherAppsExplain =>
+      'Choose the export file (or several, or a .zip):\n\n• Evernote: export notebooks or notes as .enex.\n• Standard Notes: Settings, Backups, download a decrypted backup.\n• Apple Notes: request a copy of your iCloud Notes at privacy.apple.com, or export them as Markdown with an exporter app.\n• Obsidian, Joplin and other Markdown apps: a .zip of the folder, or the .md files.\n\nThe files are read on this phone and your notes are encrypted before they sync. Tags, folders (as notebooks), pictures and files up to 20 MB come along. Notes already imported are skipped.';
+
+  @override
+  String importProgress(int done, int total) {
+    return 'Importing $done of $total…';
+  }
+
+  @override
+  String otherSkippedTrash(int count) {
+    return '$count from the other app\'s trash, skipped.';
+  }
+
+  @override
+  String otherFilesSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count pictures or files weren\'t added (over 20 MB, or unreadable).',
+      one: '1 picture or file wasn\'t added (over 20 MB, or unreadable).',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String otherEncrypted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count notes are in an encrypted backup and can\'t be read. Download a decrypted backup instead.',
+      one:
+          '1 note is in an encrypted backup and can\'t be read. Download a decrypted backup instead.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get otherNoneFound =>
+      'No notes found in that file. Choose an .enex, a Standard Notes backup, or Markdown, text or HTML notes.';
 }

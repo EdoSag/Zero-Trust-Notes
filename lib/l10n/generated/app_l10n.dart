@@ -1980,6 +1980,462 @@ abstract class AppL10n {
   /// In en, this message translates to:
   /// **'New note with a photo'**
   String get widgetPhotoNote;
+
+  /// No description provided for @insertIntoKeyboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Insert into ZT Keyboard'**
+  String get insertIntoKeyboard;
+
+  /// No description provided for @insertPickHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a note, then the line to type.'**
+  String get insertPickHint;
+
+  /// No description provided for @insertNoNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'No notes match.'**
+  String get insertNoNotes;
+
+  /// No description provided for @insertWholeNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Whole note'**
+  String get insertWholeNote;
+
+  /// No description provided for @insertLockedHidden.
+  ///
+  /// In en, this message translates to:
+  /// **'Locked notes are not offered here.'**
+  String get insertLockedHidden;
+
+  /// No description provided for @widgetChecklist.
+  ///
+  /// In en, this message translates to:
+  /// **'Checklist'**
+  String get widgetChecklist;
+
+  /// No description provided for @widgetChecklistEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing on this list'**
+  String get widgetChecklistEmpty;
+
+  /// No description provided for @widgetChecklistHidden.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on \"Show details on the home screen\" in ZT Notes settings to tick items here'**
+  String get widgetChecklistHidden;
+
+  /// No description provided for @widgetOpenToSeeChecklist.
+  ///
+  /// In en, this message translates to:
+  /// **'Open ZT Notes to see this list'**
+  String get widgetOpenToSeeChecklist;
+
+  /// No description provided for @widgetPickChecklist.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to pick a checklist'**
+  String get widgetPickChecklist;
+
+  /// No description provided for @widgetOpenChecklist.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the checklist in ZT Notes'**
+  String get widgetOpenChecklist;
+
+  /// No description provided for @widgetTick.
+  ///
+  /// In en, this message translates to:
+  /// **'Tick'**
+  String get widgetTick;
+
+  /// No description provided for @widgetUntick.
+  ///
+  /// In en, this message translates to:
+  /// **'Untick'**
+  String get widgetUntick;
+
+  /// No description provided for @chooseChecklistToPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a checklist for the widget'**
+  String get chooseChecklistToPin;
+
+  /// No description provided for @noChecklistsCreateFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'No checklists yet. Make a checklist note first, then add the widget again.'**
+  String get noChecklistsCreateFirst;
+
+  /// No description provided for @handwritingToText.
+  ///
+  /// In en, this message translates to:
+  /// **'Handwriting to text'**
+  String get handwritingToText;
+
+  /// No description provided for @handwritingTextTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Handwriting to text'**
+  String get handwritingTextTitle;
+
+  /// No description provided for @handwritingTextPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Your writing is read on this phone, line by line. Nothing is uploaded. Clear, printed letters read best.'**
+  String get handwritingTextPrivacy;
+
+  /// No description provided for @noHandwritingText.
+  ///
+  /// In en, this message translates to:
+  /// **'No words found. Try another language above, or write larger and more clearly.'**
+  String get noHandwritingText;
+
+  /// No description provided for @writeSomethingFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Write something first'**
+  String get writeSomethingFirst;
+
+  /// No description provided for @keepDrawingTooQ.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep the drawing too?'**
+  String get keepDrawingTooQ;
+
+  /// No description provided for @keepDrawingTooBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The text goes into the note. You can also keep the handwriting as a drawing.'**
+  String get keepDrawingTooBody;
+
+  /// No description provided for @textOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Text only'**
+  String get textOnly;
+
+  /// No description provided for @textAndDrawing.
+  ///
+  /// In en, this message translates to:
+  /// **'Text and drawing'**
+  String get textAndDrawing;
+
+  /// No description provided for @linkToNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Link to a note'**
+  String get linkToNote;
+
+  /// No description provided for @searchNotesToLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Search notes'**
+  String get searchNotesToLink;
+
+  /// No description provided for @noNotesToLink.
+  ///
+  /// In en, this message translates to:
+  /// **'No notes with a title to link to.'**
+  String get noNotesToLink;
+
+  /// No description provided for @createLinkedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Make the note \"{title}\"'**
+  String createLinkedNote(String title);
+
+  /// No description provided for @openLinkedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Open \"{title}\"'**
+  String openLinkedNote(String title);
+
+  /// No description provided for @linksHere.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" links here'**
+  String linksHere(String title);
+
+  /// No description provided for @templates.
+  ///
+  /// In en, this message translates to:
+  /// **'Templates'**
+  String get templates;
+
+  /// No description provided for @templatesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes to start from, and what today\'s note looks like'**
+  String get templatesSubtitle;
+
+  /// No description provided for @templatesHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Start a note from a template with \"New from template\" in the notes list. The one marked here is what \"Today\'s note\" starts from. Use {tokens} in a template and they are filled in.'**
+  String templatesHelp(String tokens);
+
+  /// No description provided for @newFromTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'New from template'**
+  String get newFromTemplate;
+
+  /// No description provided for @todaysNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s note'**
+  String get todaysNote;
+
+  /// No description provided for @manageTemplates.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage templates'**
+  String get manageTemplates;
+
+  /// No description provided for @saveAsTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as template'**
+  String get saveAsTemplate;
+
+  /// No description provided for @templateName.
+  ///
+  /// In en, this message translates to:
+  /// **'Template name'**
+  String get templateName;
+
+  /// No description provided for @templateSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved the template \"{name}\"'**
+  String templateSaved(String name);
+
+  /// No description provided for @renameTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get renameTemplate;
+
+  /// No description provided for @deleteTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete template'**
+  String get deleteTemplate;
+
+  /// No description provided for @builtInTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Built in'**
+  String get builtInTemplate;
+
+  /// No description provided for @ownTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Your template'**
+  String get ownTemplate;
+
+  /// No description provided for @dailyNoteTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Used for today\'s note'**
+  String get dailyNoteTemplate;
+
+  /// No description provided for @templateJournal.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily journal'**
+  String get templateJournal;
+
+  /// No description provided for @templateJournalBody.
+  ///
+  /// In en, this message translates to:
+  /// **'## {date}\n\n**Today I want to**\n- \n\n**Notes**\n\n\n**Grateful for**\n- '**
+  String templateJournalBody(String date);
+
+  /// No description provided for @templateMeeting.
+  ///
+  /// In en, this message translates to:
+  /// **'Meeting notes'**
+  String get templateMeeting;
+
+  /// No description provided for @templateMeetingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Meeting {date}'**
+  String templateMeetingTitle(String date);
+
+  /// No description provided for @templateMeetingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'**Who:** \n**About:** \n\n## Notes\n\n\n## Decisions\n- \n\n## Next steps\n- [ ] '**
+  String get templateMeetingBody;
+
+  /// No description provided for @templateTodo.
+  ///
+  /// In en, this message translates to:
+  /// **'To-do list'**
+  String get templateTodo;
+
+  /// No description provided for @templateTodoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'To do {date}'**
+  String templateTodoTitle(String date);
+
+  /// No description provided for @templateTodoItems.
+  ///
+  /// In en, this message translates to:
+  /// **'Most important first\nThen this\nAnd this'**
+  String get templateTodoItems;
+
+  /// No description provided for @versionHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Version history'**
+  String get versionHistory;
+
+  /// No description provided for @versionHistoryHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Earlier versions of this note, kept on your devices and encrypted like your notes. A version is kept each time you come back to edit (at most every 10 minutes), up to the last 30.'**
+  String get versionHistoryHelp;
+
+  /// No description provided for @noVersionsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No earlier versions yet. They appear here after the note\'s text changes.'**
+  String get noVersionsYet;
+
+  /// No description provided for @cantLoadVersions.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t load the history right now.'**
+  String get cantLoadVersions;
+
+  /// No description provided for @restoreVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get restoreVersion;
+
+  /// No description provided for @versionRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'Earlier version brought back. The text before it is in the history.'**
+  String get versionRestored;
+
+  /// No description provided for @attachFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach file'**
+  String get attachFile;
+
+  /// No description provided for @attachedFile.
+  ///
+  /// In en, this message translates to:
+  /// **'File'**
+  String get attachedFile;
+
+  /// No description provided for @openFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Open {name}'**
+  String openFile(String name);
+
+  /// No description provided for @openInAnotherApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Open in another app'**
+  String get openInAnotherApp;
+
+  /// No description provided for @removeFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove file'**
+  String get removeFile;
+
+  /// No description provided for @filesTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{That file is over 20 MB, too large to attach.} other{{count} files are over 20 MB, too large to attach.}}'**
+  String filesTooLarge(int count);
+
+  /// No description provided for @filesFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Couldn\'t attach a file.} other{Couldn\'t attach {count} files.}}'**
+  String filesFailed(int count);
+
+  /// No description provided for @cantOpenPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t show this PDF. Try opening it in another app.'**
+  String get cantOpenPdf;
+
+  /// No description provided for @pdfPageNofM.
+  ///
+  /// In en, this message translates to:
+  /// **'Page {page} of {pages}'**
+  String pdfPageNofM(int page, int pages);
+
+  /// No description provided for @exportMarkdownFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Markdown folder (.zip, with pictures and files)'**
+  String get exportMarkdownFolder;
+
+  /// No description provided for @importFromOtherApps.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from other apps'**
+  String get importFromOtherApps;
+
+  /// No description provided for @otherAppsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Evernote, Standard Notes, Apple Notes, Markdown'**
+  String get otherAppsSubtitle;
+
+  /// No description provided for @otherAppsExplain.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the export file (or several, or a .zip):\n\n• Evernote: export notebooks or notes as .enex.\n• Standard Notes: Settings, Backups, download a decrypted backup.\n• Apple Notes: request a copy of your iCloud Notes at privacy.apple.com, or export them as Markdown with an exporter app.\n• Obsidian, Joplin and other Markdown apps: a .zip of the folder, or the .md files.\n\nThe files are read on this phone and your notes are encrypted before they sync. Tags, folders (as notebooks), pictures and files up to 20 MB come along. Notes already imported are skipped.'**
+  String get otherAppsExplain;
+
+  /// No description provided for @importProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Importing {done} of {total}…'**
+  String importProgress(int done, int total);
+
+  /// No description provided for @otherSkippedTrash.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} from the other app\'s trash, skipped.'**
+  String otherSkippedTrash(int count);
+
+  /// No description provided for @otherFilesSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 picture or file wasn\'t added (over 20 MB, or unreadable).} other{{count} pictures or files weren\'t added (over 20 MB, or unreadable).}}'**
+  String otherFilesSkipped(int count);
+
+  /// No description provided for @otherEncrypted.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 note is in an encrypted backup and can\'t be read. Download a decrypted backup instead.} other{{count} notes are in an encrypted backup and can\'t be read. Download a decrypted backup instead.}}'**
+  String otherEncrypted(int count);
+
+  /// No description provided for @otherNoneFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No notes found in that file. Choose an .enex, a Standard Notes backup, or Markdown, text or HTML notes.'**
+  String get otherNoneFound;
 }
 
 class _AppL10nDelegate extends LocalizationsDelegate<AppL10n> {

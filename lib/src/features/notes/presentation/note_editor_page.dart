@@ -16,8 +16,16 @@ import '../../../shared/widgets/accessible_touch_target.dart';
 import '../../export/presentation/export_sheet.dart';
 import '../../drawing/drawing.dart';
 import '../../drawing/drawing_page.dart';
+import '../../files/note_file_picker.dart';
+import '../../files/note_files_strip.dart';
+import '../../files/pdf_viewer_page.dart';
 import '../../image_text/image_text_sheet.dart';
+import '../../history/note_history.dart';
+import '../../history/note_history_page.dart';
 import '../../images/note_image_picker.dart';
+import '../../links/note_links.dart';
+import '../../links/note_links_views.dart';
+import '../../templates/templates_views.dart';
 import '../../images/note_image_views.dart';
 import '../../notebooks/domain/notebook.dart';
 import '../../notebooks/presentation/notebook_picker.dart';
@@ -29,6 +37,7 @@ import '../../tags/presentation/tag_picker.dart';
 import '../../voice/voice_note_sheet.dart';
 import '../../../shared/text_direction.dart';
 import '../application/note_lock.dart';
+import '../../widgets/application/checklist_widget_ticks.dart';
 import '../../widgets/domain/pending_widget_action.dart';
 import '../application/notes_providers.dart';
 import '../data/notes_repository.dart';
@@ -52,9 +61,21 @@ class NoteEditorPage extends ConsumerStatefulWidget {
     this.shared,
     this.startWithVoice = false,
     this.startWithPhoto = false,
+    this.initialTitle,
+    this.initialBody,
+    this.initialChecklist,
   });
 
   final Note? note;
+
+  /// For a new note: its title, e.g. from a link to a note that doesn't
+  /// exist yet.
+  final String? initialTitle;
+
+  /// For a new note from a template: its text, or its checklist items.
+  /// Saved only once something is typed.
+  final String? initialBody;
+  final List<ChecklistItem>? initialChecklist;
 
   /// For a new note: open the voice note sheet straight away.
   final bool startWithVoice;
@@ -82,10 +103,16 @@ class NoteEditorPage extends ConsumerStatefulWidget {
 
 class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   late final TextEditingController _titleController = TextEditingController(
-    text: widget.note?.title ?? widget.shared?.title ?? '',
+    text: widget.note?.title ?? widget.shared?.title ?? widget.initialTitle ?? '',
   );
+
+  /// The title when the editor opened: links to it in other notes follow
+  /// a rename when the editor closes.
+  late final String _openedTitle = widget.note?.title ?? '';
   late final TextEditingController _bodyController = TextEditingController(
-    text: widget.note?.isChecklist ?? false ? '' : widget.note?.body ?? widget.shared?.body ?? '',
+    text: widget.note?.isChecklist ?? false
+        ? ''
+        : widget.note?.body ?? widget.shared?.body ?? widget.initialBody ?? '',
   );
 
   Note? _note;
@@ -99,6 +126,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   NotePlaceReminder? _placeReminder;
   List<ZtAttachmentRef> _images = const [];
   Map<String, ZtAttachmentRef> _drawings = const {};
+  List<ZtAttachmentRef> _files = const [];
   bool _locked = false;
 
   /// A locked note stays hidden until the phone's lock confirms it's the
@@ -137,15 +165,21 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     _pinned = note?.pinned ?? false;
     _archived = note?.archived ?? widget.archived;
     _color = note?.color ?? NoteColor.none;
-    _checklist = note?.checklist ?? (widget.startAsChecklist && note == null ? const [] : null);
+    _checklist =
+        note?.checklist ??
+        (note == null ? widget.initialChecklist : null) ??
+        (widget.startAsChecklist && note == null ? const [] : null);
     _reminderAt = note?.reminderAt;
     _placeReminder = note?.placeReminder;
     // A place reminder that goes off while the note is open is done: the
     // editor lets it go too, so saving doesn't put it back.
     _dropFiredPlaceReminder(ref.read(firedPlaceRemindersProvider));
     ref.listenManual(firedPlaceRemindersProvider, (_, fired) => _dropFiredPlaceReminder(fired));
+    ref.listenManual(widgetTickedNoteProvider, (_, ticked) => _takeWidgetTicks(ticked));
+    ref.listenManual(renamedLinksProvider, (_, rename) => _takeRenamedLinks(rename));
     _images = note?.images ?? const [];
     _drawings = note?.drawings ?? const {};
+    _files = note?.files ?? const [];
     _locked = note?.locked ?? false;
     _lockOpen = !_locked;
     if (!_lockOpen) WidgetsBinding.instance.addPostFrameCallback((_) => _openLock());
@@ -198,6 +232,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
 
   bool get _isBlank =>
       _images.isEmpty &&
+      _files.isEmpty &&
       _titleController.text.trim().isEmpty &&
       _body.trim().isEmpty &&
       (_checklist?.every((item) => item.text.trim().isEmpty) ?? true);
@@ -208,8 +243,9 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     _debounce?.cancel();
     // Read now: this also runs as the page pops, after which `ref` is gone.
     final repository = ref.read(notesRepositoryProvider);
+    final history = ref.read(noteHistoryProvider);
     final result = _saving
-        .then((_) => _persistNow(repository))
+        .then((_) => _persistNow(repository, history))
         .then(
           (_) => true,
           onError: (Object _) {
@@ -226,6 +262,47 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     return result;
   }
 
+  /// Ticks made on a Checklist widget while this note was open (Notes in
+  /// the background) are already saved: take them, so the next save here
+  /// doesn't put the old ticks back.
+  void _takeWidgetTicks(Note? ticked) {
+    final current = _checklist;
+    if (ticked == null || ticked.id != _note?.id || current == null) return;
+    final states = {for (final item in ticked.checklist ?? const <ChecklistItem>[]) item.id: item.checked};
+    setState(() {
+      _note = ticked;
+      _checklist = [
+        for (final item in current)
+          if (states[item.id] case final checked? when checked != item.checked)
+            item.copyWith(checked: checked)
+          else
+            item,
+      ];
+    });
+  }
+
+  /// Another note was renamed and the links to it rewritten in storage:
+  /// this editor rewrites its own text the same way, so its next save
+  /// keeps the new links.
+  void _takeRenamedLinks(LinkRename? rename) {
+    if (rename == null || !mounted) return;
+    final checklist = _checklist;
+    if (checklist != null) {
+      final items = [
+        for (final item in checklist)
+          item.copyWith(text: NoteLinks.renamed(item.text, rename.from, rename.to)),
+      ];
+      if ([for (final i in items) i.text].join('\n') == [for (final i in checklist) i.text].join('\n')) {
+        return;
+      }
+      setState(() => _checklist = items);
+      _changed();
+      return;
+    }
+    final text = NoteLinks.renamed(_bodyController.text, rename.from, rename.to);
+    if (text != _bodyController.text) _bodyController.text = text;
+  }
+
   void _dropFiredPlaceReminder(Set<String> fired) {
     final note = _note;
     final reminder = _placeReminder;
@@ -237,7 +314,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     }
   }
 
-  Future<void> _persistNow(NotesRepository? repository) async {
+  Future<void> _persistNow(NotesRepository? repository, NoteHistory? history) async {
     if (!_dirty || repository == null) return;
     // Don't create an empty note just because the editor was opened.
     if (_note == null && _isBlank) {
@@ -246,7 +323,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     }
     _dirty = false;
     try {
-      await _write(repository);
+      await _write(repository, history);
     } on Object {
       _dirty = true; // Keep the edits for the next save.
       rethrow;
@@ -255,7 +332,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     if (mounted) setState(() => _status = _SaveStatus.saved);
   }
 
-  Future<void> _write(NotesRepository repository) async {
+  Future<void> _write(NotesRepository repository, NoteHistory? history) async {
     final checklist = _checklist == null ? null : ChecklistItem.ordered(_checklist!);
     if (_note == null) {
       _note = await repository.createNote(
@@ -272,6 +349,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         locked: _locked,
         placeReminder: _placeReminder,
         drawings: _drawings,
+        files: _files,
       );
     } else {
       final updated = _note!.copyWith(
@@ -288,7 +366,10 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         locked: _locked,
         placeReminder: _placeReminder,
         drawings: _drawings,
+        files: _files,
       );
+      // The text before this editing session goes into the history (N-2).
+      await history?.beforeSave(updated, previous: _note);
       _note = await repository.updateNote(updated);
     }
   }
@@ -367,27 +448,194 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     return added;
   }
 
-  Future<void> _takeShared(SharedContent shared) async {
-    if (shared.title.isNotEmpty || shared.body.isNotEmpty) _changed();
-    final files = shared.images;
-    await _addImages([
-      for (final file in files)
+  /// Attaches files from the system file chooser (N-7). Pictures go with
+  /// the note's images; PDFs and other files into its files.
+  Future<void> _attachFiles() async {
+    final repository = ref.read(notesRepositoryProvider);
+    if (repository == null) return;
+    final List<PickedNoteFile> picked;
+    try {
+      picked = await ref
+          .read(vaultControllerProvider.notifier)
+          .whileShowingSystemUi(ref.read(noteFilePickerProvider));
+    } on Object {
+      if (mounted) _snack(context.l10n.cantOpenFile);
+      return;
+    }
+    await _addFiles([
+      for (final file in picked)
         () async {
-          final plain = File(file.path);
-          try {
-            return (bytes: await plain.readAsBytes(), mimeType: file.mimeType, name: file.name);
-          } finally {
-            // Only the encrypted copy stays on the device.
-            try {
-              await plain.delete();
-              // The share's own folder, once its last image is read.
-              await plain.parent.delete();
-            } on Object {
-              // Already gone, or other images still to read.
-            }
+          if ((file.size ?? 0) > maxNoteFileBytes) {
+            throw AttachmentTooLarge(file.size!, maxNoteFileBytes);
           }
+          return (bytes: await file.read(), mimeType: null, name: file.name);
         },
     ]);
+  }
+
+  /// Encrypts and stores each file, one at a time, like [_addImages].
+  Future<void> _addFiles(
+    List<Future<({Uint8List bytes, String? mimeType, String? name})> Function()> sources,
+  ) async {
+    final repository = ref.read(notesRepositoryProvider);
+    if (repository == null || sources.isEmpty) return;
+    setState(() => _addingImages += sources.length);
+    var tooLarge = 0;
+    var failed = 0;
+    for (final source in sources) {
+      try {
+        final file = await source();
+        // A type the sender didn't know: guess it from the name.
+        final mimeType = file.mimeType == null || file.mimeType == 'application/octet-stream'
+            ? fileMimeType(file.name ?? '') ?? file.mimeType
+            : file.mimeType;
+        final image = mimeType?.startsWith('image/') ?? false;
+        final stored = image
+            ? await repository.addImage(file.bytes, mimeType: mimeType, name: file.name)
+            : await repository.addFile(file.bytes, mimeType: mimeType, name: file.name);
+        if (!mounted) {
+          await repository.releaseImages([stored]);
+          continue;
+        }
+        setState(() {
+          if (image) {
+            _images = [..._images, stored];
+          } else {
+            _files = [..._files, stored];
+          }
+        });
+        _changed();
+      } on AttachmentTooLarge {
+        tooLarge++;
+      } on Object {
+        failed++;
+      } finally {
+        if (mounted) setState(() => _addingImages--);
+      }
+    }
+    if (mounted && tooLarge > 0) {
+      _snack(context.l10n.filesTooLarge(tooLarge));
+    } else if (mounted && failed > 0) {
+      _snack(context.l10n.filesFailed(failed));
+    }
+  }
+
+  /// A PDF opens in Notes; other files open in another app through the
+  /// share sheet.
+  Future<void> _openFile(ZtAttachmentRef file) async {
+    final repository = ref.read(notesRepositoryProvider);
+    if (repository == null) return;
+    final sharing = NoteSharing(context, ref);
+    final name = file.name ?? context.l10n.attachedFile;
+    final pdfSource = ref.read(pdfPageSourceProvider);
+    if (isPdf(file) && pdfSource != null) {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (pageContext) => PdfViewerPage(
+            title: name,
+            load: () => repository.readImage(file),
+            source: pdfSource(),
+            actions: [
+              IconButton(
+                tooltip: pageContext.l10n.openInAnotherApp,
+                icon: const Icon(Icons.open_in_new),
+                onPressed: () => sharing.shareFile(file),
+              ),
+              if (!_inTrash)
+                IconButton(
+                  key: const Key('pdf_remove'),
+                  tooltip: pageContext.l10n.removeFile,
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: () {
+                    Navigator.of(pageContext).pop();
+                    _removeFile(file);
+                  },
+                ),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(fileIcon(file)),
+              title: Text(name),
+              subtitle: Text(fileSize(file.size)),
+            ),
+            ListTile(
+              key: const Key('file_open_elsewhere'),
+              leading: const Icon(Icons.open_in_new),
+              title: Text(sheetContext.l10n.openInAnotherApp),
+              onTap: () => Navigator.of(sheetContext).pop('open'),
+            ),
+            if (!_inTrash)
+              ListTile(
+                key: const Key('file_remove'),
+                leading: const Icon(Icons.delete_outline),
+                title: Text(sheetContext.l10n.removeFile),
+                onTap: () => Navigator.of(sheetContext).pop('remove'),
+              ),
+          ],
+        ),
+      ),
+    );
+    switch (action) {
+      case 'open':
+        await sharing.shareFile(file);
+      case 'remove':
+        await _removeFile(file);
+    }
+  }
+
+  Future<void> _removeFile(ZtAttachmentRef file) async {
+    final repository = ref.read(notesRepositoryProvider);
+    setState(() => _files = [
+      for (final f in _files)
+        if (f.id != file.id) f,
+    ]);
+    _changed();
+    if (await _saving) await repository?.releaseImages([file]);
+  }
+
+  Future<void> _takeShared(SharedContent shared) async {
+    if (shared.title.isNotEmpty || shared.body.isNotEmpty) _changed();
+    Future<({Uint8List bytes, String? mimeType, String? name})> Function() read(
+      SharedImageFile file,
+    ) => () async {
+      final plain = File(file.path);
+      try {
+        return (bytes: await plain.readAsBytes(), mimeType: file.mimeType, name: file.name);
+      } finally {
+        // Only the encrypted copy stays on the device.
+        try {
+          await plain.delete();
+          // The share's own folder, once its last file is read.
+          await plain.parent.delete();
+        } on Object {
+          // Already gone, or other files still to read.
+        }
+      }
+    };
+    await _addImages([for (final file in shared.images) read(file)]);
+    if (!mounted) {
+      // Closed mid-way: the rest were never encrypted, so don't keep them.
+      for (final file in shared.files) {
+        try {
+          await File(file.path).delete();
+        } on Object {
+          // Already gone.
+        }
+      }
+      return;
+    }
+    await _addFiles([for (final file in shared.files) read(file)]);
     if (mounted && shared.skipped > 0) {
       _snack(context.l10n.sharedSkipped(shared.skipped));
     }
@@ -505,7 +753,8 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   Future<void> _addDrawing() async {
     final result = await DrawingPage.open(context);
     if (result == null || !mounted) return;
-    await _storeDrawing(result);
+    if (result.text case final text?) _appendText(text);
+    if (result.drawing != null) await _storeDrawing(result);
   }
 
   Future<void> _editDrawing(ZtAttachmentRef image) async {
@@ -525,7 +774,8 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     }
     final result = await DrawingPage.open(context, initial: drawing);
     if (result == null || !mounted) return;
-    await _storeDrawing(result, replacing: image);
+    if (result.text case final text?) _appendText(text);
+    if (result.drawing != null) await _storeDrawing(result, replacing: image);
   }
 
   /// Encrypts and stores a drawing (picture and strokes) and puts it in the
@@ -536,12 +786,12 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     setState(() => _addingImages++);
     try {
       final picture = await repository.addImage(
-        result.png,
+        result.png!,
         mimeType: 'image/png',
         name: 'drawing.png',
       );
       final strokes = await repository.addFile(
-        result.drawing.encode(),
+        result.drawing!.encode(),
         mimeType: Drawing.mimeType,
         name: Drawing.fileName,
       );
@@ -644,6 +894,118 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
       return;
     }
     await NoteSharing(context, ref).shareNote(note);
+  }
+
+  /// Links in other notes to this note's old title point to its new one.
+  /// Runs as the editor closes, so typing a title doesn't rewrite other
+  /// notes letter by letter.
+  static Future<void> _relink(
+    NotesRepository repository,
+    RenamedLinks openEditors,
+    String from,
+    String to,
+  ) async {
+    if (from.isEmpty || to.isEmpty || from.toLowerCase() == to.toLowerCase()) return;
+    openEditors.renamed(from, to);
+    try {
+      for (final note in await repository.fetchEverything()) {
+        if (note.isTrashed) continue;
+        final updated = NoteLinks.withRenamedLinks(note, from, to);
+        if (updated != null) await repository.updateNote(updated);
+      }
+    } on Object {
+      // Locked meanwhile: the links keep the old title.
+    }
+  }
+
+  /// Puts a `[[link]]` to another note at the cursor (or as a new item of
+  /// a checklist).
+  Future<void> _insertLink() async {
+    final target = await showNoteLinkPicker(context, exceptId: _note?.id);
+    if (target == null || !mounted) return;
+    final link = NoteLinks.linkTo(target.title);
+    if (_checklist != null) {
+      setState(() => _checklist = [..._checklist!, ChecklistItem.create(link)]);
+      _changed();
+      return;
+    }
+    final text = _bodyController.text;
+    final selection = _bodyController.selection;
+    final start = selection.isValid ? selection.start : text.length;
+    final end = selection.isValid ? selection.end : text.length;
+    _bodyController.value = TextEditingValue(
+      text: text.replaceRange(start, end, link),
+      selection: TextSelection.collapsed(offset: start + link.length),
+    );
+    setState(() => _previewMode = false);
+  }
+
+  void _openLinked(Note note) => Navigator.of(
+    context,
+  ).push(MaterialPageRoute<void>(builder: (_) => NoteEditorPage(note: note)));
+
+  /// A link to a note that doesn't exist yet: a new note with that title,
+  /// in this note's notebook.
+  void _createLinked(String title) => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => NoteEditorPage(initialTitle: title, initialNotebookId: _notebookId),
+    ),
+  );
+
+  void _tapPreviewLink(String? href) {
+    final title = NoteLinks.titleOfHref(href);
+    if (title == null) return;
+    final notes = ref.read(allNotesProvider).value ?? const <Note>[];
+    final target = NoteLinks.resolve(title, notes, exceptId: _note?.id);
+    if (target == null) {
+      _createLinked(title);
+    } else {
+      _openLinked(target);
+    }
+  }
+
+  /// Version history: brings back an earlier text. What the note says now
+  /// is kept as a version first, so a restore can be undone the same way.
+  Future<void> _openHistory() async {
+    if (!await _persist() || !mounted) return;
+    final note = _note;
+    if (note == null) return;
+    final version = await Navigator.of(
+      context,
+    ).push<NoteVersion>(MaterialPageRoute(builder: (_) => NoteHistoryPage(noteId: note.id)));
+    if (version == null || !mounted) return;
+    final current = _note;
+    final history = ref.read(noteHistoryProvider);
+    if (current != null && history != null) await history.keep(current);
+    if (!mounted) return;
+    setState(() {
+      _titleController.text = version.title;
+      if (version.checklist != null) {
+        _checklist = [for (final item in version.checklist!) item];
+        _bodyController.text = '';
+      } else {
+        _checklist = null;
+        _bodyController.text = version.body;
+      }
+      _previewMode = false;
+    });
+    _changed();
+    _snack(context.l10n.versionRestored);
+  }
+
+  /// Saves what is in the editor now as a template.
+  Future<void> _saveAsTemplate() async {
+    final now = DateTime.now().toUtc();
+    final draft = Note(
+      id: '',
+      notebookId: null,
+      title: _titleController.text,
+      body: _body,
+      createdAt: now,
+      updatedAt: now,
+      checklist: _checklist == null ? null : ChecklistItem.ordered(_checklist!),
+    );
+    await saveNoteAsTemplate(context, ref, draft);
   }
 
   Future<void> _saveAndClose() async {
@@ -862,7 +1224,15 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         autofocus: true,
         child: PopScope(
           onPopInvokedWithResult: (didPop, _) {
-            if (didPop) _persist();
+            if (!didPop) return;
+            final repository = ref.read(notesRepositoryProvider);
+            final openEditors = ref.read(renamedLinksProvider.notifier);
+            final rename = (from: _openedTitle.trim(), to: _titleController.text.trim());
+            _persist().then((saved) {
+              if (saved && repository != null) {
+                _relink(repository, openEditors, rename.from, rename.to);
+              }
+            });
           },
           child: Scaffold(
             backgroundColor: background,
@@ -949,6 +1319,10 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
                     NoteImageStrip(images: _images, onOpen: _openImage),
                     const SizedBox(height: AppSpacing.sm),
                   ],
+                  if (_files.isNotEmpty) ...[
+                    NoteFilesStrip(files: _files, onOpen: _openFile),
+                    const SizedBox(height: AppSpacing.sm),
+                  ],
                   if (_addingImages > 0) ...[
                     Semantics(
                       liveRegion: true,
@@ -958,6 +1332,14 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
                     const SizedBox(height: AppSpacing.sm),
                   ],
                   Expanded(child: isChecklist ? _checklistBody() : _textBody(theme)),
+                  if (!_inTrash && _lockOpen)
+                    NoteLinksBar(
+                      noteId: _note?.id,
+                      title: _titleController.text,
+                      body: _body,
+                      onOpen: _openLinked,
+                      onCreate: _createLinked,
+                    ),
                   const SizedBox(height: AppSpacing.xs),
                   Semantics(
                     liveRegion: true,
@@ -1037,6 +1419,8 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
             _pickImages(NoteImageSource.camera);
           case 'gallery':
             _pickImages(NoteImageSource.gallery);
+          case 'file':
+            _attachFiles();
           case 'send':
             _send();
           case 'color':
@@ -1045,6 +1429,12 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
             _toggleChecklist();
           case 'preview':
             setState(() => _previewMode = !_previewMode);
+          case 'link':
+            _insertLink();
+          case 'template':
+            _saveAsTemplate();
+          case 'history':
+            _openHistory();
           case 'export':
             if (_note != null) showExportSheet(context, singleNote: _note);
           case 'trash':
@@ -1097,6 +1487,14 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
               title: Text(context.l10n.addImage),
             ),
           ),
+        if (!_inShared)
+          PopupMenuItem(
+            value: 'file',
+            child: ListTile(
+              leading: Icon(Icons.attach_file),
+              title: Text(context.l10n.attachFile),
+            ),
+          ),
         if (!_inTrash && !_locked)
           PopupMenuItem(
             value: 'share',
@@ -1125,6 +1523,14 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
             title: Text(isChecklist ? context.l10n.hideCheckboxes : context.l10n.showCheckboxes),
           ),
         ),
+        if (!_inTrash)
+          PopupMenuItem(
+            value: 'link',
+            child: ListTile(
+              leading: const Icon(Icons.add_link),
+              title: Text(context.l10n.linkToNote),
+            ),
+          ),
         if (!isChecklist)
           PopupMenuItem(
             value: 'preview',
@@ -1139,6 +1545,22 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
             child: ListTile(
               leading: Icon(_locked ? Icons.lock_open_outlined : Icons.lock_outline),
               title: Text(_locked ? context.l10n.unlockNote : context.l10n.lockNote),
+            ),
+          ),
+        if (_isEditing && !_inShared)
+          PopupMenuItem(
+            value: 'history',
+            child: ListTile(
+              leading: const Icon(Icons.history),
+              title: Text(context.l10n.versionHistory),
+            ),
+          ),
+        if (!_inTrash && !_locked)
+          PopupMenuItem(
+            value: 'template',
+            child: ListTile(
+              leading: const Icon(Icons.dashboard_customize_outlined),
+              title: Text(context.l10n.saveAsTemplate),
             ),
           ),
         if (_isEditing)
@@ -1182,9 +1604,10 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
                 ),
               )
             : Markdown(
-                data: _bodyController.text,
+                data: NoteLinks.toMarkdown(_bodyController.text),
                 selectable: true,
                 styleSheet: MarkdownStyleSheet.fromTheme(theme),
+                onTapLink: (_, href, _) => _tapPreviewLink(href),
               ),
       );
     }

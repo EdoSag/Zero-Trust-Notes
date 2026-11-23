@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 0.7.0+21
+version: 0.9.0+24
 
 environment:
   sdk: ^3.12.2
@@ -57,6 +57,8 @@ dependencies:
   app_links: ">=6.4.0 <8.0.0"
   flutter_dotenv: ^6.0.1
   archive: ^4.0.9
+  # Evernote .enex files for the import from other apps (N-1).
+  xml: ^7.1.0
   intl: ^0.20.3
   share_plus: ^13.3.0
   pdf: ^3.12.0
@@ -68,24 +70,21 @@ dependencies:
     git:
       url: https://github.com/EdoSag/Zero-Trust-Core.git
       path: packages/zero_trust_core
-      # Core Dev with the shared spaces trust chain fix (Core PR #35) and
-      # invite links per app (Core PR #37). Every app that shares must be on
-      # this commit or later: older ones cannot read the new member records.
-      # zt_sharing_ui and zt_places stay on the same commit. Switch all three
-      # to the next tag once it is pushed.
-      ref: 277df7b098227f8aa49cf3c5e761c517069878e7
+      # The v1.0.1 tag's commit. zt_sharing_ui reaches the core by this
+      # commit, and pub needs both to name the core the same way.
+      ref: a27adea1a4a36959fc7bdbf10dc903fcd1f30b45
   zt_sharing_ui:
     git:
       url: https://github.com/EdoSag/Zero-Trust-Core.git
       path: packages/zt_sharing_ui
-      ref: 277df7b098227f8aa49cf3c5e761c517069878e7
+      ref: v1.0.1
   # On-device place reminders (N16), shared with Tasks. Android's own
   # LocationManager, no Google Play services.
   zt_places:
     git:
       url: https://github.com/EdoSag/Zero-Trust-Core.git
       path: packages/zt_places
-      ref: 277df7b098227f8aa49cf3c5e761c517069878e7
+      ref: v1.0.1
   url_launcher: ^6.3.3
   flutter_local_notifications: ^23.0.0
   timezone: ^0.11.2
@@ -106,7 +105,7 @@ dev_dependencies:
     git:
       url: https://github.com/EdoSag/Zero-Trust-Core.git
       path: packages/zt_release_checks
-      ref: b43fcd045722bc364ef2eaa739db181f9dac144f
+      ref: v1.0.1
   flutter_test:
     sdk: flutter
   integration_test:

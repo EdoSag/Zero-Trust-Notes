@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zero_trust_core/zero_trust_core.dart';
 
+import '../../history/note_history.dart';
 import '../../legacy_import/previous_store_migration.dart';
 import '../../sharing/shared_notebooks.dart';
 import '../data/notes_repository.dart';
@@ -71,6 +72,13 @@ final notesRepositoryProvider = Provider<NotesRepository?>((ref) {
       return ref.read(sharedNotesProvider).available ? shared : null;
     },
   );
+});
+
+/// Earlier versions of the account's own notes, while the vault is open.
+final noteHistoryProvider = Provider<NoteHistory?>((ref) {
+  final store = watchOpenNotesStore(ref);
+  if (store == null) return null;
+  return NoteHistory(store: store, sync: syncForWrites(ref));
 });
 
 /// Every note in the account's own store, including archived and trashed
