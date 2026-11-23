@@ -14,11 +14,15 @@ List<NoteTemplate> allTemplates(WidgetRef ref, AppL10n l) => [
   ...ref.watch(ownTemplatesProvider).value ?? const <NoteTemplate>[],
 ];
 
-/// The daily note's template: the one picked in Templates, else the
-/// built-in journal.
-NoteTemplate dailyTemplate(WidgetRef ref, AppL10n l) {
-  final own = ref.read(ownTemplatesProvider).value ?? const <NoteTemplate>[];
-  return own.where((t) => t.daily).firstOrNull ?? NoteTemplate.builtIns(l).first;
+/// The daily note's template: the one picked in Templates (own or
+/// built-in), else the built-in journal. Read from the store, so it is
+/// right even before the templates screen has ever loaded.
+Future<NoteTemplate> dailyTemplate(TemplatesRepository? repository, AppL10n l) async {
+  final builtIns = NoteTemplate.builtIns(l);
+  if (repository == null) return builtIns.first;
+  final id = await repository.dailyId();
+  final all = [...builtIns, ...await repository.fetchAll()];
+  return all.where((t) => t.id == id).firstOrNull ?? builtIns.first;
 }
 
 /// Opens a new note made from [template], in [notebookId]. Nothing is
@@ -56,7 +60,10 @@ Future<void> openDailyNote(BuildContext context, WidgetRef ref) async {
     ).push(MaterialPageRoute<void>(builder: (_) => NoteEditorPage(note: existing)));
     return;
   }
-  await openNoteFromTemplate(context, dailyTemplate(ref, context.l10n), title: today);
+  final l10n = context.l10n;
+  final template = await dailyTemplate(ref.read(templatesRepositoryProvider), l10n);
+  if (!context.mounted) return;
+  await openNoteFromTemplate(context, template, title: today);
 }
 
 /// Picks a template for a new note. Returns null when dismissed.
@@ -168,7 +175,7 @@ class TemplatesPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final templates = allTemplates(ref, l10n);
-    final daily = dailyTemplate(ref, l10n);
+    final dailyId = ref.watch(dailyTemplateIdProvider).value ?? NoteTemplate.builtIns(l10n).first.id;
     final repository = ref.watch(templatesRepositoryProvider);
     return Scaffold(
       appBar: AppBar(title: Text(l10n.templates)),
@@ -179,10 +186,10 @@ class TemplatesPage extends ConsumerWidget {
             child: Text(l10n.templatesHelp('{{date}}, {{longdate}}, {{weekday}}, {{time}}'), style: Theme.of(context).textTheme.bodyMedium),
           ),
           RadioGroup<String>(
-            groupValue: daily.id,
+            groupValue: dailyId,
             onChanged: (id) {
               if (id == null || repository == null) return;
-              repository.setDaily(id.startsWith('builtin:') ? null : id);
+              repository.setDaily(id);
             },
             child: Column(
               children: [
@@ -192,7 +199,7 @@ class TemplatesPage extends ConsumerWidget {
                     leading: Radio<String>(value: template.id),
                     title: Text(template.name),
                     subtitle: Text(
-                      template.id == daily.id
+                      template.id == dailyId
                           ? l10n.dailyNoteTemplate
                           : template.builtIn
                           ? l10n.builtInTemplate
