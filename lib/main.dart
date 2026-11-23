@@ -67,7 +67,7 @@ class ZeroTrustNotesApp extends ConsumerWidget {
         locale: ref.watch(ztLanguageProvider),
         supportedLocales: ZtLanguages.supported,
         localizationsDelegates: const [AppL10n.delegate, ...ZtLanguages.delegates],
-        home: const AppGate(),
+        home: const ZtSignInHandoffScope(child: AppGate()),
         builder: (context, child) =>
             AutoLockActivity(child: WidgetTextSync(child: child ?? const SizedBox.shrink())),
       ),

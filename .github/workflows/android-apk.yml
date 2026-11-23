@@ -152,7 +152,7 @@ jobs:
           # versionCode must grow with every build so updates install over
           # the previous APK; 1000 + run number stays above old pubspec codes.
           BUILD=$((1000 + GITHUB_RUN_NUMBER))
-          flutter build apk --release --build-number="$BUILD"
+          flutter build apk --release --build-number="$BUILD" --dart-define=ZT_CHANNEL=direct
           APK="$APP_SLUG-$VERSION-build$BUILD.apk"
           cp build/app/outputs/flutter-apk/app-release.apk "$APK"
           {
