@@ -43,13 +43,38 @@ class TemplatesRepository {
     await (await _sync()).delete(template.id);
   }
 
-  /// Makes [templateId] the daily note's template (or the built-in journal
-  /// when null): every other own template stops being it.
+  /// Where a built-in daily template choice is kept: one small item, with
+  /// a `kind`, so older Notes builds skip it like templates.
+  static const settingsId = 'notes-template-settings';
+  static const settingsKind = 'templateSettings';
+
+  /// Makes [templateId] (an own template, or a built-in's `builtin:` id)
+  /// the daily note's template; every other own template stops being it.
+  /// Null means the built-in journal.
   Future<void> setDaily(String? templateId) async {
     for (final template in await fetchAll()) {
       final daily = template.id == templateId;
       if (template.daily != daily) await save(template.copyWith(daily: daily));
     }
+    final builtIn = templateId != null && templateId.startsWith(NoteTemplate.builtInPrefix)
+        ? templateId
+        : null;
+    if (await _dailyBuiltIn() != builtIn) {
+      await (await _sync()).save(settingsId, {'kind': settingsKind, 'dailyBuiltIn': builtIn});
+    }
+  }
+
+  /// The daily note's template id: an own template marked daily, else the
+  /// chosen built-in, else null (the built-in journal).
+  Future<String?> dailyId() async {
+    final own = (await fetchAll()).where((t) => t.daily).firstOrNull;
+    return own?.id ?? await _dailyBuiltIn();
+  }
+
+  Future<String?> _dailyBuiltIn() async {
+    final json = (await _store.get(settingsId))?.json;
+    if (json == null || json['kind'] != settingsKind) return null;
+    return json['dailyBuiltIn'] as String?;
   }
 }
 
@@ -57,6 +82,13 @@ final templatesRepositoryProvider = Provider<TemplatesRepository?>((ref) {
   final store = watchOpenNotesStore(ref);
   if (store == null) return null;
   return TemplatesRepository(store: store, sync: syncForWrites(ref));
+});
+
+/// The daily note's template id (see [TemplatesRepository.dailyId]),
+/// read again whenever the templates change.
+final dailyTemplateIdProvider = FutureProvider<String?>((ref) async {
+  ref.watch(ownTemplatesProvider);
+  return ref.watch(templatesRepositoryProvider)?.dailyId();
 });
 
 /// The person's own templates.

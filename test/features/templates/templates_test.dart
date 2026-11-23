@@ -89,7 +89,8 @@ void main() {
       await settle(tester);
     }
     expect(marked, isTrue);
-    phone.container.listen(ownTemplatesProvider, (_, _) {});
+    // The templates list itself is never loaded here: the daily note reads
+    // the store, as on a fresh start.
     phone.container.listen(notesListProvider, (_, _) {});
     await tester.pumpWidget(
       UncontrolledProviderScope(
@@ -125,5 +126,31 @@ void main() {
     final notes = (await tester.runAsync(() => phone.repo.fetchAll()))!;
     expect(notes.map((n) => n.title), [today]);
     await finish(tester, phone);
+  });
+
+  test('the daily template can be a built-in, an own one, or the journal', () async {
+    final phone = Device('phone', FakeSyncBackend());
+    await phone.unlock();
+    addTearDown(phone.container.dispose);
+    final en = lookupAppL10n(const Locale('en'));
+    final templates = phone.container.read(templatesRepositoryProvider)!;
+    expect((await dailyTemplate(templates, en)).id, 'builtin:journal');
+
+    await templates.setDaily('builtin:meeting');
+    expect((await dailyTemplate(templates, en)).id, 'builtin:meeting');
+
+    final own = await templates.add((id) => NoteTemplate(id: id, name: 'Mine', body: 'x'));
+    await templates.setDaily(own.id);
+    expect((await dailyTemplate(templates, en)).id, own.id);
+    expect(await templates.dailyId(), own.id);
+
+    await templates.setDaily('builtin:todo');
+    expect((await dailyTemplate(templates, en)).id, 'builtin:todo');
+    expect((await templates.fetchAll()).single.daily, isFalse);
+
+    await templates.setDaily(null);
+    expect((await dailyTemplate(templates, en)).id, 'builtin:journal');
+    // Templates and their settings are never read as notes.
+    expect(await phone.repo.fetchAll(), isEmpty);
   });
 }
