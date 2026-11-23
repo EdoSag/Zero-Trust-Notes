@@ -327,7 +327,11 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
 
   /// Saves the ticks made on Checklist widgets while Notes was closed or
   /// locked. Waits until shared notes are in too, so a shared list's ticks
-  /// aren't dropped. True when a note was saved.
+  /// aren't dropped. The ticks leave the widget's queue only once every
+  /// note is saved: if the vault locks part-way, the next unlock tries
+  /// again (a tick sets an item's state, so applying it twice is harmless).
+  /// An open editor of a ticked note takes the ticks. True when a note was
+  /// saved.
   Future<bool> _applyChecklistWidgetTicks() async {
     if (_applyingTicks || !ref.read(allNotesLoadedProvider)) return false;
     final notes = ref.read(allNotesProvider).value;
@@ -335,12 +339,15 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
     if (notes == null || repository == null) return false;
     _applyingTicks = true;
     try {
-      final ticks = await const ChecklistWidgetTicks().take();
-      final changed = ChecklistWidgetTick.apply(notes, ticks);
-      for (final note in changed) {
-        await repository.updateNote(note);
-      }
-      return changed.isNotEmpty;
+      final changed = await saveChecklistWidgetTicks(
+        queue: ref.read(checklistWidgetTicksProvider),
+        notes: notes,
+        save: repository.updateNote,
+        onSaved: (saved) {
+          if (mounted) ref.read(widgetTickedNoteProvider.notifier).saved(saved);
+        },
+      );
+      return changed > 0;
     } on Object {
       return false;
     } finally {

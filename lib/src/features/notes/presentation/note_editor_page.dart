@@ -31,6 +31,7 @@ import '../../tags/presentation/tag_picker.dart';
 import '../../voice/voice_note_sheet.dart';
 import '../../../shared/text_direction.dart';
 import '../application/note_lock.dart';
+import '../../widgets/application/checklist_widget_ticks.dart';
 import '../../widgets/domain/pending_widget_action.dart';
 import '../application/notes_providers.dart';
 import '../data/notes_repository.dart';
@@ -155,6 +156,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     // editor lets it go too, so saving doesn't put it back.
     _dropFiredPlaceReminder(ref.read(firedPlaceRemindersProvider));
     ref.listenManual(firedPlaceRemindersProvider, (_, fired) => _dropFiredPlaceReminder(fired));
+    ref.listenManual(widgetTickedNoteProvider, (_, ticked) => _takeWidgetTicks(ticked));
     _images = note?.images ?? const [];
     _drawings = note?.drawings ?? const {};
     _locked = note?.locked ?? false;
@@ -235,6 +237,25 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         );
     _saving = result;
     return result;
+  }
+
+  /// Ticks made on a Checklist widget while this note was open (Notes in
+  /// the background) are already saved: take them, so the next save here
+  /// doesn't put the old ticks back.
+  void _takeWidgetTicks(Note? ticked) {
+    final current = _checklist;
+    if (ticked == null || ticked.id != _note?.id || current == null) return;
+    final states = {for (final item in ticked.checklist ?? const <ChecklistItem>[]) item.id: item.checked};
+    setState(() {
+      _note = ticked;
+      _checklist = [
+        for (final item in current)
+          if (states[item.id] case final checked? when checked != item.checked)
+            item.copyWith(checked: checked)
+          else
+            item,
+      ];
+    });
   }
 
   void _dropFiredPlaceReminder(Set<String> fired) {
