@@ -20,6 +20,7 @@ import '../../image_text/image_text_sheet.dart';
 import '../../images/note_image_picker.dart';
 import '../../links/note_links.dart';
 import '../../links/note_links_views.dart';
+import '../../templates/templates_views.dart';
 import '../../images/note_image_views.dart';
 import '../../notebooks/domain/notebook.dart';
 import '../../notebooks/presentation/notebook_picker.dart';
@@ -56,6 +57,8 @@ class NoteEditorPage extends ConsumerStatefulWidget {
     this.startWithVoice = false,
     this.startWithPhoto = false,
     this.initialTitle,
+    this.initialBody,
+    this.initialChecklist,
   });
 
   final Note? note;
@@ -63,6 +66,11 @@ class NoteEditorPage extends ConsumerStatefulWidget {
   /// For a new note: its title, e.g. from a link to a note that doesn't
   /// exist yet.
   final String? initialTitle;
+
+  /// For a new note from a template: its text, or its checklist items.
+  /// Saved only once something is typed.
+  final String? initialBody;
+  final List<ChecklistItem>? initialChecklist;
 
   /// For a new note: open the voice note sheet straight away.
   final bool startWithVoice;
@@ -97,7 +105,9 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   /// a rename when the editor closes.
   late final String _openedTitle = widget.note?.title ?? '';
   late final TextEditingController _bodyController = TextEditingController(
-    text: widget.note?.isChecklist ?? false ? '' : widget.note?.body ?? widget.shared?.body ?? '',
+    text: widget.note?.isChecklist ?? false
+        ? ''
+        : widget.note?.body ?? widget.shared?.body ?? widget.initialBody ?? '',
   );
 
   Note? _note;
@@ -149,7 +159,10 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     _pinned = note?.pinned ?? false;
     _archived = note?.archived ?? widget.archived;
     _color = note?.color ?? NoteColor.none;
-    _checklist = note?.checklist ?? (widget.startAsChecklist && note == null ? const [] : null);
+    _checklist =
+        note?.checklist ??
+        (note == null ? widget.initialChecklist : null) ??
+        (widget.startAsChecklist && note == null ? const [] : null);
     _reminderAt = note?.reminderAt;
     _placeReminder = note?.placeReminder;
     // A place reminder that goes off while the note is open is done: the
@@ -771,6 +784,21 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     }
   }
 
+  /// Saves what is in the editor now as a template.
+  Future<void> _saveAsTemplate() async {
+    final now = DateTime.now().toUtc();
+    final draft = Note(
+      id: '',
+      notebookId: null,
+      title: _titleController.text,
+      body: _body,
+      createdAt: now,
+      updatedAt: now,
+      checklist: _checklist == null ? null : ChecklistItem.ordered(_checklist!),
+    );
+    await saveNoteAsTemplate(context, ref, draft);
+  }
+
   Future<void> _saveAndClose() async {
     if (await _persist() && mounted) Navigator.of(context).pop();
   }
@@ -1188,6 +1216,8 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
             setState(() => _previewMode = !_previewMode);
           case 'link':
             _insertLink();
+          case 'template':
+            _saveAsTemplate();
           case 'export':
             if (_note != null) showExportSheet(context, singleNote: _note);
           case 'trash':
@@ -1290,6 +1320,14 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
             child: ListTile(
               leading: Icon(_locked ? Icons.lock_open_outlined : Icons.lock_outline),
               title: Text(_locked ? context.l10n.unlockNote : context.l10n.lockNote),
+            ),
+          ),
+        if (!_inTrash && !_locked)
+          PopupMenuItem(
+            value: 'template',
+            child: ListTile(
+              leading: const Icon(Icons.dashboard_customize_outlined),
+              title: Text(context.l10n.saveAsTemplate),
             ),
           ),
         if (_isEditing)

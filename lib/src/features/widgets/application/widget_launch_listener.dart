@@ -69,6 +69,7 @@ class WidgetLaunchListener {
   static PendingWidgetAction? widgetActionFor(Uri uri) {
     return switch (uri.host) {
       'new-note' => OpenNewNote(NewNoteKind.parse(uri.queryParameters['kind'])),
+      'daily' => const OpenDailyNote(),
       'note' when uri.queryParameters['id'] != null => OpenNote(uri.queryParameters['id']!),
       _ => null,
     };

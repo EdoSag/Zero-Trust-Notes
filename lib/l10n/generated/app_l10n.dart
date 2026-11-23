@@ -2160,6 +2160,138 @@ abstract class AppL10n {
   /// In en, this message translates to:
   /// **'\"{title}\" links here'**
   String linksHere(String title);
+
+  /// No description provided for @templates.
+  ///
+  /// In en, this message translates to:
+  /// **'Templates'**
+  String get templates;
+
+  /// No description provided for @templatesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes to start from, and what today\'s note looks like'**
+  String get templatesSubtitle;
+
+  /// No description provided for @templatesHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Start a note from a template with \"New from template\" in the notes list. The one marked here is what \"Today\'s note\" starts from. Use {tokens} in a template and they are filled in.'**
+  String templatesHelp(String tokens);
+
+  /// No description provided for @newFromTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'New from template'**
+  String get newFromTemplate;
+
+  /// No description provided for @todaysNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s note'**
+  String get todaysNote;
+
+  /// No description provided for @manageTemplates.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage templates'**
+  String get manageTemplates;
+
+  /// No description provided for @saveAsTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as template'**
+  String get saveAsTemplate;
+
+  /// No description provided for @templateName.
+  ///
+  /// In en, this message translates to:
+  /// **'Template name'**
+  String get templateName;
+
+  /// No description provided for @templateSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved the template \"{name}\"'**
+  String templateSaved(String name);
+
+  /// No description provided for @renameTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get renameTemplate;
+
+  /// No description provided for @deleteTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete template'**
+  String get deleteTemplate;
+
+  /// No description provided for @builtInTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Built in'**
+  String get builtInTemplate;
+
+  /// No description provided for @ownTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Your template'**
+  String get ownTemplate;
+
+  /// No description provided for @dailyNoteTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Used for today\'s note'**
+  String get dailyNoteTemplate;
+
+  /// No description provided for @templateJournal.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily journal'**
+  String get templateJournal;
+
+  /// No description provided for @templateJournalBody.
+  ///
+  /// In en, this message translates to:
+  /// **'## {date}\n\n**Today I want to**\n- \n\n**Notes**\n\n\n**Grateful for**\n- '**
+  String templateJournalBody(String date);
+
+  /// No description provided for @templateMeeting.
+  ///
+  /// In en, this message translates to:
+  /// **'Meeting notes'**
+  String get templateMeeting;
+
+  /// No description provided for @templateMeetingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Meeting {date}'**
+  String templateMeetingTitle(String date);
+
+  /// No description provided for @templateMeetingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'**Who:** \n**About:** \n\n## Notes\n\n\n## Decisions\n- \n\n## Next steps\n- [ ] '**
+  String get templateMeetingBody;
+
+  /// No description provided for @templateTodo.
+  ///
+  /// In en, this message translates to:
+  /// **'To-do list'**
+  String get templateTodo;
+
+  /// No description provided for @templateTodoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'To do {date}'**
+  String templateTodoTitle(String date);
+
+  /// No description provided for @templateTodoItems.
+  ///
+  /// In en, this message translates to:
+  /// **'Most important first\nThen this\nAnd this'**
+  String get templateTodoItems;
 }
 
 class _AppL10nDelegate extends LocalizationsDelegate<AppL10n> {

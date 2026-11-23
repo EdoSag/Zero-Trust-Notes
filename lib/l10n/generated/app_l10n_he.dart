@@ -1241,4 +1241,81 @@ class AppL10nHe extends AppL10n {
   String linksHere(String title) {
     return '\"$title\" מקשר לכאן';
   }
+
+  @override
+  String get templates => 'תבניות';
+
+  @override
+  String get templatesSubtitle => 'פתקים להתחיל מהם, ואיך נראה הפתק של היום';
+
+  @override
+  String templatesHelp(String tokens) {
+    return 'אפשר להתחיל פתק מתבנית עם \"חדש מתבנית\" ברשימת הפתקים. התבנית שמסומנת כאן היא זו ש\"הפתק של היום\" מתחיל ממנה. אפשר לכתוב בתבנית $tokens, והם יוחלפו בתאריך, ביום או בשעה.';
+  }
+
+  @override
+  String get newFromTemplate => 'חדש מתבנית';
+
+  @override
+  String get todaysNote => 'הפתק של היום';
+
+  @override
+  String get manageTemplates => 'ניהול תבניות';
+
+  @override
+  String get saveAsTemplate => 'שמירה כתבנית';
+
+  @override
+  String get templateName => 'שם התבנית';
+
+  @override
+  String templateSaved(String name) {
+    return 'התבנית \"$name\" נשמרה';
+  }
+
+  @override
+  String get renameTemplate => 'שינוי שם';
+
+  @override
+  String get deleteTemplate => 'מחיקת התבנית';
+
+  @override
+  String get builtInTemplate => 'מובנית';
+
+  @override
+  String get ownTemplate => 'תבנית שלך';
+
+  @override
+  String get dailyNoteTemplate => 'משמשת לפתק של היום';
+
+  @override
+  String get templateJournal => 'יומן יומי';
+
+  @override
+  String templateJournalBody(String date) {
+    return '## $date\n\n**היום אני רוצה**\n- \n\n**הערות**\n\n\n**תודה על**\n- ';
+  }
+
+  @override
+  String get templateMeeting => 'סיכום פגישה';
+
+  @override
+  String templateMeetingTitle(String date) {
+    return 'פגישה $date';
+  }
+
+  @override
+  String get templateMeetingBody =>
+      '**משתתפים:** \n**נושא:** \n\n## הערות\n\n\n## החלטות\n- \n\n## משימות להמשך\n- [ ] ';
+
+  @override
+  String get templateTodo => 'רשימת משימות';
+
+  @override
+  String templateTodoTitle(String date) {
+    return 'לעשות $date';
+  }
+
+  @override
+  String get templateTodoItems => 'הכי חשוב קודם\nאחר כך זה\nוגם זה';
 }

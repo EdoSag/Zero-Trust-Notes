@@ -21,6 +21,7 @@ import '../features/widgets/application/home_widget_sync_service.dart';
 import '../features/widgets/application/pending_widget_action_controller.dart';
 import '../features/widgets/application/widget_launch_listener.dart';
 import '../features/widgets/domain/pending_widget_action.dart';
+import '../features/templates/templates_views.dart';
 import '../features/widgets/presentation/note_picker_page.dart';
 import 'auth_providers.dart';
 import 'package:zerotrust_notes/l10n/l10n.dart';
@@ -407,6 +408,8 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
               ),
             ),
           );
+        case OpenDailyNote():
+          openDailyNote(context, ref);
         case OpenNote(:final noteId):
           unawaited(_openNoteAfterTicks(noteId, notes));
         case CreateNoteFromShare(:final content):

@@ -45,4 +45,5 @@
     <string name="shortcut_new_note">פתק חדש</string>
     <string name="shortcut_new_checklist">רשימה חדשה</string>
     <string name="shortcut_voice_note">פתק קולי</string>
+    <string name="shortcut_daily_note">הפתק של היום</string>
 </resources>

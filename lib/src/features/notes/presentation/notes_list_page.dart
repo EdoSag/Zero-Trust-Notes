@@ -27,6 +27,7 @@ import '../domain/note_color.dart';
 import '../domain/notes_filter.dart';
 import 'note_actions.dart';
 import 'note_card.dart';
+import '../../templates/templates_views.dart';
 import 'note_editor_page.dart';
 import 'package:zerotrust_notes/l10n/l10n.dart';
 
@@ -141,6 +142,17 @@ class _NotesListPageState extends ConsumerState<NotesListPage> {
       ),
     ),
   );
+
+  Future<void> _createFromTemplate() async {
+    final template = await showTemplatePicker(context);
+    if (template == null || !mounted) return;
+    await openNoteFromTemplate(
+      context,
+      template,
+      notebookId: _filter.notebookId,
+      tagId: _filter.tagId,
+    );
+  }
 
   Future<void> _emptyTrash() async {
     final confirmed = await showDialog<bool>(
@@ -271,6 +283,8 @@ class _NotesListPageState extends ConsumerState<NotesListPage> {
                   if (value is _SortOption) setState(() => _sort = value);
                   if (value == 'empty') _emptyTrash();
                   if (value == 'share') _shareNotebook(notebooks);
+                  if (value == 'template') _createFromTemplate();
+                  if (value == 'daily') openDailyNote(context, ref);
                 },
                 itemBuilder: (context) => [
                   if (_filter.notebookId != null && notebooks.any((n) => n.id == _filter.notebookId))
@@ -283,6 +297,18 @@ class _NotesListPageState extends ConsumerState<NotesListPage> {
                             : context.l10n.shareNotebook,
                       ),
                     ),
+                  if (_filter.view == NotesView.notes) ...[
+                    PopupMenuItem(
+                      key: const Key('notes_daily_note'),
+                      value: 'daily',
+                      child: Text(context.l10n.todaysNote),
+                    ),
+                    PopupMenuItem(
+                      key: const Key('notes_from_template'),
+                      value: 'template',
+                      child: Text(context.l10n.newFromTemplate),
+                    ),
+                  ],
                   if (_filter.view == NotesView.trash)
                     PopupMenuItem(value: 'empty', child: Text(context.l10n.emptyTrash)),
                   if (_filter.view == NotesView.notes || _filter.view == NotesView.archive)

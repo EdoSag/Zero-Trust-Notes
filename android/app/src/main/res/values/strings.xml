@@ -48,4 +48,5 @@
     <string name="shortcut_new_note">New note</string>
     <string name="shortcut_new_checklist">New checklist</string>
     <string name="shortcut_voice_note">Voice note</string>
+    <string name="shortcut_daily_note">Today\'s note</string>
 </resources>
