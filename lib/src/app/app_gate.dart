@@ -323,7 +323,7 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
     unawaited(const HomeWidgetSyncService().writeUnlockedPreviews(notes));
   }
 
-  bool _applyingTicks = false;
+  Future<bool>? _ticksInFlight;
 
   /// Saves the ticks made on Checklist widgets while Notes was closed or
   /// locked. Waits until shared notes are in too, so a shared list's ticks
@@ -331,13 +331,15 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
   /// note is saved: if the vault locks part-way, the next unlock tries
   /// again (a tick sets an item's state, so applying it twice is harmless).
   /// An open editor of a ticked note takes the ticks. True when a note was
-  /// saved.
-  Future<bool> _applyChecklistWidgetTicks() async {
-    if (_applyingTicks || !ref.read(allNotesLoadedProvider)) return false;
+  /// saved. A run already going is shared, so a widget tap can wait for it.
+  Future<bool> _applyChecklistWidgetTicks() =>
+      _ticksInFlight ??= _applyTicksOnce().whenComplete(() => _ticksInFlight = null);
+
+  Future<bool> _applyTicksOnce() async {
+    if (!ref.read(allNotesLoadedProvider)) return false;
     final notes = ref.read(allNotesProvider).value;
     final repository = ref.read(notesRepositoryProvider);
     if (notes == null || repository == null) return false;
-    _applyingTicks = true;
     try {
       final changed = await saveChecklistWidgetTicks(
         queue: ref.read(checklistWidgetTicksProvider),
@@ -350,9 +352,29 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
       return changed > 0;
     } on Object {
       return false;
-    } finally {
-      _applyingTicks = false;
     }
+  }
+
+  /// Opens [noteId] once ticks made on its widget are saved, so the editor
+  /// starts from them; ticks saved later reach the open editor by
+  /// [widgetTickedNoteProvider].
+  Future<void> _openNoteAfterTicks(String noteId, List<Note> notes) async {
+    final ticks = _ticksInFlight;
+    if (ticks != null) await ticks;
+    if (!mounted) return;
+    final latest = [
+      ...notes.where((note) => note.id == noteId),
+      ...?ref.read(allNotesProvider).value?.where((note) => note.id == noteId),
+      if (ref.read(widgetTickedNoteProvider) case final ticked? when ticked.id == noteId) ticked,
+    ];
+    if (latest.isEmpty) {
+      ScaffoldMessenger.maybeOf(
+        context,
+      )?.showSnackBar(SnackBar(content: Text(context.l10n.noteNotFound)));
+      return;
+    }
+    final note = latest.reduce((a, b) => b.updatedAt.isAfter(a.updatedAt) ? b : a);
+    unawaited(Navigator.of(context).push(MaterialPageRoute(builder: (_) => NoteEditorPage(note: note))));
   }
 
   /// Performs the navigation a widget tap asked for, once the notes are
@@ -386,16 +408,7 @@ class _NotesHomeState extends ConsumerState<_NotesHome> {
             ),
           );
         case OpenNote(:final noteId):
-          final matches = notes.where((note) => note.id == noteId);
-          if (matches.isEmpty) {
-            ScaffoldMessenger.maybeOf(
-              context,
-            )?.showSnackBar(SnackBar(content: Text(context.l10n.noteNotFound)));
-          } else {
-            Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => NoteEditorPage(note: matches.first)));
-          }
+          unawaited(_openNoteAfterTicks(noteId, notes));
         case CreateNoteFromShare(:final content):
           Navigator.of(
             context,
