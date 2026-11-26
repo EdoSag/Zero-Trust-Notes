@@ -2436,6 +2436,156 @@ abstract class AppL10n {
   /// In en, this message translates to:
   /// **'No notes found in that file. Choose an .enex, a Standard Notes backup, or Markdown, text or HTML notes.'**
   String get otherNoneFound;
+
+  /// No description provided for @assistAsk.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask ZT Assist'**
+  String get assistAsk;
+
+  /// No description provided for @assistPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'ZT Assist works on this phone. The note is not sent anywhere.'**
+  String get assistPrivacy;
+
+  /// No description provided for @assistOnSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Working on the selected text only.'**
+  String get assistOnSelection;
+
+  /// No description provided for @assistSummarize.
+  ///
+  /// In en, this message translates to:
+  /// **'Summarize'**
+  String get assistSummarize;
+
+  /// No description provided for @assistRewrite.
+  ///
+  /// In en, this message translates to:
+  /// **'Improve the writing'**
+  String get assistRewrite;
+
+  /// No description provided for @assistProofread.
+  ///
+  /// In en, this message translates to:
+  /// **'Fix spelling and grammar'**
+  String get assistProofread;
+
+  /// No description provided for @assistTranslate.
+  ///
+  /// In en, this message translates to:
+  /// **'Translate (Hebrew and English)'**
+  String get assistTranslate;
+
+  /// No description provided for @assistTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggest a title'**
+  String get assistTitle;
+
+  /// No description provided for @assistStarting.
+  ///
+  /// In en, this message translates to:
+  /// **'Getting ZT Assist ready. The first answer takes a few seconds longer.'**
+  String get assistStarting;
+
+  /// No description provided for @assistStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get assistStop;
+
+  /// No description provided for @assistStoppedByUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped before the end.'**
+  String get assistStoppedByUser;
+
+  /// No description provided for @assistUseAsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Use as title'**
+  String get assistUseAsTitle;
+
+  /// No description provided for @assistReplaceText.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace the note\'s text'**
+  String get assistReplaceText;
+
+  /// No description provided for @assistReplaceSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace the selected text'**
+  String get assistReplaceSelection;
+
+  /// No description provided for @assistOtherAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose something else'**
+  String get assistOtherAction;
+
+  /// No description provided for @assistReadBeginning.
+  ///
+  /// In en, this message translates to:
+  /// **'The note is long, so only its beginning was read.'**
+  String get assistReadBeginning;
+
+  /// No description provided for @assistTooLongToReplace.
+  ///
+  /// In en, this message translates to:
+  /// **'The text is too long to do in one go, so only its beginning was done. Select a part of it and ask again to replace it.'**
+  String get assistTooLongToReplace;
+
+  /// No description provided for @assistNothingToRead.
+  ///
+  /// In en, this message translates to:
+  /// **'There is no text in this note yet.'**
+  String get assistNothingToRead;
+
+  /// No description provided for @assistReplaced.
+  ///
+  /// In en, this message translates to:
+  /// **'The text was replaced.'**
+  String get assistReplaced;
+
+  /// No description provided for @assistNotInstalled.
+  ///
+  /// In en, this message translates to:
+  /// **'ZT Assist is not on this phone.'**
+  String get assistNotInstalled;
+
+  /// No description provided for @assistNoModel.
+  ///
+  /// In en, this message translates to:
+  /// **'ZT Assist has no model yet. Open ZT Assist and download one.'**
+  String get assistNoModel;
+
+  /// No description provided for @assistLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'ZT Assist could not load its model. The phone may be short of free memory: close other apps and try again.'**
+  String get assistLoadFailed;
+
+  /// No description provided for @assistNeedsUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'ZT Assist needs an update before it can do this.'**
+  String get assistNeedsUpdate;
+
+  /// No description provided for @assistStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'ZT Assist stopped in the middle. Try again.'**
+  String get assistStopped;
+
+  /// No description provided for @assistFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'ZT Assist could not answer. Try again.'**
+  String get assistFailed;
 }
 
 class _AppL10nDelegate extends LocalizationsDelegate<AppL10n> {

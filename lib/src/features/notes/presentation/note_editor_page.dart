@@ -13,6 +13,8 @@ import 'package:zt_sharing_ui/zt_sharing_ui.dart';
 
 import '../../../shared/theme/app_spacing.dart';
 import '../../../shared/widgets/accessible_touch_target.dart';
+import '../../assist/note_assist.dart';
+import '../../assist/note_assist_sheet.dart';
 import '../../export/presentation/export_sheet.dart';
 import '../../drawing/drawing.dart';
 import '../../drawing/drawing_page.dart';
@@ -141,6 +143,9 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   bool _dirty = false;
   bool _previewMode = false;
 
+  /// ZT Assist is on this phone, so the menu offers to ask it.
+  bool _assistHere = false;
+
   /// Saves run one after another, so a quick second edit can't create the
   /// note twice.
   Future<bool> _saving = Future.value(true);
@@ -177,6 +182,10 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     ref.listenManual(firedPlaceRemindersProvider, (_, fired) => _dropFiredPlaceReminder(fired));
     ref.listenManual(widgetTickedNoteProvider, (_, ticked) => _takeWidgetTicks(ticked));
     ref.listenManual(renamedLinksProvider, (_, rename) => _takeRenamedLinks(rename));
+    ref.listenManual(assistInstalledProvider, (_, installed) {
+      final here = installed.value ?? false;
+      if (here != _assistHere && mounted) setState(() => _assistHere = here);
+    }, fireImmediately: true);
     _images = note?.images ?? const [];
     _drawings = note?.drawings ?? const {};
     _files = note?.files ?? const [];
@@ -687,6 +696,104 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
       }
     });
     _changed();
+  }
+
+  /// Hands the note's text, or the part of it that is selected, to ZT
+  /// Assist on this phone, and puts the answer where the user says.
+  Future<void> _askAssist() async {
+    final checklist = _checklist;
+    final body = _bodyController.text;
+    final selection = _bodyController.selection;
+    final selected =
+        checklist == null &&
+            selection.isValid &&
+            !selection.isCollapsed &&
+            selection.end <= body.length
+        ? selection.textInside(body)
+        : '';
+    final onSelection = selected.trim().isNotEmpty;
+    final text = onSelection
+        ? selected
+        : checklist != null
+        ? checklist.map((item) => item.text).join('\n')
+        : body;
+    if (text.trim().isEmpty) {
+      _snack(context.l10n.assistNothingToRead);
+      return;
+    }
+    final result = await showNoteAssistSheet(
+      context,
+      text: text,
+      selection: onSelection,
+      checklist: checklist != null,
+    );
+    if (result == null || !mounted || result.text.isEmpty) return;
+    switch (result.apply) {
+      case NoteAssistApply.title:
+        _titleController.text = result.text;
+      case NoteAssistApply.append:
+        _appendText(result.text);
+      case NoteAssistApply.replace:
+        // The text as it is now goes into the note's history first, so it
+        // can be brought back after the Undo below is gone. The history
+        // kept while typing skips a note edited in the last ten minutes.
+        if (!_inShared && await _persist()) {
+          final current = _note;
+          final history = ref.read(noteHistoryProvider);
+          if (current != null && history != null) {
+            try {
+              await history.keep(current);
+            } on Object {
+              // Locked or the store is busy: Undo is still there.
+            }
+          }
+        }
+        if (!mounted) return;
+        // The text can't have changed under the sheet, but if it did the
+        // answer is added and nothing is lost.
+        if (_bodyController.text != body) {
+          _appendText(result.text);
+          return;
+        }
+        final replaced = onSelection
+            ? body.replaceRange(selection.start, selection.end, result.text)
+            : result.text;
+        setState(() => _bodyController.text = replaced);
+        _changed();
+        _offerUndoOfReplace(before: body, after: replaced);
+    }
+  }
+
+  /// Undo for a replacement by ZT Assist. It is offered only while the
+  /// text is still exactly what ZT Assist wrote: after another edit, going
+  /// back to [before] would throw that edit away too.
+  void _offerUndoOfReplace({required String before, required String after}) {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) return;
+    late final ScaffoldFeatureController<SnackBar, SnackBarClosedReason> snack;
+    late final VoidCallback dropWhenEdited;
+    dropWhenEdited = () {
+      if (_bodyController.text == after) return;
+      _bodyController.removeListener(dropWhenEdited);
+      snack.close();
+    };
+    snack = messenger.showSnackBar(
+      SnackBar(
+        content: Text(context.l10n.assistReplaced),
+        duration: const Duration(seconds: 8),
+        action: SnackBarAction(
+          label: context.l10n.undo,
+          onPressed: () {
+            _bodyController.removeListener(dropWhenEdited);
+            if (!mounted || _bodyController.text != after) return;
+            setState(() => _bodyController.text = before);
+            _changed();
+          },
+        ),
+      ),
+    );
+    _bodyController.addListener(dropWhenEdited);
+    snack.closed.whenComplete(() => _bodyController.removeListener(dropWhenEdited));
   }
 
   Future<void> _textFromPhoto() async {
@@ -1411,6 +1518,8 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
             _addDrawing();
           case 'scanText':
             _textFromPhoto();
+          case 'assist':
+            _askAssist();
           case 'lock':
             _toggleLock();
           case 'share':
@@ -1469,6 +1578,14 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
             child: ListTile(
               leading: Icon(Icons.document_scanner_outlined),
               title: Text(context.l10n.textFromPhoto),
+            ),
+          ),
+        if (_assistHere && !_inTrash)
+          PopupMenuItem(
+            value: 'assist',
+            child: ListTile(
+              leading: const Icon(Icons.auto_awesome_outlined),
+              title: Text(context.l10n.assistAsk),
             ),
           ),
         if (_hasCamera && !_inShared)

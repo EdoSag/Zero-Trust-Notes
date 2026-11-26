@@ -85,6 +85,14 @@ dependencies:
       url: https://github.com/EdoSag/Zero-Trust-Core.git
       path: packages/zt_places
       ref: v1.0.1
+  # Asks ZT Assist, the AI on the same phone, to summarize or rewrite a
+  # note. Pinned to the commit that added the package; move it to the core's
+  # tag with the next core release.
+  zt_assist:
+    git:
+      url: https://github.com/EdoSag/Zero-Trust-Core.git
+      path: packages/zt_assist
+      ref: d7c08b679c316a209b0f361ce3a76e8054ad9a03
   url_launcher: ^6.3.3
   flutter_local_notifications: ^23.0.0
   timezone: ^0.11.2

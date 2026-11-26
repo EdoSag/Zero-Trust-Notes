@@ -1440,4 +1440,85 @@ class AppL10nHe extends AppL10n {
   @override
   String get otherNoneFound =>
       'לא נמצאו פתקים בקובץ הזה. בחרו קובץ ‎.enex, גיבוי של Standard Notes, או פתקי Markdown, טקסט או HTML.';
+
+  @override
+  String get assistAsk => 'שאלה ל-ZT Assist';
+
+  @override
+  String get assistPrivacy =>
+      'ZT Assist פועל בטלפון עצמו. הפתק לא נשלח לשום מקום.';
+
+  @override
+  String get assistOnSelection => 'רק על הטקסט שנבחר.';
+
+  @override
+  String get assistSummarize => 'סיכום';
+
+  @override
+  String get assistRewrite => 'שיפור הניסוח';
+
+  @override
+  String get assistProofread => 'תיקון כתיב ודקדוק';
+
+  @override
+  String get assistTranslate => 'תרגום (עברית ואנגלית)';
+
+  @override
+  String get assistTitle => 'הצעת כותרת';
+
+  @override
+  String get assistStarting =>
+      'מכינים את ZT Assist. התשובה הראשונה לוקחת כמה שניות יותר.';
+
+  @override
+  String get assistStop => 'עצירה';
+
+  @override
+  String get assistStoppedByUser => 'נעצר לפני הסוף.';
+
+  @override
+  String get assistUseAsTitle => 'שימוש ככותרת';
+
+  @override
+  String get assistReplaceText => 'החלפת הטקסט של הפתק';
+
+  @override
+  String get assistReplaceSelection => 'החלפת הטקסט שנבחר';
+
+  @override
+  String get assistOtherAction => 'בחירת פעולה אחרת';
+
+  @override
+  String get assistReadBeginning => 'הפתק ארוך, ולכן נקראה רק ההתחלה שלו.';
+
+  @override
+  String get assistTooLongToReplace =>
+      'הטקסט ארוך מדי לפעם אחת, ולכן טופלה רק ההתחלה שלו. כדי להחליף, יש לבחור חלק ממנו ולשאול שוב.';
+
+  @override
+  String get assistNothingToRead => 'עדיין אין טקסט בפתק הזה.';
+
+  @override
+  String get assistReplaced => 'הטקסט הוחלף.';
+
+  @override
+  String get assistNotInstalled => 'ZT Assist לא מותקן בטלפון הזה.';
+
+  @override
+  String get assistNoModel =>
+      'ל-ZT Assist עדיין אין מודל. יש לפתוח את ZT Assist ולהוריד אחד.';
+
+  @override
+  String get assistLoadFailed =>
+      'ZT Assist לא הצליח לטעון את המודל. ייתכן שחסר זיכרון פנוי בטלפון: כדאי לסגור אפליקציות אחרות ולנסות שוב.';
+
+  @override
+  String get assistNeedsUpdate =>
+      'צריך לעדכן את ZT Assist כדי שיוכל לעשות את זה.';
+
+  @override
+  String get assistStopped => 'ZT Assist נעצר באמצע. אפשר לנסות שוב.';
+
+  @override
+  String get assistFailed => 'ZT Assist לא הצליח לענות. אפשר לנסות שוב.';
 }
