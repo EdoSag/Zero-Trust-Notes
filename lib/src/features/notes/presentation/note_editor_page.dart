@@ -734,33 +734,66 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
       case NoteAssistApply.append:
         _appendText(result.text);
       case NoteAssistApply.replace:
+        // The text as it is now goes into the note's history first, so it
+        // can be brought back after the Undo below is gone. The history
+        // kept while typing skips a note edited in the last ten minutes.
+        if (!_inShared && await _persist()) {
+          final current = _note;
+          final history = ref.read(noteHistoryProvider);
+          if (current != null && history != null) {
+            try {
+              await history.keep(current);
+            } on Object {
+              // Locked or the store is busy: Undo is still there.
+            }
+          }
+        }
+        if (!mounted) return;
         // The text can't have changed under the sheet, but if it did the
         // answer is added and nothing is lost.
         if (_bodyController.text != body) {
           _appendText(result.text);
           return;
         }
-        setState(() {
-          _bodyController.text = onSelection
-              ? body.replaceRange(selection.start, selection.end, result.text)
-              : result.text;
-        });
+        final replaced = onSelection
+            ? body.replaceRange(selection.start, selection.end, result.text)
+            : result.text;
+        setState(() => _bodyController.text = replaced);
         _changed();
-        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-          SnackBar(
-            content: Text(context.l10n.assistReplaced),
-            duration: const Duration(seconds: 8),
-            action: SnackBarAction(
-              label: context.l10n.undo,
-              onPressed: () {
-                if (!mounted) return;
-                setState(() => _bodyController.text = body);
-                _changed();
-              },
-            ),
-          ),
-        );
+        _offerUndoOfReplace(before: body, after: replaced);
     }
+  }
+
+  /// Undo for a replacement by ZT Assist. It is offered only while the
+  /// text is still exactly what ZT Assist wrote: after another edit, going
+  /// back to [before] would throw that edit away too.
+  void _offerUndoOfReplace({required String before, required String after}) {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) return;
+    late final ScaffoldFeatureController<SnackBar, SnackBarClosedReason> snack;
+    late final VoidCallback dropWhenEdited;
+    dropWhenEdited = () {
+      if (_bodyController.text == after) return;
+      _bodyController.removeListener(dropWhenEdited);
+      snack.close();
+    };
+    snack = messenger.showSnackBar(
+      SnackBar(
+        content: Text(context.l10n.assistReplaced),
+        duration: const Duration(seconds: 8),
+        action: SnackBarAction(
+          label: context.l10n.undo,
+          onPressed: () {
+            _bodyController.removeListener(dropWhenEdited);
+            if (!mounted || _bodyController.text != after) return;
+            setState(() => _bodyController.text = before);
+            _changed();
+          },
+        ),
+      ),
+    );
+    _bodyController.addListener(dropWhenEdited);
+    snack.closed.whenComplete(() => _bodyController.removeListener(dropWhenEdited));
   }
 
   Future<void> _textFromPhoto() async {

@@ -211,6 +211,58 @@ void main() {
     await finish(tester, phone);
   });
 
+  testWidgets('the text before a replacement is kept in the note\'s history', timeout: timeout, (
+    tester,
+  ) async {
+    final assist = FakeZtAssist(answer: (_) => ['A cleaner text']);
+    await pumpEditor(tester, assist);
+    phone.container.listen(noteHistoryProvider, (_, _) {});
+    // Two saves a moment apart: the second keeps 'First draft' as a
+    // version, and for the next ten minutes typing keeps no more.
+    await tester.enterText(find.byKey(const Key('note_body_field')), 'First draft');
+    await tester.pump(const Duration(seconds: 2));
+    await settle(tester);
+    await tester.enterText(find.byKey(const Key('note_body_field')), 'A mesy text');
+    await tester.pump(const Duration(seconds: 2));
+    await settle(tester);
+    await openAssist(tester);
+    await tester.tap(find.byKey(const Key('assist_proofread')));
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('assist_replace')));
+    await settle(tester);
+    expect(bodyOf(tester), 'A cleaner text');
+
+    // Typed just now, so the history kept while typing skips it: the
+    // replacement keeps a version of its own.
+    final note = (await tester.runAsync(() => phone.repo.fetchAll()))!.single;
+    final versions = (await tester.runAsync(
+      () => phone.container.read(noteHistoryProvider)!.versionsOf(note.id),
+    ))!;
+    expect(versions.map((v) => v.body), containsAll(['First draft', 'A mesy text']));
+    await finish(tester, phone);
+  });
+
+  testWidgets('Undo goes away once the replaced text is edited again', timeout: timeout, (
+    tester,
+  ) async {
+    final assist = FakeZtAssist(answer: (_) => ['New text']);
+    await pumpEditor(tester, assist);
+    await tester.enterText(find.byKey(const Key('note_body_field')), 'Old text');
+    await openAssist(tester);
+    await tester.tap(find.byKey(const Key('assist_rewrite')));
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('assist_replace')));
+    await settle(tester);
+    expect(find.text('Undo'), findsOneWidget);
+
+    await tester.enterText(find.byKey(const Key('note_body_field')), 'New text, and more');
+    await settle(tester);
+    // Going back now would throw the new words away as well.
+    expect(find.text('Undo'), findsNothing);
+    expect(bodyOf(tester), 'New text, and more');
+    await finish(tester, phone);
+  });
+
   testWidgets('a suggested title becomes the title', timeout: timeout, (tester) async {
     final assist = FakeZtAssist(answer: (_) => ['**"Kitchen', ' plan"**']);
     await pumpEditor(tester, assist);
