@@ -1438,4 +1438,86 @@ class AppL10nEn extends AppL10n {
   @override
   String get otherNoneFound =>
       'No notes found in that file. Choose an .enex, a Standard Notes backup, or Markdown, text or HTML notes.';
+
+  @override
+  String get assistAsk => 'Ask ZT Assist';
+
+  @override
+  String get assistPrivacy =>
+      'ZT Assist works on this phone. The note is not sent anywhere.';
+
+  @override
+  String get assistOnSelection => 'Working on the selected text only.';
+
+  @override
+  String get assistSummarize => 'Summarize';
+
+  @override
+  String get assistRewrite => 'Improve the writing';
+
+  @override
+  String get assistProofread => 'Fix spelling and grammar';
+
+  @override
+  String get assistTranslate => 'Translate (Hebrew and English)';
+
+  @override
+  String get assistTitle => 'Suggest a title';
+
+  @override
+  String get assistStarting =>
+      'Getting ZT Assist ready. The first answer takes a few seconds longer.';
+
+  @override
+  String get assistStop => 'Stop';
+
+  @override
+  String get assistStoppedByUser => 'Stopped before the end.';
+
+  @override
+  String get assistUseAsTitle => 'Use as title';
+
+  @override
+  String get assistReplaceText => 'Replace the note\'s text';
+
+  @override
+  String get assistReplaceSelection => 'Replace the selected text';
+
+  @override
+  String get assistOtherAction => 'Choose something else';
+
+  @override
+  String get assistReadBeginning =>
+      'The note is long, so only its beginning was read.';
+
+  @override
+  String get assistTooLongToReplace =>
+      'The text is too long to do in one go, so only its beginning was done. Select a part of it and ask again to replace it.';
+
+  @override
+  String get assistNothingToRead => 'There is no text in this note yet.';
+
+  @override
+  String get assistReplaced => 'The text was replaced.';
+
+  @override
+  String get assistNotInstalled => 'ZT Assist is not on this phone.';
+
+  @override
+  String get assistNoModel =>
+      'ZT Assist has no model yet. Open ZT Assist and download one.';
+
+  @override
+  String get assistLoadFailed =>
+      'ZT Assist could not load its model. The phone may be short of free memory: close other apps and try again.';
+
+  @override
+  String get assistNeedsUpdate =>
+      'ZT Assist needs an update before it can do this.';
+
+  @override
+  String get assistStopped => 'ZT Assist stopped in the middle. Try again.';
+
+  @override
+  String get assistFailed => 'ZT Assist could not answer. Try again.';
 }

@@ -21,6 +21,12 @@ and look as the other Zero-Trust apps, built on
   open in the app.
 - **Voice notes**, transcribed on the phone. A phone that can only
   transcribe online is not used: your voice is never sent anywhere.
+- **Ask ZT Assist** (when [ZT Assist](https://github.com/EdoSag/Zero-Trust-Assist)
+  is on the same phone): summarize a note, improve its writing, fix spelling
+  and grammar, translate between Hebrew and English, or get a title
+  suggested. It works on the whole note or on the text you selected, and
+  you choose whether the answer replaces the text, is added below it, or is
+  only copied. The AI model runs on the phone, inside ZT Assist.
 - **Reminders:** at a time, or at a place ("when I get to the
   supermarket"). The phone watches for the place itself (Core's
   `zt_places`, no Google Play services), so your location never leaves it.
@@ -70,6 +76,9 @@ forget the password. How the keys work:
   phone for the launcher. Locked notes never show their text.
 - A reminder hands only the note's title to Android.
 - Text recognition, handwriting and voice transcription run on the phone.
+- "Ask ZT Assist" hands the note's text to the ZT Assist app on the same
+  phone, only when you ask, and only to an app signed with the same key as
+  this one. ZT Assist does not save it and nothing is sent to a server.
 - Exports are plain files. Locked notes are exported only after your
   fingerprint, face or screen lock.
 - Notes from before the core (the old vault) are brought over on first
@@ -109,7 +118,7 @@ lib/src/
   core/       shared helpers
   features/   one folder per feature: notes, notebooks, tags, reminders,
               places, images, drawing, handwriting, image_text, voice,
-              files, links, templates, history, sharing, widgets,
+              files, links, templates, history, sharing, widgets, assist,
               keep_import, other_import, export, legacy_import, sync
   shared/     shared widgets
 android/      widgets, Quick Settings tile, share target, PDF pages
